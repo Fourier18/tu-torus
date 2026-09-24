@@ -46,21 +46,24 @@ app.post("/api/settings", async (req, res) => {
 });
 
 // One-shot tutor question. Attaches the last run record's pointer line only —
-// not the file contents — per [DESIGN.md]: the tutor reads run files itself.
+// not the file contents — per [DESIGN.md]: the Claude path reads run files
+// itself; the custom-provider path (no tool-use loop) gets the record's
+// actual content, extracted from the same pointer line below.
 app.post("/api/tutor", async (req, res) => {
   const { message, lastRunPointer } = req.body;
   const fullMessage = lastRunPointer ? `${message}\n\n(${lastRunPointer})` : message;
+  const lastRunRecordPath = lastRunPointer?.match(/record in (.+)$/)?.[1];
 
   res.setHeader("Content-Type", "text/event-stream");
   res.setHeader("Cache-Control", "no-cache");
 
   let usage = null;
   try {
-    for await (const event of askTutor({ message: fullMessage, projectDir: PROJECT_DIR })) {
-      if (event.type === "assistant") {
-        res.write(`data: ${JSON.stringify({ type: "text", value: event.message.content })}\n\n`);
+    for await (const event of askTutor({ message: fullMessage, projectDir: PROJECT_DIR, lastRunRecordPath })) {
+      if (event.type === "text") {
+        res.write(`data: ${JSON.stringify({ type: "text", value: event.text })}\n\n`);
       }
-      if (event.type === "result") {
+      if (event.type === "done") {
         usage = event.usage;
       }
     }

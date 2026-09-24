@@ -10,6 +10,12 @@ const SETTINGS_PATH = path.join(TUTOR_DIR, "settings.json");
 const FACTORY_DEFAULTS = {
   model: "sonnet", // [DESIGN.md] "Default to the mid-tier Claude model, changeable in settings"
   theme: "light", // [DESIGN.md] "Light theme by default... a second theme later is a new file"
+  // One generic connection point, not one adapter per vendor — most local
+  // servers (Ollama, LM Studio) and most cloud providers (OpenAI, DeepSeek,
+  // many enterprise proxies) speak the same chat-completions API shape.
+  // Claude stays the default; "custom" is an onboarding-driven addition, not
+  // a second hardcoded provider.
+  provider: { type: "claude" }, // or { type: "custom", baseUrl, apiKey, model }
 };
 
 export async function getSettings() {
