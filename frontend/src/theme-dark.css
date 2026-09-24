@@ -1,0 +1,13 @@
+/* [DESIGN.md, Visual] "a second theme later is a new file, not a rewrite" —
+   this is that file. Same token names as theme.css, dark values, activated
+   by data-theme="dark" on the root element. No component touched to add it. */
+[data-theme="dark"] {
+  --bg: #1a1a1e;
+  --panel-bg: #212126;
+  --border: #33333a;
+  --text: #e8e8ea;
+  --text-dim: #97979f;
+  --accent: #5b8dee;
+  --output-bg: #1a1a1e;
+  --error: #ff6b64;
+}

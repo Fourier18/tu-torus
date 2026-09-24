@@ -1,0 +1,13 @@
+{
+  "dependencies": {
+    "@anthropic-ai/claude-agent-sdk": "^0.3.281",
+    "express": "^5.2.1",
+    "pyodide": "^314.0.7",
+    "ws": "^8.21.3"
+  },
+  "type": "module",
+  "name": "coding-tutor-server",
+  "scripts": {
+    "start": "node src/index.js"
+  }
+}

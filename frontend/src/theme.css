@@ -1,0 +1,15 @@
+/* [DESIGN.md, Visual] Light theme by default, built as a swappable token
+   layer — a second theme later is a new file (e.g. theme-dark.css swapped in
+   by a data-theme attribute), not a rewrite of any component. */
+:root {
+  --bg: #ffffff;
+  --panel-bg: #f7f7f8;
+  --border: #e2e2e5;
+  --text: #1c1c1f;
+  --text-dim: #6b6b73;
+  --accent: #2563eb;
+  --output-bg: #ffffff;
+  --error: #b3261e;
+  --font: system-ui, -apple-system, sans-serif;
+  --mono: "Consolas", "SF Mono", monospace;
+}
