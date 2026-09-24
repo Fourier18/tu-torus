@@ -1,3 +1,14 @@
+// [Electron packaging] This process is itself launched with
+// ELECTRON_RUN_AS_NODE=1 (so Electron's bundled binary runs as plain Node
+// instead of launching a GUI) — but that variable then inherits down to any
+// child THIS process spawns. The Claude Agent SDK spawns its own bundled
+// claude.exe as a child, and claude.exe is itself sensitive to this same
+// variable (confirmed as a known issue: anthropics/claude-code#34836 —
+// ELECTRON_RUN_AS_NODE leaking into child processes breaks Electron-adjacent
+// binaries). Stripped here, before any SDK code runs, so it can't leak
+// further down.
+delete process.env.ELECTRON_RUN_AS_NODE;
+
 import express from "express";
 import { WebSocketServer } from "ws";
 import { createServer } from "node:http";
@@ -68,6 +79,12 @@ app.post("/api/tutor", async (req, res) => {
       }
     }
   } catch (err) {
+    // Diagnostic: the SDK's own error message wraps the real underlying
+    // spawn failure in a generic (and, on Windows, Linux-worded) string —
+    // dumping every property the error object actually carries to find what
+    // it's hiding, since String(err) alone hasn't been enough to diagnose
+    // the packaged-app launch failure.
+    console.error("TUTOR ERROR FULL:", JSON.stringify(err, Object.getOwnPropertyNames(err), 2));
     res.write(`data: ${JSON.stringify({ type: "error", value: String(err) })}\n\n`);
   }
 
@@ -114,6 +131,18 @@ wss.on("connection", (ws) => {
 
   ws.on("close", () => session?.kill());
 });
+
+// [Electron packaging] Serves the frontend's production build when present,
+// so the packaged app is one process on one port — Electron just points a
+// window at it. `npm run dev` (Vite's own dev server on 5173, proxying to
+// this backend) is unaffected: it never builds frontend/dist, so this block
+// silently does nothing during normal development.
+const distDir = path.join(path.dirname(WORKSPACE_DIR), "frontend", "dist");
+try {
+  await import("node:fs").then((fs) => fs.accessSync(distDir));
+  app.use(express.static(distDir));
+  app.get(/^(?!\/api|\/run).*/, (_req, res) => res.sendFile(path.join(distDir, "index.html")));
+} catch { /* dist not built — dev mode via Vite, nothing to do here */ }
 
 const PORT = process.env.PORT || 4310;
 httpServer.listen(PORT, () => console.log(`Backend on http://localhost:${PORT}`));

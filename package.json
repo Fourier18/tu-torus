@@ -1,13 +1,15 @@
 {
   "name": "coding-tutor",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "A live coding tutor — self-contained, no Docker required.",
+  "main": "electron/main.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "piston": "docker compose -f piston/docker-compose.yaml up -d",
     "dev": "concurrently -n server,frontend -c blue,green \"npm --prefix server start\" \"npm --prefix frontend run dev\"",
-    "setup": "npm --prefix server install && npm --prefix frontend install"
+    "setup": "npm --prefix server install && npm --prefix frontend install",
+    "build:frontend": "npm --prefix frontend run build",
+    "electron": "npm run build:frontend && electron .",
+    "package": "npm run build:frontend && electron-builder"
   },
   "keywords": [],
   "author": "",
@@ -17,5 +19,24 @@
     "concurrently": "^10.0.5",
     "electron": "^44.4.5",
     "electron-builder": "^26.15.3"
+  },
+  "build": {
+    "appId": "com.codingtutor.app",
+    "productName": "Coding Tutor",
+    "files": [
+      "electron/**/*",
+      "server/**/*",
+      "frontend/dist/**/*",
+      "!server/node_modules/pyodide/**/*.wasm.map",
+      "!**/*.test.mjs"
+    ],
+    "win": {
+      "target": "nsis"
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false
+    },
+    "asar": false
   }
 }

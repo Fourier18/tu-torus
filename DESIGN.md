@@ -36,34 +36,30 @@ A live-coding-tutor app. Three panels. Any language, no setup step, no language 
 What that means concretely, with no user-visible seam between the two:
 
 - A file a browser can open directly (HTML, SVG, an image, plain text) is shown directly, the same as double-clicking it would.
-- A file that needs a language runtime to produce anything (Python, Rust, most languages) runs on self-hosted Piston (github.com/engineer-man/piston), and its output — text, almost always — is shown as that.
+- A file that needs a language runtime to produce anything runs on whichever engine `languages.json` configures for it, and its output — text, almost always — is shown as that.
 
-The extension-to-runner mapping is a config table (extension → how to show it), never a hardcoded if/else, so adding a language is adding a row, not a code change.
+The extension-to-runner mapping is a config table (extension → how to run it), never a hardcoded if/else, so adding a language is adding a row, not a code change.
 
-**[R4] Unknown language handling:** if a file's extension isn't in that table, check Piston's own runtime list (`/api/v2/runtimes`) before saying anything is unsupported — Piston already covers 70+ languages, so most "unknown" cases are really just missing from *our* table, not from Piston. If Piston has it, add the row automatically. If Piston genuinely doesn't have it, say so plainly and let it be added (Piston supports installing additional language packages on a self-hosted instance) rather than failing silently or blocking the file from being written and edited.
+**[R18] Execution engine, corrected — no Docker, no Piston.** Earlier revisions (5, 7, 10) built this on self-hosted Piston, which needs Docker. That was solving the wrong problem: Piston/Judge0-style sandboxing exists to defend a *shared server* from *strangers'* code. This app has neither — it's one person running their own code on their own machine, the same as opening a terminal themselves. There's no attacker in that model, so container-grade isolation was never actually required; what matters is ordinary hygiene. Current engines, dispatched per extension:
+  - **Pyodide, in a worker thread** (`server/src/engines/python.js` + `python-worker.js`) for Python. Runs in-process, bundled with the app — no install, no daemon. Real interactive `input()` works via a `SharedArrayBuffer` + `Atomics.wait`/`notify` bridge between the worker (which genuinely blocks) and the main thread (which holds the live WebSocket) — this is the standard pattern for blocking stdin in a worker/WASM setup, confirmed with a timestamped test proving the block is real, not pre-buffered.
+  - **A local toolchain, run as a plain subprocess** (`server/src/engines/toolchain.js`) for everything else — whatever compiler/interpreter is already on the machine (`node`, `rustc`, `go`, `gcc`, `ruby`, `php`, etc.), detected via `where`/`which`. Hygiene, not isolation: a 15s hard timeout, the whole process tree killed on timeout (not just the parent), output capped, and a fresh throwaway temp directory per run. If a language's toolchain isn't installed, that's said plainly (`"<command> isn't installed... install it to run .<ext> files"`) rather than failing silently or hanging.
+  - Confirmed working, for real, not assumed: Python, JavaScript (via `node`), and Rust (compile-then-run via `rustc`, proving the two-stage path). Go correctly shows the "not installed" message rather than crashing. C#, and several others in the table, are configured but not yet verified against an installed toolchain on this machine — say so if asked, don't claim they're tested.
 
 Input:
 
-- **[R2] An input line is present whenever a program is running** and takes focus when output goes quiet; it disappears when the program ends. (Rev 1 said "appears exactly when the program asks." Not possible: Piston sends no "waiting for input" event — its messages are init, runtime, stage, data, signal, exit, error.)
+- **[R2] An input line is present whenever a program is running** and takes focus when output goes quiet; it disappears when the program ends. Neither engine above signals "now waiting for input" distinctly from other output, so this stays the right design.
 
 Errors:
 
 - **[R2] If the program crashes, the canvas shows one plain line** ("Program stopped with an error"). The full error text goes into the run record for the tutor. (Rev 1 showed stdout only, so a crash would have left a blank panel.)
 
-Piston requirements (all hard requirements):
-
-- WebSocket mode only (`/api/v2/connect`), never REST `/execute`. REST needs all input upfront and breaks any script that asks for input twice.
-- **[R2] Default limits must be changed** (they're env settings on a self-hosted instance): run timeout defaults to 3 seconds (would kill any program waiting for you to type), output defaults to 1024 characters. Set the timeout to minutes and use our own output cap.
-- **[R2] Output buffering off.** Over pipes, Python and C hold output back, so a program can look frozen before asking for input. Run Python with `PYTHONUNBUFFERED=1` and C/C++ line-buffered (`stdbuf`) in Piston's runtime scripts.
-- Runs in Docker with `--privileged`. **[R2] First build step: prove it runs on this Windows 10 Home machine** (Docker Desktop on WSL2). Rev 1 claimed "just `docker-compose up`" without checking. If it won't run here, Piston moves to a small Linux host — same design, different machine.
-
-**[R2] Known limits (not being built now):** programs that open desktop windows (Python turtle, pygame, matplotlib pop-ups) won't display; the sandbox has no internet and only the standard library unless packages are added to the Piston image.
+**[R2] Known limits (not being built now):** programs that open desktop windows (Python turtle, pygame, matplotlib pop-ups) won't display; Pyodide's Python has no internet access and only the standard library unless a package is explicitly loaded.
 
 ## Panel 3 — Tutor chat
 
 - **Claude Code, appearing as a panel** — the same thing the Claude panel in VS Code is. Built with the Claude Agent SDK, which is Claude Code packaged for putting inside another app.
 - **Two sign-in options, both core:** Claude subscription or API key. Chosen at setup. (Verified 2026-09-23: subscription sign-in is currently allowed, per the Claude Help Center, June 16 2026.)
-- Built behind a thin provider interface; one implementation (Claude) exists now.
+- **[R18] Built behind a real provider interface, not just described as one.** `server/src/providers/claude.js` (default) and `server/src/providers/custom.js` (a generic OpenAI-compatible-API adapter — covers most local servers like Ollama/LM Studio and most cloud providers with one implementation, configured via an onboarding form in Settings rather than a separate integration per vendor) both yield the same normalized `{type:'text'|'done', ...}` shape; `server/src/tutor.js` is a thin router between them. The custom path has no agentic tool-use loop (an arbitrary third-party model can't be trusted to honor the same file-access restrictions enforced at the tool level for Claude), so it's handed the relevant run-record content directly instead of reading files itself — a disclosed tradeoff, not a hidden gap.
 - **Strictly reactive.** Never interrupts. Never edits the code.
 - **[R3] What the tutor gets, and when:**
   - Every Run writes a **run record** file: run number, file name, the code as it was run, the output, the full error.
@@ -110,5 +106,16 @@ Not adopted: sub-agents (one tutor, nothing to split); custom trimming of old me
 ## Stack
 
 - Frontend: React — editor, output canvas (text mode + sandboxed iframe mode), chat.
-- Backend: a thin server holding the Piston WebSocket connection and the Agent SDK session.
-- Piston: self-hosted via Docker.
+- Backend: a thin server holding the run-engine dispatcher (Pyodide + local toolchains, `server/src/runner.js`) and the tutor provider router (`server/src/tutor.js`).
+- Packaging: Electron (`electron/main.js`), built as a real Windows installer via `npm run package` — no Docker, no separate Node.js install required to run it.
+
+Revision 18 (2026-09-24): the full Docker/Piston removal and Electron packaging pass — the single biggest architecture change since the original design. Summary, with the real bugs found along the way (each one found by actually testing, not assumed):
+
+- **Execution engine replaced.** Piston/Docker are gone entirely. Python runs on Pyodide in a worker thread (`server/src/engines/python.js` + `python-worker.js`) with real blocking interactive `input()` via `SharedArrayBuffer`/`Atomics` — proven with a timestamped test, not just claimed. Everything else runs via an installed local toolchain as a plain subprocess (`server/src/engines/toolchain.js`) — hygiene (timeout, process-tree kill, output cap, throwaway temp directory), not container isolation, because this app's real threat model is one person running their own code on their own machine, not a shared server defending against strangers.
+- **Two real bugs found in the Python engine itself, both by testing:** (1) Pyodide's `batched` stdout only flushes on a newline, so `input()`'s prompt (no newline) sat unflushed — switched to `raw`. (2) The `raw` fix was then defeated by `Atomics.wait()` blocking the worker's whole event loop, microtask queue included, so a *deferred* flush never actually sent until after the block ended — fixed by posting immediately, no deferral. Also fixed: per-byte decoding was mangling multi-byte UTF-8; switched to `TextDecoder`'s streaming mode.
+- **Provider abstraction actually built, not just described.** `server/src/providers/claude.js` (default) and `custom.js` (a generic OpenAI-compatible adapter — covers most local servers and most cloud providers with one implementation) both yield the same normalized shape; `tutor.js` routes between them. Onboarding lives in Settings, not a config file.
+- **Packaged as a real Electron app**, not a `.bat` file — a genuine installer, a real window (no browser chrome, correct taskbar title — the default Vite scaffold title ("frontend") was still showing in the title bar until caught and fixed, with the window title also locked against being overridden by the page's own `<title>` tag going forward).
+- **The packaged app's Claude tutor connection failed for a real, subtle reason, found only after extensive isolated reproduction:** the Agent SDK spawns its bundled `claude.exe` using the same `cwd` the app configures for the tutor's own file access — but `workspace/` was never included in what gets packaged, so in the installed app that directory didn't exist at all. Windows' `CreateProcess` can fail with `ENOENT` for a *missing working directory*, not just a missing executable, which is exactly why the SDK's own error message ("binary exists but failed to launch") was misleading — the binary was always fine. Fixed at the source in `paths.js`, which now creates the directory itself rather than depending on a packaging `files` glob staying in sync. Several other plausible causes were tested and ruled out along the way (asar packing needing `asarUnpack`, `ELECTRON_RUN_AS_NODE` leaking into the grandchild process, portable-mode's fresh-extraction-per-launch) before this was isolated — none of those were the actual cause, but each was verified rather than assumed.
+- **One more real bug, caught by the tutor itself during verification:** `python.js`'s rewrite (done under time pressure during the Docker removal) dropped output accumulation entirely — the browser's live stream still worked (a separate code path), but every run record was being written as "(no output)" regardless of what the program actually printed. Found when the tutor, asked what a run printed, correctly reported the record said nothing — which was true of the record, not of the actual run. Fixed and reverified with both a success case and an error/traceback case.
+
+Every item above was verified against the actual packaged, installed `.exe` — not dev mode, not assumed from the source — before being called done.

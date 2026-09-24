@@ -18,15 +18,24 @@ export function runPython({ code, onData, onExit }) {
   });
 
   let settled = false;
-  const finish = (result) => {
+  let output = ""; // [Bug found by the tutor itself] finish() never accumulated this at all — the browser's live stream worked (a separate path, index.js's own accumulator), but the run record — which needs the full text, not just live chunks — was writing "(no output)" for every single successful Python run. toolchain.js already did this correctly; this engine, built later under time pressure, dropped it.
+  let errorText = "";
+  const finish = ({ ok, error }) => {
     if (settled) return;
     settled = true;
-    onExit(result);
+    // Prefer the actually-captured stderr stream (the real, complete
+    // traceback text) over the worker's own synthesized error message,
+    // which is often just a redundant summary of the same thing — and
+    // must never let a null summary silently blank out real stderr text.
+    onExit({ ok, output, error: errorText || error || null });
     worker.terminate();
   };
 
   worker.on("message", (msg) => {
-    if (msg.type === "data") onData({ stream: msg.stream, text: msg.text });
+    if (msg.type === "data") {
+      if (msg.stream === "stdout") output += msg.text; else errorText += msg.text;
+      onData({ stream: msg.stream, text: msg.text });
+    }
     if (msg.type === "exit") finish({ ok: msg.ok, error: msg.error || null });
   });
 
