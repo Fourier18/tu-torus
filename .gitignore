@@ -1,5 +1,4 @@
 node_modules/
 workspace/.tutor/
-piston/data/
 dist/
 *.log

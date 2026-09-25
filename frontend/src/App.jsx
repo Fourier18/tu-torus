@@ -88,7 +88,7 @@ export default function App() {
           language={monacoLanguage(file.name)}
           value={file.code}
           onChange={onCodeChange}
-          theme="light"
+          theme={settings.theme === "dark" ? "vs-dark" : "light"} // [review finding] was hardcoded to "light" — dark mode only ever tested the page background, never the editor itself, so switching to dark left the editor stuck light
           options={{ minimap: { enabled: false }, fontSize: 14 }}
         />
         <OutputCanvas

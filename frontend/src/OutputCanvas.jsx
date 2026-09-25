@@ -3,7 +3,8 @@ import { isBrowserNative } from "./content-type";
 
 // [DESIGN.md, Panel 2, R6] Behaves like a browser — no mode, no toggle.
 // Browser-native files (HTML/SVG) render directly, right here, the same as
-// opening them would. Everything else runs on Piston and shows its output.
+// opening them would. Everything else runs on the backend (Pyodide or a
+// local toolchain, whichever the language needs) and shows its output.
 // The Run button works identically either way; which path runs is an
 // internal detail, never something the user sees or picks.
 export default function OutputCanvas({ file, running, setRunning, onRunRecorded }) {

@@ -97,8 +97,9 @@ app.post("/api/tutor", async (req, res) => {
 
 const httpServer = createServer(app);
 
-// Run channel: WebSocket, matching Piston's own WebSocket contract — the
-// frontend talks to this proxy, which talks to Piston. See runner.js.
+// Run channel: the frontend talks to this WebSocket, which dispatches to
+// whichever engine the language actually needs (Pyodide or a local
+// toolchain) — see runner.js.
 const wss = new WebSocketServer({ server: httpServer, path: "/run" });
 
 wss.on("connection", (ws) => {
