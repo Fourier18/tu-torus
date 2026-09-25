@@ -7,11 +7,12 @@ Runs any language your machine has a compiler or interpreter for, plus Python ou
 ## To install it
 
 ```
+npm install
 npm run setup
 npm run package
 ```
 
-This builds `dist/Tu-Torus Setup 1.0.0.exe`. Run it.
+This builds `dist/Tu-Torus Setup 1.0.0.exe`.
 
 ## Requirements
 
@@ -19,13 +20,15 @@ Nothing, to run Python. Other languages need their own compiler/interpreter on y
 
 ## Connecting a tutor model
 
-Open Settings (the gear icon, top right). You'll see two options: **Add your own** (default) to enter any OpenAI-compatible endpoint manually, or **Browse providers** to pick from a list of pre-configured providers. Every field — base URL, model name, API key — stays editable after you pick a preset. API keys are saved only on this machine, never sent anywhere but the provider you chose.
+Open Settings (the gear icon, top right). You'll see two options: **Add your own** (default) to enter any OpenAI-compatible endpoint manually, or **Browse providers** to pick from a list of pre-configured ones. Picking a preset fills in its base URL; base URL and model name stay editable either way. API keys are saved only on this machine, never sent anywhere but the provider you chose.
 
-### Preset providers (all free-tier available)
+Model names aren't pre-filled. Provider model lineups change too often to bake a specific one into this app — each preset instead links to that provider's own live, current model list, so you always copy a model ID that actually exists right now instead of one we guessed and left to go stale.
+
+### Preset providers
 
 - **Mistral** — [console.mistral.ai/api-keys](https://console.mistral.ai/api-keys). Requires activating a plan before use, even free: go to Billing/Subscription and choose "Experiment for free" (phone verification, no card).
 - **Google Gemini** — [aistudio.google.com/apikey](https://aistudio.google.com/apikey).
-- **OpenRouter** — [openrouter.ai/keys](https://openrouter.ai/keys). Uses `openrouter/free` which auto-picks from currently-available free models.
+- **OpenRouter** — [openrouter.ai/keys](https://openrouter.ai/keys). Covers most other models behind one key.
 - **Groq** — [console.groq.com/keys](https://console.groq.com/keys).
 - **DeepSeek** — [platform.deepseek.com/api_keys](https://platform.deepseek.com/api_keys).
 - **Together AI** — [api.together.xyz/settings/keys](https://api.together.xyz/settings/keys).

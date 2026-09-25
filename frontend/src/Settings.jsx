@@ -1,16 +1,24 @@
 import { useState } from "react";
 
+// Deliberately no hardcoded `model` values here. A specific model ID
+// (e.g. a frozen Groq snapshot name) goes stale the moment that provider
+// retires it — this app would keep silently offering a dead default with
+// no way to notice short of someone hitting the error. baseUrl and keyUrl
+// are structural (a provider's API endpoint and signup page don't change
+// week to week); modelsUrl points at that provider's own live, current
+// model list, so "what's the right model name" is always answered by the
+// provider's own page, not by a string we'd have to keep maintaining here.
 const PRESETS = {
-  custom: { label: "Add your own", baseUrl: "", model: "", keyUrl: null },
-  mistral: { label: "Mistral — Codestral", baseUrl: "https://api.mistral.ai/v1", model: "codestral-latest", keyUrl: "https://console.mistral.ai/api-keys" },
-  gemini: { label: "Google Gemini — Flash", baseUrl: "https://generativelanguage.googleapis.com/v1beta/openai/", model: "gemini-flash-latest", keyUrl: "https://aistudio.google.com/apikey" },
-  openrouter: { label: "OpenRouter", baseUrl: "https://openrouter.ai/api/v1", model: "openrouter/free", keyUrl: "https://openrouter.ai/keys" },
-  groq: { label: "Groq", baseUrl: "https://api.groq.com/openai/v1", model: "mixtral-8x7b-32768", keyUrl: "https://console.groq.com/keys" },
-  deepseek: { label: "DeepSeek", baseUrl: "https://api.deepseek.com/v1", model: "deepseek-chat", keyUrl: "https://platform.deepseek.com/api_keys" },
-  together: { label: "Together AI", baseUrl: "https://api.together.xyz/v1", model: "meta-llama/Meta-Llama-3-8B-Instruct-Turbo", keyUrl: "https://api.together.xyz/settings/keys" },
-  perplexity: { label: "Perplexity", baseUrl: "https://api.perplexity.ai", model: "sonar-online", keyUrl: "https://www.perplexity.ai/settings/api" },
-  ollama: { label: "Ollama (local)", baseUrl: "http://localhost:11434/v1", model: "mistral", keyUrl: null },
-  lmstudio: { label: "LM Studio (local)", baseUrl: "http://localhost:1234/v1", model: "local-model", keyUrl: null },
+  custom: { label: "Add your own", baseUrl: "", keyUrl: null, modelsUrl: null },
+  mistral: { label: "Mistral", baseUrl: "https://api.mistral.ai/v1", keyUrl: "https://console.mistral.ai/api-keys", modelsUrl: "https://docs.mistral.ai/getting-started/models/models_overview/" },
+  gemini: { label: "Google Gemini", baseUrl: "https://generativelanguage.googleapis.com/v1beta/openai/", keyUrl: "https://aistudio.google.com/apikey", modelsUrl: "https://ai.google.dev/gemini-api/docs/models" },
+  openrouter: { label: "OpenRouter", baseUrl: "https://openrouter.ai/api/v1", keyUrl: "https://openrouter.ai/keys", modelsUrl: "https://openrouter.ai/models" },
+  groq: { label: "Groq", baseUrl: "https://api.groq.com/openai/v1", keyUrl: "https://console.groq.com/keys", modelsUrl: "https://console.groq.com/docs/models" },
+  deepseek: { label: "DeepSeek", baseUrl: "https://api.deepseek.com/v1", keyUrl: "https://platform.deepseek.com/api_keys", modelsUrl: "https://api-docs.deepseek.com/quick_start/pricing" },
+  together: { label: "Together AI", baseUrl: "https://api.together.xyz/v1", keyUrl: "https://api.together.xyz/settings/keys", modelsUrl: "https://www.together.ai/models" },
+  perplexity: { label: "Perplexity", baseUrl: "https://api.perplexity.ai", keyUrl: "https://www.perplexity.ai/settings/api", modelsUrl: "https://docs.perplexity.ai/getting-started/models" },
+  ollama: { label: "Ollama (local)", baseUrl: "http://localhost:11434/v1", keyUrl: null, modelsUrl: "https://ollama.com/library" },
+  lmstudio: { label: "LM Studio (local)", baseUrl: "http://localhost:1234/v1", keyUrl: null, modelsUrl: null },
 };
 
 function presetOf(provider) {
@@ -24,7 +32,7 @@ export default function Settings({ settings, onChange }) {
   const [form, setForm] = useState({
     preset: presetOf(initial),
     baseUrl: initial.baseUrl ?? PRESETS[presetOf(initial)].baseUrl,
-    model: initial.model ?? PRESETS[presetOf(initial)].model,
+    model: initial.model ?? "",
     apiKey: initial.apiKey ?? "",
   });
   const [saved, setSaved] = useState(true);
@@ -43,7 +51,7 @@ export default function Settings({ settings, onChange }) {
 
   const pickPreset = (preset) => {
     const p = PRESETS[preset];
-    setForm({ preset, baseUrl: p.baseUrl, model: p.model, apiKey: "" }); // a key is provider-specific — carrying one over would silently send it to the wrong service
+    setForm({ preset, baseUrl: p.baseUrl, model: "", apiKey: "" }); // a key is provider-specific — carrying one over would silently send it to the wrong service; model is left blank on purpose, see PRESETS comment
     setSaved(false);
   };
 
@@ -150,9 +158,14 @@ export default function Settings({ settings, onChange }) {
             Base URL
             <input value={form.baseUrl} onChange={(e) => updateField("baseUrl", e.target.value)} placeholder="https://api.example.com/v1" />
           </label>
+          {preset.modelsUrl && (
+            <div className="settings-hint">
+              See current models: <a href={preset.modelsUrl} target="_blank" rel="noreferrer">{preset.modelsUrl.replace("https://", "")}</a> — copy the exact model ID from there, since provider lineups change over time.
+            </div>
+          )}
           <label>
             Model name
-            <input value={form.model} onChange={(e) => updateField("model", e.target.value)} placeholder="model-id" />
+            <input value={form.model} onChange={(e) => updateField("model", e.target.value)} placeholder={preset.modelsUrl ? "paste the model ID from the link above" : "model-id"} />
           </label>
           <label>
             API key
