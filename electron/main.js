@@ -46,7 +46,7 @@ app.whenReady().then(async () => {
   } catch (err) {
     // Real, honest failure — no silent hang, no fake success.
     const { dialog } = require("electron");
-    dialog.showErrorBox("Coding Tutor", `The backend didn't start: ${err.message}`);
+    dialog.showErrorBox("Tu-Torus", `The backend didn't start: ${err.message}`);
     app.quit();
     return;
   }
@@ -54,7 +54,7 @@ app.whenReady().then(async () => {
   const win = new BrowserWindow({
     width: 1280,
     height: 800,
-    title: "Coding Tutor",
+    title: "Tu-Torus",
     autoHideMenuBar: true, // a real app window — no File/Edit/View menu bar, no address bar, none of the "just a browser tab" look
     webPreferences: { contextIsolation: true, nodeIntegration: false },
   });

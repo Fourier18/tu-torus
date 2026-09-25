@@ -6,7 +6,7 @@
     "ws": "^8.21.3"
   },
   "type": "module",
-  "name": "coding-tutor-server",
+  "name": "tu-torus-server",
   "scripts": {
     "start": "node src/index.js"
   }

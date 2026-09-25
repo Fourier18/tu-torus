@@ -1,5 +1,5 @@
 {
-  "name": "coding-tutor",
+  "name": "tu-torus",
   "version": "1.0.0",
   "description": "A live coding tutor — self-contained, no Docker required.",
   "main": "electron/main.js",
@@ -21,8 +21,8 @@
     "electron-builder": "^26.15.3"
   },
   "build": {
-    "appId": "com.codingtutor.app",
-    "productName": "Coding Tutor",
+    "appId": "com.tu-torus.app",
+    "productName": "Tu-Torus",
     "files": [
       "electron/**/*",
       "server/**/*",

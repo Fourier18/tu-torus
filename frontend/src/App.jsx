@@ -89,7 +89,22 @@ export default function App() {
           value={file.code}
           onChange={onCodeChange}
           theme={settings.theme === "dark" ? "vs-dark" : "light"} // [review finding] was hardcoded to "light" — dark mode only ever tested the page background, never the editor itself, so switching to dark left the editor stuck light
-          options={{ minimap: { enabled: false }, fontSize: 14 }}
+          options={{
+            minimap: { enabled: false },
+            fontSize: 14,
+            // "no pop-ups. No suggestions." — this was said explicitly early
+            // on and never actually implemented; only the tutor's own edit
+            // tools were ever blocked. Monaco's own native autocomplete
+            // (unrelated to the tutor entirely) was still on by default.
+            // Off by default here; a real Settings toggle to turn it back on
+            // is the natural next step, matching "later, if they want to,
+            // they can turn active suggestions on."
+            quickSuggestions: false,
+            suggestOnTriggerCharacters: false,
+            parameterHints: { enabled: false },
+            wordBasedSuggestions: "off",
+            inlineSuggest: { enabled: false },
+          }}
         />
         <OutputCanvas
           file={file}

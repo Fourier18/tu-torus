@@ -72,7 +72,7 @@ export async function runToolchain({ filename, code, config, onData, onExit }) {
     return { write: () => {}, kill: () => {} };
   }
 
-  const dir = await mkdtemp(path.join(os.tmpdir(), "coding-tutor-run-")); // fresh, throwaway — this is the isolation that actually matters here
+  const dir = await mkdtemp(path.join(os.tmpdir(), "tu-torus-run-")); // fresh, throwaway — this is the isolation that actually matters here
   const filePath = path.join(dir, filename);
   const outPath = path.join(dir, "a.out" + (process.platform === "win32" ? ".exe" : ""));
   const classname = path.basename(filename, path.extname(filename));
