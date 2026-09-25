@@ -6,13 +6,7 @@ Runs any language your machine has a compiler or interpreter for, plus Python ou
 
 ## To install it
 
-```
-npm install
-npm run setup
-npm run package
-```
-
-This builds `dist/Tu-Torus Setup 1.0.0.exe`.
+Download `Tu-Torus Setup 1.0.0.exe` from [the latest release](https://github.com/Fourier18/tu-torus/releases/latest) and run it.
 
 ## Requirements
 
@@ -37,3 +31,15 @@ Model names aren't pre-filled. Provider model lineups change too often to bake a
 - **LM Studio** (local) — runs on `http://localhost:1234/v1`, no API key needed. [lmstudio.ai](https://lmstudio.ai).
 
 Free tiers from Mistral and Gemini may use your prompts for training data — a paid key generally avoids this.
+
+## Building from source
+
+Only needed if you're modifying the app, not to install it.
+
+```
+npm install
+npm run setup
+npm run package
+```
+
+Builds `dist/Tu-Torus Setup 1.0.0.exe`.
