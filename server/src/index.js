@@ -1,34 +1,23 @@
-// [Electron packaging] This process is itself launched with
-// ELECTRON_RUN_AS_NODE=1 (so Electron's bundled binary runs as plain Node
-// instead of launching a GUI) — but that variable then inherits down to any
-// child THIS process spawns. The Claude Agent SDK spawns its own bundled
-// claude.exe as a child, and claude.exe is itself sensitive to this same
-// variable (confirmed as a known issue: anthropics/claude-code#34836 —
-// ELECTRON_RUN_AS_NODE leaking into child processes breaks Electron-adjacent
-// binaries). Stripped here, before any SDK code runs, so it can't leak
-// further down.
-delete process.env.ELECTRON_RUN_AS_NODE;
-
 import express from "express";
 import { WebSocketServer } from "ws";
 import { createServer } from "node:http";
-import { writeFile, readFile, mkdir, appendFile } from "node:fs/promises";
+import { writeFile, readFile } from "node:fs/promises";
 import path from "node:path";
 import { runOnce } from "./runner.js";
 import { writeRunRecord } from "./run-records.js";
 import { askTutor } from "./tutor.js";
 import { getSettings, setSetting } from "./settings.js";
-import { WORKSPACE_DIR, TUTOR_DIR } from "./paths.js";
+import { WORKSPACE_DIR } from "./paths.js";
 import { LANGUAGES } from "./languages.js";
 
 const PROJECT_DIR = WORKSPACE_DIR;
-const USAGE_LOG = path.join(TUTOR_DIR, "usage.log"); // [DESIGN.md] "Log token usage per message from day one"
 
 const app = express();
-app.use(express.json({ limit: "5mb" }));
+app.use(express.json({ limit: "15mb" })); // headroom for an attached canvas screenshot
 
-// [DESIGN.md, Panel 1] Autosave target — this is how the tutor's Read tool
-// ever sees your current code; there is no live keystroke channel.
+// [DESIGN.md, Panel 1] Autosave target — the tutor has no live keystroke
+// channel; the frontend sends its current in-memory code directly with each
+// tutor call, but this file on disk is what the app reloads on a refresh.
 app.post("/api/file", async (req, res) => {
   const { filename, code } = req.body;
   await writeFile(path.join(PROJECT_DIR, filename), code);
@@ -56,41 +45,23 @@ app.post("/api/settings", async (req, res) => {
   res.json(await setSetting(key, value));
 });
 
-// One-shot tutor question. Attaches the last run record's pointer line only —
-// not the file contents — per [DESIGN.md]: the Claude path reads run files
-// itself; the custom-provider path (no tool-use loop) gets the record's
-// actual content, extracted from the same pointer line below.
+// Fires only on: a typing pause, a run that ended in error, the "check my
+// code" button, or a typed question — never per keystroke. `trigger`
+// distinguishes which of those this call is; `history` is the last few
+// messages only, not the full session.
 app.post("/api/tutor", async (req, res) => {
-  const { message, lastRunPointer } = req.body;
-  const fullMessage = lastRunPointer ? `${message}\n\n(${lastRunPointer})` : message;
-  const lastRunRecordPath = lastRunPointer?.match(/record in (.+)$/)?.[1];
+  const { trigger, question, lastRunPointer, filename, code, history } = req.body;
 
   res.setHeader("Content-Type", "text/event-stream");
   res.setHeader("Cache-Control", "no-cache");
 
-  let usage = null;
   try {
-    for await (const event of askTutor({ message: fullMessage, projectDir: PROJECT_DIR, lastRunRecordPath })) {
-      if (event.type === "text") {
-        res.write(`data: ${JSON.stringify({ type: "text", value: event.text })}\n\n`);
-      }
-      if (event.type === "done") {
-        usage = event.usage;
-      }
+    for await (const event of askTutor({ trigger, question, filename, code, lastRunPointer, history, projectDir: PROJECT_DIR })) {
+      if (event.type === "text") res.write(`data: ${JSON.stringify({ type: "text", value: event.text })}\n\n`);
     }
   } catch (err) {
-    // Diagnostic: the SDK's own error message wraps the real underlying
-    // spawn failure in a generic (and, on Windows, Linux-worded) string —
-    // dumping every property the error object actually carries to find what
-    // it's hiding, since String(err) alone hasn't been enough to diagnose
-    // the packaged-app launch failure.
-    console.error("TUTOR ERROR FULL:", JSON.stringify(err, Object.getOwnPropertyNames(err), 2));
+    console.error("TUTOR ERROR:", err);
     res.write(`data: ${JSON.stringify({ type: "error", value: String(err) })}\n\n`);
-  }
-
-  if (usage) {
-    await mkdir(path.dirname(USAGE_LOG), { recursive: true });
-    await appendFile(USAGE_LOG, JSON.stringify({ at: new Date().toISOString(), usage }) + "\n");
   }
   res.end();
 });

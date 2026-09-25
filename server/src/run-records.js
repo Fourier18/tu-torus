@@ -53,6 +53,7 @@ export async function writeRunRecord({ filename, code, output, error }) {
   return {
     runId: n,
     relPath,
+    ok: !error,
     pointer: `Last run: #${n}, ${filename}, ${error ? "error" : "ok"} — record in ${relPath}`,
   };
 }

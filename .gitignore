@@ -2,3 +2,5 @@ node_modules/
 workspace/.tutor/
 dist/
 *.log
+.env
+.devlog.md

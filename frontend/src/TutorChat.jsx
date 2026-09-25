@@ -1,29 +1,36 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 
-// [DESIGN.md, Panel 3] Strictly reactive — sends only on user submit, never
-// polls or auto-triggers. Attaches the last run's pointer line (not its
-// contents) so the tutor knows a run exists and reads it itself if needed.
-export default function TutorChat({ lastRunPointer }) {
+const HISTORY_KEEP = 6; // trimmed — last few turns only, not the full session
+
+// Fires only on: the "check my code" button or a typed question — never
+// per keystroke, never on its own schedule. Each call sends the current
+// code, any error from the last run, and a trimmed slice of recent chat
+// history — not the full session.
+export default function TutorChat({ lastRun, filename, code }) {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
 
-  const send = async () => {
-    if (!input.trim() || sending) return;
-    const userText = input;
+  const send = async ({ trigger, question = null }) => {
+    if (sending) return;
+    if (trigger === "manual" && !question?.trim()) return;
+
+    const history = messages
+      .filter((m) => m.role === "user" || m.role === "tutor")
+      .slice(-HISTORY_KEEP)
+      .map((m) => ({ role: m.role === "tutor" ? "assistant" : "user", content: m.text }));
+
+    if (trigger === "manual") setMessages((m) => [...m, { role: "user", text: question }]);
+    else if (trigger === "check") setMessages((m) => [...m, { role: "user", text: "Check my code" }]);
+
     setInput("");
-    setMessages((m) => [...m, { role: "user", text: userText }]);
     setSending(true);
 
-    // No error handling here used to mean a dead backend — at connect time
-    // or mid-stream — left `sending` stuck true forever, permanently
-    // disabling the input with no way to recover short of a page reload.
-    // Confirmed by killing the backend mid-response before this fix.
     try {
       const res = await fetch("/api/tutor", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: userText, lastRunPointer }),
+        body: JSON.stringify({ trigger, question, lastRunPointer: lastRun?.pointer ?? null, filename, code, history }),
       });
       if (!res.ok || !res.body) throw new Error(`Tutor request failed (${res.status})`);
 
@@ -39,7 +46,7 @@ export default function TutorChat({ lastRunPointer }) {
           if (!line.startsWith("data: ")) continue;
           const evt = JSON.parse(line.slice(6));
           if (evt.type === "text") {
-            reply += Array.isArray(evt.value) ? evt.value.map((b) => b.text || "").join("") : evt.value;
+            reply += evt.value;
             setMessages((m) => [...m.slice(0, -1), { role: "tutor", text: reply }]);
           }
           if (evt.type === "error") throw new Error(evt.value);
@@ -48,7 +55,7 @@ export default function TutorChat({ lastRunPointer }) {
     } catch {
       setMessages((m) => [...m, { role: "tutor", text: "Lost connection to the tutor. Try asking again." }]);
     } finally {
-      setSending(false); // must always run, however the request ended
+      setSending(false);
     }
   };
 
@@ -60,10 +67,13 @@ export default function TutorChat({ lastRunPointer }) {
         ))}
       </div>
       <div className="chat-input-row">
+        <div className="chat-actions-row">
+          <button className="check-code-btn" onClick={() => send({ trigger: "check" })} disabled={sending}>Check my code</button>
+        </div>
         <input
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && send()}
+          onKeyDown={(e) => e.key === "Enter" && send({ trigger: "manual", question: input })}
           placeholder="Ask the tutor…"
           disabled={sending}
         />

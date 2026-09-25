@@ -14,9 +14,9 @@ export default function App() {
   const [file, setFile] = useState(DEFAULT_FILE);
   const [nameInput, setNameInput] = useState(DEFAULT_FILE.name); // separate from file.name so a mid-edit rename doesn't switch files until confirmed
   const [running, setRunning] = useState(false);
-  const [lastRunPointer, setLastRunPointer] = useState(null);
+  const [lastRun, setLastRun] = useState(null); // { pointer, ok }
   const [ready, setReady] = useState(false); // gates first render until the language table has loaded — isBrowserNative/monacoLanguage must never run against an empty table
-  const [settings, setSettings] = useState({ model: "sonnet", theme: "light" });
+  const [settings, setSettings] = useState({ theme: "light", provider: { preset: "mistral", baseUrl: "", model: "", apiKey: "" } });
   const [saveFailed, setSaveFailed] = useState(false); // a silent autosave failure is worse than most errors here — the tutor reads from disk, so a save that never happened means it's coaching against code the learner already changed
   const saveTimer = useRef(null);
 
@@ -110,9 +110,9 @@ export default function App() {
           file={file}
           running={running}
           setRunning={setRunning}
-          onRunRecorded={setLastRunPointer}
+          onRunRecorded={setLastRun}
         />
-        <TutorChat lastRunPointer={lastRunPointer} />
+        <TutorChat lastRun={lastRun} filename={file.name} code={file.code} />
       </main>
     </div>
   );

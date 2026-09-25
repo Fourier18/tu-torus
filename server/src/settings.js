@@ -8,14 +8,18 @@ import { TUTOR_DIR } from "./paths.js";
 const SETTINGS_PATH = path.join(TUTOR_DIR, "settings.json");
 
 const FACTORY_DEFAULTS = {
-  model: "sonnet", // [DESIGN.md] "Default to the mid-tier Claude model, changeable in settings"
   theme: "light", // [DESIGN.md] "Light theme by default... a second theme later is a new file"
-  // One generic connection point, not one adapter per vendor — most local
-  // servers (Ollama, LM Studio) and most cloud providers (OpenAI, DeepSeek,
-  // many enterprise proxies) speak the same chat-completions API shape.
-  // Claude stays the default; "custom" is an onboarding-driven addition, not
-  // a second hardcoded provider.
-  provider: { type: "claude" }, // or { type: "custom", baseUrl, apiKey, model }
+  // No subscription/OAuth login — Anthropic's terms don't allow third-party
+  // apps offering claude.ai login, and this repo is public. One generic
+  // OpenAI-compatible chat-completions client covers every provider below;
+  // "preset" just picks which baseUrl/model get suggested in Settings, all
+  // three fields stay user-editable regardless of preset.
+  provider: {
+    preset: "mistral",
+    baseUrl: "https://api.mistral.ai/v1",
+    model: "codestral-latest",
+    apiKey: "", // never committed — lives only in this file, which is gitignored (workspace/.tutor/)
+  },
 };
 
 export async function getSettings() {

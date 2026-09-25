@@ -1,54 +1,80 @@
 import { useState } from "react";
 
-const MODELS = [
-  { value: "haiku", label: "Haiku — fastest, cheapest" },
-  { value: "sonnet", label: "Sonnet — balanced (default)" },
-  { value: "opus", label: "Opus — most capable, slowest" },
-];
+const PRESETS = {
+  custom: { label: "Add your own", baseUrl: "", model: "", keyUrl: null },
+  mistral: { label: "Mistral — Codestral", baseUrl: "https://api.mistral.ai/v1", model: "codestral-latest", keyUrl: "https://console.mistral.ai/api-keys" },
+  gemini: { label: "Google Gemini — Flash", baseUrl: "https://generativelanguage.googleapis.com/v1beta/openai/", model: "gemini-flash-latest", keyUrl: "https://aistudio.google.com/apikey" },
+  openrouter: { label: "OpenRouter", baseUrl: "https://openrouter.ai/api/v1", model: "openrouter/free", keyUrl: "https://openrouter.ai/keys" },
+  groq: { label: "Groq", baseUrl: "https://api.groq.com/openai/v1", model: "mixtral-8x7b-32768", keyUrl: "https://console.groq.com/keys" },
+  deepseek: { label: "DeepSeek", baseUrl: "https://api.deepseek.com/v1", model: "deepseek-chat", keyUrl: "https://platform.deepseek.com/api_keys" },
+  together: { label: "Together AI", baseUrl: "https://api.together.xyz/v1", model: "meta-llama/Meta-Llama-3-8B-Instruct-Turbo", keyUrl: "https://api.together.xyz/settings/keys" },
+  perplexity: { label: "Perplexity", baseUrl: "https://api.perplexity.ai", model: "sonar-online", keyUrl: "https://www.perplexity.ai/settings/api" },
+  ollama: { label: "Ollama (local)", baseUrl: "http://localhost:11434/v1", model: "mistral", keyUrl: null },
+  lmstudio: { label: "LM Studio (local)", baseUrl: "http://localhost:1234/v1", model: "local-model", keyUrl: null },
+};
+
+function presetOf(provider) {
+  return PRESETS[provider?.preset] ? provider.preset : "custom";
+}
 
 export default function Settings({ settings, onChange }) {
   const [open, setOpen] = useState(false);
-  const [connecting, setConnecting] = useState(false);
-  const [form, setForm] = useState({ baseUrl: "http://localhost:11434/v1", apiKey: "", model: "" });
+  const [showProviders, setShowProviders] = useState(false);
+  const initial = settings.provider || {};
+  const [form, setForm] = useState({
+    preset: presetOf(initial),
+    baseUrl: initial.baseUrl ?? PRESETS[presetOf(initial)].baseUrl,
+    model: initial.model ?? PRESETS[presetOf(initial)].model,
+    apiKey: initial.apiKey ?? "",
+  });
+  const [saved, setSaved] = useState(true);
 
-  const save = (next) => {
+  const setTheme = (value) => {
     const previous = settings;
-    onChange(next); // optimistic — apply immediately, don't wait on the network round trip
+    onChange({ ...settings, theme: value }); // optimistic — apply immediately, don't wait on the round trip
     fetch("/api/settings", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ key: "provider", value: next.provider }),
+      body: JSON.stringify({ key: "theme", value }),
     })
       .then((r) => { if (!r.ok) throw new Error(); })
       .catch(() => onChange(previous)); // roll back — a save that silently failed shouldn't leave the UI claiming something that isn't true
   };
 
-  const update = (key, value) => {
-    if (key === "model") { save({ ...settings, model: value }); return; }
-    if (key === "theme") { save({ ...settings, theme: value }); return; }
+  const pickPreset = (preset) => {
+    const p = PRESETS[preset];
+    setForm({ preset, baseUrl: p.baseUrl, model: p.model, apiKey: "" }); // a key is provider-specific — carrying one over would silently send it to the wrong service
+    setSaved(false);
   };
 
-  const connect = () => save({ ...settings, provider: { type: "custom", ...form } });
-  const useClaudeInstead = () => save({ ...settings, provider: { type: "claude" } });
+  const updateField = (key, value) => {
+    setForm((f) => ({ ...f, [key]: value }));
+    setSaved(false);
+  };
 
-  const usingCustom = settings.provider?.type === "custom";
+  const saveProvider = () => {
+    const previous = settings;
+    onChange({ ...settings, provider: form });
+    setSaved(true);
+    fetch("/api/settings", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ key: "provider", value: form }),
+    })
+      .then((r) => { if (!r.ok) throw new Error(); })
+      .catch(() => { onChange(previous); setSaved(false); });
+  };
+
+  const preset = PRESETS[form.preset];
 
   return (
     <div className="settings">
       <button className="settings-toggle" onClick={() => setOpen((o) => !o)} aria-label="Settings">⚙</button>
       {open && (
         <div className="settings-panel">
-          {!usingCustom && (
-            <label>
-              Tutor model
-              <select value={settings.model} onChange={(e) => update("model", e.target.value)}>
-                {MODELS.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
-              </select>
-            </label>
-          )}
           <label>
             Theme
-            <select value={settings.theme} onChange={(e) => update("theme", e.target.value)}>
+            <select value={settings.theme} onChange={(e) => setTheme(e.target.value)}>
               <option value="light">Light (default)</option>
               <option value="dark">Dark</option>
             </select>
@@ -56,34 +82,103 @@ export default function Settings({ settings, onChange }) {
 
           <div className="settings-divider" />
 
-          {usingCustom ? (
-            <div className="provider-status">
-              <div>Using your own model: <strong>{settings.provider.model || "(unnamed)"}</strong></div>
-              <div className="provider-url">{settings.provider.baseUrl}</div>
-              <button className="link-btn" onClick={useClaudeInstead}>Switch back to Claude</button>
-            </div>
-          ) : connecting ? (
-            <div className="connect-form">
-              <label>
-                Server address
-                <input value={form.baseUrl} onChange={(e) => setForm({ ...form, baseUrl: e.target.value })} placeholder="http://localhost:11434/v1" />
-              </label>
-              <label>
-                Model name
-                <input value={form.model} onChange={(e) => setForm({ ...form, model: e.target.value })} placeholder="llama3" />
-              </label>
-              <label>
-                API key (only if it needs one)
-                <input value={form.apiKey} onChange={(e) => setForm({ ...form, apiKey: e.target.value })} type="password" />
-              </label>
-              <div className="connect-form-actions">
-                <button onClick={connect} disabled={!form.baseUrl || !form.model}>Connect</button>
-                <button className="link-btn" onClick={() => setConnecting(false)}>Cancel</button>
+          <div style={{ marginBottom: "10px" }}>
+            <div style={{ fontSize: "13px", color: "var(--text-dim)", marginBottom: "6px" }}>Provider</div>
+            <button
+              onClick={() => pickPreset("custom")}
+              style={{
+                display: "block",
+                width: "100%",
+                textAlign: "left",
+                padding: "6px",
+                border: form.preset === "custom" ? "1px solid var(--accent)" : "1px solid var(--border)",
+                borderRadius: "4px",
+                background: form.preset === "custom" ? "var(--accent)" : "var(--bg)",
+                color: form.preset === "custom" ? "white" : "var(--text)",
+                fontSize: "13px",
+                cursor: "pointer",
+                marginBottom: "6px"
+              }}
+            >
+              Add your own
+            </button>
+            <button
+              onClick={() => setShowProviders((s) => !s)}
+              style={{
+                display: "block",
+                width: "100%",
+                textAlign: "left",
+                padding: "6px",
+                border: "1px solid var(--border)",
+                borderRadius: "4px",
+                background: "var(--bg)",
+                color: "var(--text)",
+                fontSize: "13px",
+                cursor: "pointer",
+                marginBottom: "6px"
+              }}
+            >
+              {showProviders ? "▼" : "▶"} Browse providers
+            </button>
+            {showProviders && (
+              <div style={{ marginLeft: "6px", borderLeft: "2px solid var(--border)", paddingLeft: "8px" }}>
+                {Object.entries(PRESETS).filter(([k]) => k !== "custom").map(([key, p]) => (
+                  <button
+                    key={key}
+                    onClick={() => { pickPreset(key); setShowProviders(false); }}
+                    style={{
+                      display: "block",
+                      width: "100%",
+                      textAlign: "left",
+                      padding: "6px",
+                      border: form.preset === key ? "1px solid var(--accent)" : "1px solid var(--border)",
+                      borderRadius: "4px",
+                      background: form.preset === key ? "var(--accent)" : "var(--bg)",
+                      color: form.preset === key ? "white" : "var(--text)",
+                      fontSize: "12px",
+                      cursor: "pointer",
+                      marginBottom: "4px"
+                    }}
+                  >
+                    {p.label}
+                  </button>
+                ))}
               </div>
+            )}
+          </div>
+          <label>
+            Base URL
+            <input value={form.baseUrl} onChange={(e) => updateField("baseUrl", e.target.value)} placeholder="https://api.example.com/v1" />
+          </label>
+          <label>
+            Model name
+            <input value={form.model} onChange={(e) => updateField("model", e.target.value)} placeholder="model-id" />
+          </label>
+          <label>
+            API key
+            <input
+              value={form.apiKey}
+              onChange={(e) => updateField("apiKey", e.target.value)}
+              type="password"
+              placeholder={preset.keyUrl ? "paste your key" : "usually none for a local server"}
+            />
+          </label>
+          {preset.keyUrl && (
+            <div className="settings-hint">
+              Get a key: <a href={preset.keyUrl} target="_blank" rel="noreferrer">{preset.keyUrl.replace("https://", "")}</a>
             </div>
-          ) : (
-            <button className="link-btn" onClick={() => setConnecting(true)}>Connect a different model…</button>
           )}
+
+          <div className="settings-hint">
+            Free tiers from Mistral and Gemini may use your prompts for training data. A paid key generally avoids this.
+          </div>
+          <div className="settings-hint">
+            Your API key is saved only on this machine — never sent anywhere but the provider you picked.
+          </div>
+
+          <button onClick={saveProvider} disabled={saved || !form.baseUrl || !form.model}>
+            {saved ? "Saved" : "Save"}
+          </button>
         </div>
       )}
     </div>

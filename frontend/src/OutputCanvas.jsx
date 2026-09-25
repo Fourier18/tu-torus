@@ -42,7 +42,7 @@ export default function OutputCanvas({ file, running, setRunning, onRunRecorded 
         }
         setRunning(false);
       }
-      if (msg.type === "run-recorded") onRunRecorded(msg.pointer);
+      if (msg.type === "run-recorded") onRunRecorded({ pointer: msg.pointer, ok: msg.ok });
     };
     ws.onclose = () => {
       if (!exited) {

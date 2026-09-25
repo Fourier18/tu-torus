@@ -1,4 +1,4 @@
-const { app, BrowserWindow } = require("electron");
+const { app, BrowserWindow, shell } = require("electron");
 const { spawn } = require("node:child_process");
 const path = require("node:path");
 const http = require("node:http");
@@ -7,8 +7,8 @@ const fs = require("node:fs");
 let serverProcess;
 const PORT = 4310;
 // A packaged, double-clicked app has no visible console — `stdio: 'inherit'`
-// goes nowhere. Logging to a real file instead, so backend errors (like the
-// Claude launch failure under investigation) are actually readable.
+// goes nowhere. Logging to a real file instead, so backend errors are
+// actually readable.
 const LOG_PATH = path.join(app.getPath("userData"), "backend.log");
 
 function startServer() {
@@ -64,6 +64,13 @@ app.whenReady().then(async () => {
   // Tutor". Fixed the HTML title too, but locking it here as well so this
   // can't silently regress again if the page's <title> ever changes.
   win.on("page-title-updated", (e) => e.preventDefault());
+  // Settings links out to each provider's API-key page (target="_blank") —
+  // without this, Electron either navigates this window away from the app
+  // or silently drops the click. Send it to the system browser instead.
+  win.webContents.setWindowOpenHandler(({ url }) => {
+    shell.openExternal(url);
+    return { action: "deny" };
+  });
   win.loadURL(`http://localhost:${PORT}`);
 });
 
