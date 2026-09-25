@@ -9,12 +9,14 @@ const INSTRUCTIONS_PATH = path.join(__dirname, "tutor-instructions.md");
 
 const PROVIDER_LABELS = { mistral: "Mistral", gemini: "Gemini", openrouter: "OpenRouter" };
 
-// Auto-fired calls (never per keystroke) carry no typed question — this
-// supplies what the model is actually being asked to do for each one.
+// The "check" trigger carries no typed question — this supplies what the
+// model is actually being asked to do. Deliberately not a fixed canned
+// string: sending identical text on every click put the exact same
+// "user: X / assistant: Y" pair in the trimmed history repeatedly, which
+// measurably pushed weaker/free-tier models toward regenerating the same
+// stale answer instead of re-reading the fresh code block each time.
 const TRIGGER_PROMPTS = {
-  pause: "I just paused after editing. Take a quick look at the code below — if something's clearly wrong, point it out briefly. If it looks fine so far, just say so in one short line; don't manufacture a critique.",
-  error: "My code just failed. Help me understand why and how to fix it — don't just hand me the corrected code unless I ask for it.",
-  check: "Can you check my code?",
+  check: "Take a fresh look at the code below as it stands right now — don't rely on anything you concluded in an earlier turn, even if this looks like the same question as before.",
 };
 
 // One normalized event shape leaves here regardless of which provider is

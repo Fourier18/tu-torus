@@ -6,7 +6,12 @@ Runs any language your machine has a compiler or interpreter for, plus Python ou
 
 ## To install it
 
-Run `Tu-Torus Setup 1.0.0.exe`, in the `dist` folder. A real Windows installer — puts it in your Start Menu like any other program.
+```
+npm run setup
+npm run package
+```
+
+This builds `dist/Tu-Torus Setup 1.0.0.exe`. Run it.
 
 ## Requirements
 

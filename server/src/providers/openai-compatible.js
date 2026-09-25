@@ -21,7 +21,11 @@ export async function* chat({ systemPrompt, history = [], userContent, baseUrl, 
         "Content-Type": "application/json",
         ...(apiKey ? { Authorization: `Bearer ${apiKey}` } : {}),
       },
-      body: JSON.stringify({ model, stream: true, messages }),
+      // Low temperature deliberately — this is a tutor reasoning about a
+      // specific learner's actual code, not a creative-writing task. Lower
+      // variance also cuts the odds of drifting into a repeated-phrasing
+      // loop when its own prior turns are sitting right there in history.
+      body: JSON.stringify({ model, stream: true, messages, temperature: 0.3 }),
     });
   } catch (err) {
     yield { type: "text", text: `Couldn't reach ${baseUrl} — is it running? (${err.message})` };
