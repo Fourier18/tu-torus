@@ -19,7 +19,10 @@ const PROVIDER_LABELS = { mistral: "Mistral", gemini: "Gemini", openrouter: "Ope
 // measurably pushed weaker/free-tier models toward regenerating the same
 // stale answer instead of re-reading the fresh code block each time.
 const TRIGGER_PROMPTS = {
-  check: "Take a fresh look at the code below as it stands right now — don't rely on anything you concluded in an earlier turn, even if this looks like the same question as before.",
+  // Scenario runs had the tutor parrot "the code is fresh to me" from an
+  // earlier wording, then walk through every line and end with "What do you
+  // want to do next?" — the opposite of "if it works, say so and stop".
+  check: "(The learner clicked \"Check my code\".) Judge the code below as it is right now, not by anything you said earlier. If something stops it doing what it's evidently meant to, point at that one thing. If it works, say so in a sentence and stop — no walkthrough of what each line does, no question about what they want next.",
 };
 
 // History only carries what the chat panel shows ("Check my code", the
@@ -56,7 +59,12 @@ export function buildUserContent({ trigger, question, filename, code, previousCo
     runContext = runContext.replace(/Traceback \(most recent call last\):\n[\s\S]*?(?=  File "<exec>")/g, "Traceback (most recent call last):\n");
     const ranCode = runContext.match(/## Code as run\n```\n([\s\S]*?)\n```/)?.[1];
     const stale = ranCode != null && code != null && ranCode.trimEnd() !== code.trimEnd();
-    parts.push(`Their most recent run, attached automatically by the app (the learner didn't paste it) — the Output section is exactly what appeared on their screen, including what they typed at input() prompts.${stale ? " That run was of an earlier version of the code than what's in the file now." : ""}\n${runContext}`);
+    // A run of older code is left out, not just flagged: a live session had
+    // the learner delete their print(a)/print(b) lines, and the tutor — with
+    // the old run attached and labelled "earlier version" — still told them
+    // to delete print(a) and print(b), reading the old code and output as now.
+    if (stale) parts.push("They ran an earlier version of this code; they've edited it since, so that run is left out — it no longer shows what this code does. Go by the code above only.");
+    else parts.push(`Their most recent run, attached automatically by the app (the learner didn't paste it) — the Output section is exactly what appeared on their screen, including what they typed at input() prompts.\n${runContext}`);
   }
   return parts.join("\n\n") || "Can you check my code?";
 }

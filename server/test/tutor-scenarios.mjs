@@ -418,6 +418,24 @@ const SCENARIOS = {
     turns: [{ check: true }, { check: true, code: AGE_FIXED }],
     expect: "Second check reflects the new code; does not repeat the first observation.",
   },
+  // From the user's live session on 2026-09-26: the tutor kept suggesting
+  // deleting print() lines they wanted, ended replies with "Want to try
+  // that?", and — after they removed print(a)/print(b) — still told them to
+  // delete print(a) and print(b), reading the run of the older code as now.
+  blankLinesWanted: {
+    code: DIFF, run: DIFF_RUN,
+    turns: [{ say: "is the way I added line breaks correct, using print?" }],
+    expect: "Says yes. Does not suggest removing any print() lines; no closing offer (\"Want to try…?\", \"let me know\").",
+  },
+  editedSinceRun: {
+    code: DIFF.replace("    print(a)\n", "").replace("    print(b)\n", ""), run: DIFF_RUN,
+    seed: [
+      ["user", "Okay I took away manual printing of entered ages since I just noticed that the input lines generate prints"],
+      ["assistant", "Right — input() shows its prompt and what they type, so the ages already appear."],
+    ],
+    turns: [{ check: true }, { say: "wtf, why would u suggest I delete lines I want?" }],
+    expect: "Never mentions print(a) or print(b) (they're gone). Doesn't suggest deleting the blank-line print() calls. No closing offer questions.",
+  },
   meta: {
     code: AGE,
     turns: [{ say: "do you save my conversations somewhere?" }],

@@ -127,7 +127,11 @@ export function groundNotes({ notes, proposal, exchanges, code, previousCode, st
   const textEvidence = (ev) => {
     const e = normalize(ev);
     if (e.length < 3) return "no evidence";
-    const at = exchanges.findIndex((x) => normalize(x.learner).includes(e));
+    // The "Check my code" button's label shows up as the learner's line, but
+    // it says nothing about them — a scenario used it to back "can write a
+    // function that calculates the mean" from a file seen once.
+    if (/^check my code\W*$/.test(e)) return "that's the Check my code button, not their words";
+    const at =exchanges.findIndex((x) => normalize(x.learner).includes(e));
     if (at === -1) return "evidence isn't the learner's words";
     if (e.length >= 6 && exchanges.slice(0, at).some((x) => normalize(x.tutor).includes(e))) return "evidence just repeats the tutor";
     return null;
@@ -137,6 +141,10 @@ export function groundNotes({ notes, proposal, exchanges, code, previousCode, st
     const l = normalize(line);
     if (l.length < 4) return "no code evidence";
     if (!codeLines(code).has(l)) return "code evidence isn't in their file";
+    // First message of a session: there's no earlier version, so nothing
+    // shows what they wrote themselves (a scenario credited "can write a
+    // function that calculates the mean" from a file seen for the first time).
+    if (previousCode == null) return "no earlier version to compare against";
     if (codeLines(previousCode).has(l)) return "code evidence isn't new in this edit";
     if (exchanges.some((x) => normalize(x.tutor).includes(l))) return "code evidence was shown by the tutor";
     return null;
@@ -172,6 +180,9 @@ export function groundNotes({ notes, proposal, exchanges, code, previousCode, st
     if (i === -1) { section = "now"; i = find("now", u?.old); }
     if (why || i === -1) { drop(u, "update", why ?? "no such note"); continue; }
     if (isPinned(n[section][i])) { drop(u, "update", "pinned by the learner"); continue; }
+    // A live session logged "replaced: is new to coding → is new to coding"
+    // in the learner's history — a no-op must not count as a change.
+    if (normalize(bodyOf(n[section][i])) === normalize(neu)) { drop(u, "update", "no change"); continue; }
     if (section === "about") {
       if (aboutChanges >= 1) { drop(u, "update", "one About-them change per update"); continue; }
       if (!aboutChangeAllowed(n.about[i], u.evidence)) { drop(u, "update", "About-them changes need a first-person statement or a second sign"); continue; }
