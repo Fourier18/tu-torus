@@ -34,6 +34,8 @@ const cases = [
     const second = run(first.notes, { update: [u] }, { state });
     return about(first).join() === "Overwrote a running total." && about(second).join() === "Now adds to a running total.";
   }],
+  ["history shows the learner's words behind a change", () => { const r = run("", { add: [{ section: "about", note: "New to coding.", evidence: "i'm new to coding" }] }); return r.changes[0].includes('(you said: "i\'m new to coding")'); }],
+  ["history shows the code line behind a progress note", () => { const r = run("", { add: [{ note: "Fixed the loop bound.", code_evidence: "for i in range(len(nums)):" }] }, { code: "for i in range(len(nums)):", previousCode: "for i in range(len(nums) + 1):" }); return r.changes[0].includes("(you wrote: for i in range(len(nums)):)"); }],
   ["an update to the same text isn't a change", () => { const r = run("About them:\n- is new to coding", { update: [{ old: "is new to coding", new: "is new to coding", evidence: "i'm new to coding" }] }); return about(r).join() === "is new to coding" && r.changes.length === 0; }],
   ["only one About-them change per update", () => { const r = run("About them:\n- A thing.\n- B thing.", { update: [{ old: "A thing.", new: "New to coding.", evidence: "i'm new to coding" }, { old: "B thing.", new: "Knows Java.", evidence: "i'm not new to java" }] }); return about(r).includes("B thing.") && r.dropped.some((d) => d.why.includes("one About-them")); }],
   ["'now' lines can be removed freely", () => now(run("Working on now:\n- Fixing a total.", { remove: [{ note: "Fixing a total.", evidence: "ok total += p worked" }] })).length === 0],
@@ -46,7 +48,7 @@ const cases = [
   // verified code evidence
   ["a line the learner wrote themselves backs a progress note", () => about(run("", { add: [{ note: "Fixed the loop to stop at the last item.", code_evidence: "for i in range(len(nums)):" }] }, { code: "nums=[1]\nfor i in range(len(nums)):\n    t += nums[i]", previousCode: "nums=[1]\nfor i in range(len(nums) + 1):\n    t += nums[i]" })).length === 1],
   ["code the tutor showed doesn't count", () => run("", { add: [{ note: "Adds to a running total.", code_evidence: "total += p" }] }, { code: "for p in prices:\n    total += p", previousCode: "for p in prices:\n    total = p" }).dropped[0].why.includes("shown by the tutor")],
-  ["the Check my code button isn't evidence", () => groundNotes({ notes: "", proposal: { add: [{ note: "Can write an average function.", evidence: "Check my code" }] }, exchanges: [{ learner: "Check my code", tutor: "Looks right." }] }).notes === ""],
+  ["the Check my code button isn't evidence", () => ["Check my code", "(clicked \"Check my code\")"].every((learner) => ["Check my code", "clicked Check my code", learner].every((evidence) => groundNotes({ notes: "", proposal: { add: [{ note: "Can write an average function.", evidence }] }, exchanges: [{ learner, tutor: "Looks right." }] }).notes === ""))],
   ["a file seen for the first time isn't proof they wrote it", () => run("", { add: [{ note: "Can write an average function.", code_evidence: "return sum(nums) / len(nums)" }] }, { code: "def average(nums):\n    return sum(nums) / len(nums)", previousCode: null }).dropped[0].why.includes("no earlier version")],
   ["code that isn't new this edit doesn't count", () => run("", { add: [{ note: "Wrote a loop.", code_evidence: "for p in prices:" }] }, { code: "for p in prices:\n    total += p", previousCode: "for p in prices:\n    total = p" }).dropped[0].why.includes("isn't new")],
   // sessions

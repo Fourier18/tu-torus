@@ -100,7 +100,9 @@ Prefer "update" over removing: when something changed ("I'm not new anymore"), r
 
 const normalize = (s) => String(s ?? "").toLowerCase().replace(/[“”"'`’]/g, "").replace(/\s+/g, " ").trim();
 const JUDGMENT = /\b(on (?:their|his|her) own|by themselves|without (?:help|being told|prompting)|independently|figured (?:it |this |that )?out|wants? to|prefer\w*|seems?|likes to|enjoys?|frustrat\w*|impatien\w*|motivat\w*|attitude|curious|confident|eager)\b/i;
-const QUESTION_ONLY = /^(?:the )?(?:learner |they )?(?:asked|wanted to know|wondered)\b/i;
+// The "Check my code" button, as the chat shows it or as tutor.js records it.
+const BUTTON_LINE = /^\(?(?:clicked )?check my code\W*$/;
+const QUESTION_ONLY =/^(?:the )?(?:learner |they )?(?:asked|wanted to know|wondered)\b/i;
 // A statement about themselves ("I'm not new anymore", "I know Java") — not
 // just any sentence containing "I" ("do I need +=?" is a question, not a fact).
 const SELF_STATEMENT = /(^|[^a-z])(im|i am|ive|i have|i know|i dont know|i can|i cant|i used to|i write|i work|i study|i learned|i learn|i understand|i get it now|i got it|my background|my job|my first|my class)([^a-z]|$)/;
@@ -123,6 +125,11 @@ export function groundNotes({ notes, proposal, exchanges, code, previousCode, st
   const dropped = [];
   const changes = []; // for the history file
   const drop = (entry, action, why) => dropped.push({ ...entry, action, why });
+  // The history shows what each change rests on, so the learner can check it
+  // ("evidence-backed feels like observation; evidence-free feels like ads").
+  const clip = (t) => { const x = String(t ?? "").trim().replace(/\s+/g, " "); return x.length > 80 ? x.slice(0, 77) + "…" : x; };
+  const said = (ev) => (ev ? `  (you said: "${clip(ev)}")` : "");
+  const wrote = (line) => (line ? `  (you wrote: ${clip(line)})` : "");
 
   const textEvidence = (ev) => {
     const e = normalize(ev);
@@ -130,9 +137,8 @@ export function groundNotes({ notes, proposal, exchanges, code, previousCode, st
     // The "Check my code" button's label shows up as the learner's line, but
     // it says nothing about them — a scenario used it to back "can write a
     // function that calculates the mean" from a file seen once.
-    if (/^check my code\W*$/.test(e)) return "that's the Check my code button, not their words";
-    const at =exchanges.findIndex((x) => normalize(x.learner).includes(e));
-    if (at === -1) return "evidence isn't the learner's words";
+    const at = exchanges.findIndex((x) => !BUTTON_LINE.test(normalize(x.learner)) && normalize(x.learner).includes(e));
+    if (at === -1) return exchanges.some((x) => normalize(x.learner).includes(e)) ? "that's the Check my code button, not their words" : "evidence isn't the learner's words";
     if (e.length >= 6 && exchanges.slice(0, at).some((x) => normalize(x.tutor).includes(e))) return "evidence just repeats the tutor";
     return null;
   };
@@ -188,7 +194,7 @@ export function groundNotes({ notes, proposal, exchanges, code, previousCode, st
       if (!aboutChangeAllowed(n.about[i], u.evidence)) { drop(u, "update", "About-them changes need a first-person statement or a second sign"); continue; }
       aboutChanges++;
     }
-    changes.push(`replaced: ${bodyOf(n[section][i])}  →  ${neu}`);
+    changes.push(`replaced: ${bodyOf(n[section][i])}  →  ${neu}${said(u.evidence)}`);
     n[section][i] = neu;
   }
 
@@ -202,11 +208,11 @@ export function groundNotes({ notes, proposal, exchanges, code, previousCode, st
       continue;
     }
     if (isPinned(n.now[i])) { drop(r, "remove", "pinned by the learner"); continue; }
-    changes.push(`removed: ${bodyOf(n.now[i])}`);
+    changes.push(`removed: ${bodyOf(n.now[i])}${said(r.evidence)}`);
     n.now.splice(i, 1);
   }
 
-  for (const a of Array.isArray(proposal?.add) ? proposal.add : []) {
+  for (let a of Array.isArray(proposal?.add) ? proposal.add : []) {
     const note = String(a?.note ?? "").replace(/^[*\-•\s]+/, "").trim();
     const section = a?.section === "now" ? "now" : "about";
     let why = noteProblem(note);
@@ -214,17 +220,18 @@ export function groundNotes({ notes, proposal, exchanges, code, previousCode, st
       const tWhy = a?.evidence ? textEvidence(a.evidence) : "no evidence";
       const cWhy = a?.code_evidence ? codeEvidence(a.code_evidence) : "no code evidence";
       if (tWhy && cWhy) why = a?.code_evidence ? cWhy : tWhy;
+      a = { ...a, basis: tWhy ? wrote(a.code_evidence) : said(a.evidence) };
     }
     if (why) { drop(a, "add", why); continue; }
     const similar = n[section].findIndex((l) => !isPinned(l) && overlap(bodyOf(l), note) >= 0.5);
     if (similar !== -1) {
       if (section === "about" && aboutChanges >= 1) { drop(a, "add", "one About-them change per update"); continue; }
       if (section === "about") aboutChanges++;
-      changes.push(`replaced: ${bodyOf(n[section][similar])}  →  ${note}`);
+      changes.push(`replaced: ${bodyOf(n[section][similar])}  →  ${note}${a.basis}`);
       n[section][similar] = note;
     } else {
       n[section].push(note);
-      changes.push(`added (${section}): ${note}`);
+      changes.push(`added (${section}): ${note}${a.basis}`);
     }
   }
 

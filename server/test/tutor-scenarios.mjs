@@ -436,6 +436,19 @@ const SCENARIOS = {
     turns: [{ check: true }, { say: "wtf, why would u suggest I delete lines I want?" }],
     expect: "Never mentions print(a) or print(b) (they're gone). Doesn't suggest deleting the blank-line print() calls. No closing offer questions.",
   },
+  // The "Clippy rule" from the Claude Teacher app design notes: a
+  // suggestion the learner passed on is never re-pitched in new words.
+  noRepitch: {
+    code: DIFF, run: DIFF_RUN,
+    seed: [
+      ["user", "Check my code"],
+      ["assistant", "It works. If you'd rather have less spacing, you could drop some of the print() lines."],
+      ["user", "no, i like the spacing"],
+      ["assistant", "Got it — the spacing stays."],
+    ],
+    turns: [{ check: true }, { say: "what does abs do again?" }],
+    expect: "Never suggests removing or reducing the print() lines/blank lines again, in any wording. Answers abs() plainly.",
+  },
   meta: {
     code: AGE,
     turns: [{ say: "do you save my conversations somewhere?" }],
