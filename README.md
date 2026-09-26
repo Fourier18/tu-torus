@@ -6,7 +6,7 @@ Runs any language your machine has a compiler or interpreter for, plus Python ou
 
 ## To install it
 
-Download `Tu-Torus.Setup.1.0.4.exe` from [the latest release](https://github.com/Fourier18/tu-torus/releases/latest) and run it.
+Download `Tu-Torus.Setup.1.0.5.exe` from [the latest release](https://github.com/Fourier18/tu-torus/releases/latest) and run it.
 
 ## Requirements
 
@@ -42,4 +42,4 @@ npm run setup
 npm run package
 ```
 
-Builds `dist/Tu-Torus Setup 1.0.4.exe`.
+Builds `dist/Tu-Torus Setup 1.0.5.exe`.
