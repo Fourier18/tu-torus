@@ -15,6 +15,7 @@ import { fileURLToPath } from "node:url";
 import { chat } from "../src/providers/openai-compatible.js";
 import { buildUserContent, buildSystemPrompt, tutorTools, updateNotesAfterReply } from "../src/tutor.js";
 import { runLearnerCode } from "../src/tools/run-learner-code.js";
+import { runOnce } from "../src/runner.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const SETTINGS_CANDIDATES = [
@@ -66,6 +67,28 @@ const PERSONAS = {
     goal: "See what the tutor will and won't do. Somewhere in there, you do have a real question about why your code prints nothing.",
     code: 'def shout(word):\n    return word.upper() + "!"\n\nshout("hello")\n',
   },
+  jsLearner: {
+    filename: "main.js",
+    who: "You're a beginner learning JavaScript (not Python) for web stuff. Casual, lowercase, a bit confused by how JS handles numbers and text.",
+    goal: "Get your program to print the total price, 15, instead of what it prints now.",
+    code: 'const a = "5";\nconst b = 10;\nconsole.log("Total: " + (a + b));\n',
+  },
+  curiousImprover: {
+    who: "You're an intermediate learner. Your code works and you know it; you want to know how to make it cleaner or more professional. You ask follow-up 'why' questions.",
+    goal: "Learn one or two real improvements to your working code and make them yourself.",
+    code: 'scores = [88, 92, 79, 95]\ntotal = 0\nfor s in scores:\n    total = total + s\navg = total / len(scores)\nprint("Average: " + str(avg))\n',
+  },
+  returningLearner: {
+    notes: "New to coding.\nMixed up return and print (thought return shows the result); got it once explained.",
+    who: "You're a beginner coming back after a few days. You don't mention being new or what you struggled with — you just jump in. You write short messages.",
+    goal: "Make your function's result show up when you run the file.",
+    code: 'def double(n):\n    return n * 2\n\ndouble(21)\n',
+  },
+  spanishSpeaker: {
+    who: "You're a beginner from Mexico. You write only in Spanish (casual, some typos) and understand English code keywords but not English explanations well.",
+    goal: "Arregla tu programa para que diga si un número es par o impar. Ahora mismo siempre dice lo mismo.",
+    code: 'n = int(input("Numero: "))\nif n % 2 == 1:\n    print("par")\nelse:\n    print("impar")\n',
+  },
   honestStruggler: {
     who: "You're a slow, careful beginner who genuinely tries each hint. Sometimes you get it wrong in a new way. You say 'idk' when stuck and 'oh!' when something clicks.",
     goal: "Make the program ask for a name and greet the person by name. It currently crashes.",
@@ -98,10 +121,25 @@ async function callModel({ model, messages, json }) {
   throw new Error("rate-limited repeatedly");
 }
 
-const record = (n, code, output, error) => `# Run ${n} — main.py\n\n## Code as run\n\`\`\`\n${code}\n\`\`\`\n\n## Output\n\`\`\`\n${output || "(no output)"}\n\`\`\`\n${error ? `\n## Error\n\`\`\`\n${error}\n\`\`\`` : "\n## Error\n(none)"}`;
+const record = (n, filename, code, output, error) => `# Run ${n} — ${filename}\n\n## Code as run\n\`\`\`\n${code}\n\`\`\`\n\n## Output\n\`\`\`\n${output || "(no output)"}\n\`\`\`\n${error ? `\n## Error\n\`\`\`\n${error}\n\`\`\`` : "\n## Error\n(none)"}`;
 
-async function askTutor({ history, content, code, notes }) {
-  const tools = tutorTools({ filename: "main.py", code });
+// Python runs through the same private runner the tutor uses; other
+// languages through the app's own engine (JavaScript on the built-in Node).
+async function runStudentCode({ filename, code, inputs }) {
+  if (filename.endsWith(".py")) return runLearnerCode({ code, inputs });
+  return new Promise(async (resolve) => {
+    let screen = "";
+    const session = await runOnce({
+      file: filename, ext: filename.split(".").pop(), code,
+      onData: ({ text }) => { screen += text; },
+      onExit: ({ error }) => resolve({ screen: screen || "(nothing appeared on screen)", error: error || null }),
+    });
+    inputs.forEach((t, i) => setTimeout(() => session.write(t), 700 * (i + 1)));
+  });
+}
+
+async function askTutor({ history, content, code, notes, filename }) {
+  const tools = tutorTools({ filename, code });
   const systemPrompt = buildSystemPrompt(instructions, { ...tools, notes: await notes.get() });
   for (let attempt = 0; attempt < 6; attempt++) {
     let text = "";
@@ -122,11 +160,12 @@ async function simulate(name) {
   let previousCode = null;
   let runContext = "";
   let runs = 0;
-  let notesText = "";
+  const filename = p.filename ?? "main.py";
+  let notesText = p.notes ?? "";
   const notes = { get: async () => notesText, set: async (t) => (notesText = String(t).trim().slice(0, 1200)) };
-  const studentMsgs = [{ role: "system", content: STUDENT_SYSTEM(p) }, { role: "user", content: `Your file right now:\n\`\`\`python\n${code}\`\`\`\nThe tutor is waiting. Take your first turn.` }];
+  const studentMsgs = [{ role: "system", content: STUDENT_SYSTEM(p) }, { role: "user", content: `Your file (${filename}) right now:\n\`\`\`\n${code}\`\`\`\nThe tutor is waiting. Take your first turn.` }];
   const display = [];
-  const log = [`Starting code:\n\`\`\`python\n${code}\`\`\``];
+  const log = [`Starting code (${filename}):\n\`\`\`\n${code}\`\`\``, ...(p.notes ? [`_(tutor starts with notes from earlier sessions: ${JSON.stringify(p.notes)})_`] : [])];
 
   for (let turn = 1; turn <= MAX_TURNS; turn++) {
     let act;
@@ -139,16 +178,16 @@ async function simulate(name) {
       log.push(`_(student edited the code:)_\n\`\`\`python\n${code}\`\`\``);
     }
     if (Array.isArray(act.run)) {
-      const r = await runLearnerCode({ code, inputs: act.run.map(String) });
+      const r = await runStudentCode({ filename, code, inputs: act.run.map(String) });
       runs++;
-      runContext = record(runs, code, r.screen === "(nothing appeared on screen)" ? "" : r.screen, r.error);
+      runContext = record(runs, filename, code, r.screen === "(nothing appeared on screen)" ? "" : r.screen, r.error);
       log.push(`_(student pressed Run, typing ${JSON.stringify(act.run)}:)_\n\`\`\`\n${r.screen}${r.error ? `\n${r.error.trim()}` : ""}\n\`\`\``);
     }
     const say = String(act.say ?? "").trim() || "Check my code";
     log.push(`> **student:** ${say}`);
 
-    const content = buildUserContent({ trigger: "manual", question: say, filename: "main.py", code, previousCode, runContext });
-    const { text: reply, privateRuns } = await askTutor({ history: display.slice(-HISTORY_KEEP), content, code, notes });
+    const content = buildUserContent({ trigger: "manual", question: say, filename, code, previousCode, runContext });
+    const { text: reply, privateRuns } = await askTutor({ history: display.slice(-HISTORY_KEEP), content, code, notes, filename });
     previousCode = code;
     if (privateRuns.length) log.push(`_(tutor ran the code privately with inputs: ${privateRuns.join(", ")})_`);
     log.push(`**tutor:** ${reply}`);
