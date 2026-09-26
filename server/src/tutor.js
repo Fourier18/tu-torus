@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 import { getSettings } from "./settings.js";
 import { chat } from "./providers/openai-compatible.js";
 import { runLearnerCode } from "./tools/run-learner-code.js";
+import { getLearnerNotes, setLearnerNotes, reviseLearnerNotes } from "./learner-notes.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const INSTRUCTIONS_PATH = path.join(__dirname, "tutor-instructions.md");
@@ -59,24 +60,34 @@ export function buildUserContent({ trigger, question, filename, code, previousCo
   return parts.join("\n\n") || "Can you check my code?";
 }
 
-// Added to the instructions only when the tool is actually offered — with the
-// tool described unconditionally, a test run without it had the tutor claim
-// "I ran it privately to check" when it couldn't have.
-const TOOL_NOTE = `
+// Each tool's guidance is added to the instructions only when that tool is
+// actually offered — with the run tool described unconditionally, a test run
+// without it had the tutor claim "I ran it privately to check" when it
+// couldn't have.
+const RUN_TOOL_NOTE = `
 
 You have a tool, run_learner_code, that runs their file privately exactly as it is, with inputs you choose; they never see these runs. Use it to check before you claim what the code does or prints — especially with no run attached, or for an input you're about to talk about. Mention a run only when it helps ("I tried 30 and 25 and got \`5.0\`").`;
 
-export function buildSystemPrompt(instructions, { tools } = {}) {
-  return tools?.length ? instructions + TOOL_NOTE : instructions;
+// Notes are written between replies by reviseLearnerNotes (learner-notes.js);
+// here they're only read, so the tutor starts every message knowing who it's
+// talking to.
+export function buildSystemPrompt(instructions, { tools, notes } = {}) {
+  const names = new Set((tools ?? []).map((t) => t.function.name));
+  let prompt = instructions;
+  if (notes != null) {
+    prompt += `\n\nYour notes about this learner from earlier sessions — use them to pitch your replies; if the conversation in front of you contradicts them, the conversation wins. Don't bring them up unless asked. If they ask what you remember, or whether anything about them is saved, be straight: you keep these short notes on how they're doing, stored on their computer, and they can read, edit or clear them in Settings (beyond that, you don't know how the app stores things):\n${notes || "(none yet)"}`;
+  }
+  if (names.has("run_learner_code")) prompt += RUN_TOOL_NOTE;
+  return prompt;
 }
 
-// Lets the tutor check what the learner's code actually does instead of
-// predicting it (live tests caught it inventing output more than once).
-// Python only — that's the one engine that can run privately in-process.
+// run_learner_code: lets the tutor check what the learner's code actually
+// does instead of predicting it (live tests caught it inventing output more
+// than once) — Python only, the one engine that runs privately in-process.
 export function tutorTools({ filename, code }) {
-  if (!filename?.endsWith(".py") || code == null) return {};
-  return {
-    tools: [{
+  const tools = [];
+  if (filename?.endsWith(".py") && code != null) {
+    tools.push({
       type: "function",
       function: {
         name: "run_learner_code",
@@ -87,8 +98,12 @@ export function tutorTools({ filename, code }) {
           required: ["inputs"],
         },
       },
-    }],
-    runTool: async (name, args) => (name === "run_learner_code"
+    });
+  }
+  if (!tools.length) return {};
+  return {
+    tools,
+    runTool: async (name, args) => (name === "run_learner_code" && code != null
       ? runLearnerCode({ code, inputs: Array.isArray(args.inputs) ? args.inputs.map(String).slice(0, 20) : [] })
       : { error: `No tool named ${name}.` }),
   };
@@ -121,14 +136,36 @@ export async function* askTutor({ trigger, question, filename, code, previousCod
   const userContent = buildUserContent({ trigger, question, filename, code, previousCode, runContext });
 
   const toolset = tutorTools({ filename, code });
-  yield* chat({
+  let reply = "";
+  for await (const event of chat({
     ...toolset,
-    systemPrompt: buildSystemPrompt(systemPrompt, toolset),
+    systemPrompt: buildSystemPrompt(systemPrompt, { ...toolset, notes: await getLearnerNotes() }),
     history,
     userContent,
     baseUrl: provider.baseUrl,
     apiKey: provider.apiKey,
     model: provider.model,
     providerLabel: PROVIDER_LABELS[provider.preset] || provider.preset || "this model",
-  });
+  })) {
+    if (event.type === "text") reply += event.text;
+    yield event;
+  }
+
+  // Not awaited: the answer is already on screen; updating the notes happens
+  // behind it and never delays the learner.
+  updateNotesAfterReply({ trigger, question, reply, provider, store: { get: getLearnerNotes, set: setLearnerNotes } })
+    .catch(() => { /* a failed notes update just means no update this time */ });
+}
+
+// Asks the model whether this exchange changes what's worth remembering about
+// the learner, and saves the new notes if so. `store` is injectable so tests
+// keep notes in memory instead of the real file.
+const NOT_A_REAL_REPLY = /^(Rate limit reached|Invalid API key|Couldn't reach|Model connection failed|No model connected)/;
+export async function updateNotesAfterReply({ trigger, question, reply, provider, store }) {
+  if (!reply?.trim() || NOT_A_REAL_REPLY.test(reply)) return null;
+  const notes = await store.get();
+  const learnerSaid = question || (trigger === "check" ? '(clicked "Check my code")' : "");
+  const revised = await reviseLearnerNotes({ notes, learnerSaid, tutorSaid: reply, baseUrl: provider.baseUrl, apiKey: provider.apiKey, model: provider.model });
+  if (revised == null || revised === notes) return null;
+  return store.set(revised);
 }

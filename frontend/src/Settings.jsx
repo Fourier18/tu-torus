@@ -1,4 +1,47 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+
+// The tutor's own notes about the learner (it keeps them up to date itself).
+// Shown here so nothing it remembers is hidden, and so a wrong note can be
+// corrected or wiped. Reloaded each time Settings opens, since the tutor may
+// have changed them since.
+function LearnerNotes() {
+  const [notes, setNotes] = useState("");
+  const [max, setMax] = useState(1200);
+  const [status, setStatus] = useState("loading"); // loading | saved | edited | error
+
+  useEffect(() => {
+    fetch("/api/learner-notes")
+      .then((r) => r.json())
+      .then((d) => { setNotes(d.notes); setMax(d.max); setStatus("saved"); })
+      .catch(() => setStatus("error"));
+  }, []);
+
+  const save = (value) => {
+    fetch("/api/learner-notes", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ notes: value }) })
+      .then((r) => { if (!r.ok) throw new Error(); return r.json(); })
+      .then((d) => { setNotes(d.notes); setStatus("saved"); })
+      .catch(() => setStatus("error"));
+  };
+
+  return (
+    <div>
+      <div style={{ fontSize: "13px", color: "var(--text-dim)", marginBottom: "6px" }}>What the tutor remembers about you</div>
+      <textarea
+        value={notes}
+        maxLength={max}
+        rows={5}
+        style={{ width: "100%", boxSizing: "border-box", fontSize: "12px", fontFamily: "inherit" }}
+        placeholder={status === "loading" ? "Loading…" : "Nothing yet — the tutor adds notes as it gets to know how you're doing."}
+        onChange={(e) => { setNotes(e.target.value); setStatus("edited"); }}
+      />
+      <div style={{ display: "flex", gap: "6px", marginTop: "4px" }}>
+        <button onClick={() => save(notes)} disabled={status !== "edited"}>{status === "edited" ? "Save notes" : "Saved"}</button>
+        <button onClick={() => { setNotes(""); save(""); }} disabled={!notes}>Clear</button>
+      </div>
+      {status === "error" && <div className="settings-hint">Couldn't reach the app's server — notes not saved.</div>}
+    </div>
+  );
+}
 
 // Deliberately no hardcoded `model` values here. A specific model ID
 // (e.g. a frozen Groq snapshot name) goes stale the moment that provider
@@ -192,6 +235,9 @@ export default function Settings({ settings, onChange }) {
           <button onClick={saveProvider} disabled={saved || !form.baseUrl || !form.model}>
             {saved ? "Saved" : "Save"}
           </button>
+
+          <div className="settings-divider" />
+          <LearnerNotes />
         </div>
       )}
     </div>

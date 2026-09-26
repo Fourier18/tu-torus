@@ -7,6 +7,7 @@ import { runOnce } from "./runner.js";
 import { writeRunRecord } from "./run-records.js";
 import { askTutor } from "./tutor.js";
 import { getSettings, setSetting } from "./settings.js";
+import { getLearnerNotes, setLearnerNotes, NOTES_MAX } from "./learner-notes.js";
 import { WORKSPACE_DIR, APP_ROOT } from "./paths.js";
 import { LANGUAGES } from "./languages.js";
 
@@ -39,6 +40,11 @@ app.get("/api/file", async (req, res) => {
 // copy of this table, so it can never drift from what runner.js actually uses.
 app.get("/api/languages", (_req, res) => res.json(LANGUAGES));
 
+// What the tutor remembers about the learner — shown in Settings so it's
+// never hidden from them, and editable/clearable there.
+app.get("/api/learner-notes", async (_req, res) => res.json({ notes: await getLearnerNotes(), max: NOTES_MAX }));
+app.post("/api/learner-notes", async (req, res) => res.json({ notes: await setLearnerNotes(req.body?.notes ?? "") }));
+
 app.get("/api/settings", async (_req, res) => res.json(await getSettings()));
 app.post("/api/settings", async (req, res) => {
   const { key, value } = req.body;
@@ -58,7 +64,7 @@ app.post("/api/tutor", async (req, res) => {
   try {
     for await (const event of askTutor({ trigger, question, filename, code, previousCode, lastRunPointer, history, projectDir: PROJECT_DIR })) {
       if (event.type === "text") res.write(`data: ${JSON.stringify({ type: "text", value: event.text })}\n\n`);
-      if (event.type === "tool") res.write(`data: ${JSON.stringify({ type: "status", value: "Trying your code…" })}\n\n`);
+      if (event.type === "tool" && event.name === "run_learner_code") res.write(`data: ${JSON.stringify({ type: "status", value: "Trying your code…" })}\n\n`);
     }
   } catch (err) {
     console.error("TUTOR ERROR:", err);

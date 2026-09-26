@@ -15,7 +15,7 @@ import { readFile, writeFile, mkdir } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { chat } from "../src/providers/openai-compatible.js";
-import { buildUserContent, buildSystemPrompt, tutorTools } from "../src/tutor.js";
+import { buildUserContent, buildSystemPrompt, tutorTools, updateNotesAfterReply } from "../src/tutor.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // The installed app keeps its settings in its per-user data folder; builds
@@ -288,6 +288,39 @@ const SCENARIOS = {
     ],
     expect: "Turn 1: never called, nothing shows. Turn 2: `5.0`. Turn 3: `The difference is 0.` (no quotes). Turn 4: SyntaxError on the f-string line. Every claim about output correct.",
   },
+  // --- Learner memory: sessions share only the notes, like closing and
+  // reopening the app.
+  remembersBeginner: {
+    sessions: [
+      { code: AGE, turns: [{ check: true }, { say: "im new to coding so i dunno" }, { say: "whats a return?" }] },
+      { code: CRAM, turns: [{ say: "why does it say 5.0 and not 5?" }] },
+    ],
+    expect: "Session 1: notes record that they're new. Session 2 (fresh chat, nobody says 'new'): plain words, a one-line explanation of float vs whole numbers without jargon.",
+  },
+  remembersWeakSpot: {
+    sessions: [
+      { code: AGE, turns: [{ say: "i ran it and nothing shows up. i have return in there??" }, { say: "oh so return doesnt print it?" }, { say: "got it, thanks" }] },
+      { code: 'def greet(name):\n    return "Hello, " + name\n\ngreet("Sam")\n', turns: [{ check: true }] },
+    ],
+    expect: "Session 1: notes record the return-vs-print confusion. Session 2: spots the same thing (greet() returns but nothing prints) and can connect it to last time — gently, as a hint.",
+  },
+  correctsWrongNote: {
+    notes: "Complete beginner. Hasn't learned loops yet.",
+    code: OFF_BY_ONE, run: OFF_BY_ONE_RUN,
+    turns: [{ say: "i'm a java dev, just new to python. why the index error? in java i'd just use i < nums.length" }],
+    expect: "Talks to them as an experienced programmer (no loop basics); notes corrected — not a beginner, knows Java, new to Python.",
+  },
+  noJunkNotes: {
+    code: WORKING,
+    turns: [{ say: "what's a decorator?" }],
+    expect: "Answers; notes stay empty or get at most one meaningful line — no transcript, no guesses about the learner.",
+  },
+  whatDoYouKnow: {
+    notes: "New to coding. Understands input() and print(). Kept mixing up return and print.",
+    code: WORKING,
+    turns: [{ say: "what do you remember about me?" }],
+    expect: "Answers honestly from its notes, and mentions they can see/edit them in Settings — no invented details. Notes unchanged.",
+  },
   // --- Agent part: questions where running the code is the honest way to know.
   floorDivision: {
     code: "nums = [1, 2]\nprint(sum(nums) // len(nums))\n",
@@ -388,16 +421,33 @@ const SCENARIOS = {
 };
 
 
-async function ask(messages, content, code, filename) {
+// Notes live in memory per scenario run, never in the real learner-notes
+// file. NOTES=off withholds the notes (and the tool) entirely, for A/B.
+function memoryNotes(initial = "") {
+  let notes = initial;
+  return { get: async () => notes, set: async (t) => (notes = String(t ?? "").trim().slice(0, 1200)) };
+}
+
+async function ask(messages, content, code, filename, notesStore, turn) {
+  const store = process.env.NOTES === "off" ? undefined : notesStore;
   const tools = process.env.TOOLS === "off" ? {} : tutorTools({ filename, code });
+  const systemPrompt = buildSystemPrompt(instructions, { ...tools, notes: store ? await store.get() : undefined });
   for (let attempt = 0; attempt < 6; attempt++) {
     let text = "";
     const runs = [];
-    for await (const e of chat({ ...tools, systemPrompt: buildSystemPrompt(instructions, tools), history: messages, userContent: content, baseUrl: provider.baseUrl, apiKey: provider.apiKey, model, providerLabel: provider.preset })) {
+    for await (const e of chat({ ...tools, systemPrompt, history: messages, userContent: content, baseUrl: provider.baseUrl, apiKey: provider.apiKey, model, providerLabel: provider.preset })) {
       if (e.type === "text") text += e.text;
-      if (e.type === "tool") runs.push(JSON.stringify(e.args.inputs ?? []));
+      if (e.type === "tool") runs.push(`ran privately with inputs ${JSON.stringify(e.args.inputs ?? [])}`);
     }
-    if (!/^(Rate limit reached|Couldn't reach)/.test(text)) return { text: text.trim(), runs };
+    if (!/^(Rate limit reached|Couldn't reach)/.test(text)) {
+      // Same post-reply step the app runs in the background; awaited here so
+      // the next turn sees the updated notes.
+      if (store) {
+        const updated = await updateNotesAfterReply({ trigger: turn.check ? "check" : "manual", question: turn.say, reply: text, provider: { ...provider, model }, store });
+        if (updated != null) runs.push(`notes updated → ${JSON.stringify(updated)}`);
+      }
+      return { text: text.trim(), runs };
+    }
     await new Promise((r) => setTimeout(r, 5000 * (attempt + 1)));
   }
   throw new Error("rate-limited repeatedly");
@@ -430,25 +480,35 @@ function checks(reply, earlier, beginner) {
   return flags;
 }
 
+// A scenario is one session, or `sessions: [...]` — each a fresh chat (the app
+// was closed and reopened) sharing only the learner notes. `beginner` (for the
+// jargon flag) carries across sessions, since the learner is the same person.
 async function runScenario(s) {
-  const display = (s.seed ?? []).map(([role, content]) => ({ role, content }));
   const out = [];
-  let code = s.code;
-  let beginner = (s.seed ?? []).some(([role, text]) => role === "user" && SAID_NEW.test(text));
-  let previousCode = s.seed ? s.code : null; // seeded turns were sent with the scenario's starting code
-  for (const t of s.turns) {
-    if (t.code) code = t.code;
-    const shown = t.check ? "Check my code" : t.say;
-    const history = display.slice(-HISTORY_KEEP);
-    const filename = s.filename ?? "main.py";
-    const content = buildUserContent({ trigger: t.check ? "check" : "manual", question: t.say, filename, code, previousCode, runContext: s.run });
-    const { text: reply, runs } = await ask(history, content, code, filename);
-    previousCode = code;
-    const earlier = display.filter((m) => m.role === "assistant").map((m) => m.content);
-    beginner ||= SAID_NEW.test(t.say ?? "");
-    out.push({ user: shown, reply, runs, flags: checks(reply, earlier, beginner) });
-    display.push({ role: "user", content: shown }, { role: "assistant", content: reply });
+  const notesStore = memoryNotes(s.notes ?? "");
+  const sessions = s.sessions ?? [{ seed: s.seed, turns: s.turns, code: s.code, run: s.run }];
+  let beginner = false;
+  for (const [i, sess] of sessions.entries()) {
+    if (sessions.length > 1) out.push({ marker: `session ${i + 1} (fresh chat; notes: ${JSON.stringify(await notesStore.get()) || '""'})` });
+    const display = (sess.seed ?? []).map(([role, content]) => ({ role, content }));
+    let code = sess.code ?? s.code;
+    beginner ||= (sess.seed ?? []).some(([role, text]) => role === "user" && SAID_NEW.test(text));
+    let previousCode = sess.seed ? code : null; // seeded turns were sent with the session's starting code
+    for (const t of sess.turns) {
+      if (t.code) code = t.code;
+      const shown = t.check ? "Check my code" : t.say;
+      const history = display.slice(-HISTORY_KEEP);
+      const filename = s.filename ?? "main.py";
+      const content = buildUserContent({ trigger: t.check ? "check" : "manual", question: t.say, filename, code, previousCode, runContext: sess.run ?? s.run });
+      const { text: reply, runs } = await ask(history, content, code, filename, notesStore, t);
+      previousCode = code;
+      const earlier = display.filter((m) => m.role === "assistant").map((m) => m.content);
+      beginner ||= SAID_NEW.test(t.say ?? "");
+      out.push({ user: shown, reply, runs, flags: checks(reply, earlier, beginner) });
+      display.push({ role: "user", content: shown }, { role: "assistant", content: reply });
+    }
   }
+  out.push({ marker: `notes at the end: ${JSON.stringify(await notesStore.get()) || '""'}` });
   return out;
 }
 
@@ -464,9 +524,10 @@ for (const name of names) {
   for (let t = 1; t <= trials; t++) {
     report.push(`### trial ${t}`);
     for (const x of await runScenario(s)) {
+      if (x.marker) { report.push(`**— ${x.marker} —**`, ""); continue; }
       total++;
       if (x.flags.length) flagged++;
-      report.push(`> **learner:** ${x.user}`, "", ...(x.runs.length ? [`_(ran privately with inputs: ${x.runs.join(", ")})_`, ""] : []), x.reply, x.flags.length ? `\n\`[${x.flags.join(", ")}]\`` : "", "");
+      report.push(`> **learner:** ${x.user}`, "", ...(x.runs.length ? [`_(${x.runs.join("; ")})_`, ""] : []), x.reply, x.flags.length ? `\n\`[${x.flags.join(", ")}]\`` : "", "");
     }
     console.log(`${name} trial ${t} done`);
   }
