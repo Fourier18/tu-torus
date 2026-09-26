@@ -25,6 +25,24 @@ function isInstalled(command) {
   return p;
 }
 
+// `minVersion`: some tools only run a lone file from a certain version on —
+// `dotnet run app.cs` needs .NET 10; .NET 8 answers "Couldn't find a project
+// to run", which tells a beginner nothing. Returns the installed version
+// string when it's too old, else null.
+const versionCache = new Map();
+function tooOld(command, { args = ["--version"], major }) {
+  const key = `${command} ${args.join(" ")}`;
+  if (!versionCache.has(key)) {
+    versionCache.set(key, new Promise((resolve) => {
+      execFile(command, args, { timeout: 10000 }, (err, stdout) => {
+        const v = String(stdout ?? "").match(/\d+(\.\d+)*/)?.[0];
+        resolve(err || !v ? null : v);
+      });
+    }));
+  }
+  return versionCache.get(key).then((v) => (v && Number(v.split(".")[0]) < major ? v : null));
+}
+
 function fill(template, vars) {
   if (Array.isArray(template)) return template.map((t) => fill(t, vars));
   return template.replace(/\{(\w+)\}/g, (_, k) => vars[k] ?? "");
@@ -78,13 +96,18 @@ export async function runToolchain({ filename, code, config: rawConfig, onData, 
   // electron.exe behave as plain Node), real node in dev. So .js needs no
   // separate Node.js install.
   const config = rawConfig.bundledNode ? { ...rawConfig, command: process.execPath } : rawConfig;
-  const env = rawConfig.bundledNode ? { ...process.env, ELECTRON_RUN_AS_NODE: "1" } : process.env;
+  const env = { ...process.env, ...(rawConfig.bundledNode ? { ELECTRON_RUN_AS_NODE: "1" } : {}), ...(rawConfig.env ?? {}) };
 
+  const ext = filename.split(".").pop();
+  const what = config.installName || config.command;
+  const where = config.installUrl ? ` Get it here: ${config.installUrl}` : "";
   if (!rawConfig.bundledNode && !(await isInstalled(config.command))) {
-    const ext = filename.split(".").pop();
-    const what = config.installName || config.command;
-    const where = config.installUrl ? ` Get it here: ${config.installUrl}` : "";
     onExit({ ok: false, preExecution: true, error: `To run .${ext} files, this computer needs ${what} installed (the \`${config.command}\` command wasn't found).${where}` });
+    return { write: () => {}, kill: () => {} };
+  }
+  const old = config.minVersion ? await tooOld(config.command, config.minVersion) : null;
+  if (old) {
+    onExit({ ok: false, preExecution: true, error: `To run .${ext} files, this computer needs ${what} — it has version ${old}, which is too old.${where}` });
     return { write: () => {}, kill: () => {} };
   }
 

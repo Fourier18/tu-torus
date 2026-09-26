@@ -6,6 +6,18 @@ import { runPython } from "./engines/python.js";
 import { runToolchain } from "./engines/toolchain.js";
 import { LANGUAGES } from "./languages.js";
 
+// For a file ending nothing is set up for: tell the learner what does run and
+// how to get there, instead of just "can't run this" — built from the language
+// table, so a newly added language shows up here without touching this.
+export function howToRun(ext) {
+  const entries = Object.entries(LANGUAGES).filter(([, l]) => l.name);
+  const builtIn = entries.filter(([, l]) => l.browserNative || l.run?.engine === "pyodide" || l.run?.bundledNode);
+  const install = entries.filter(([, l]) => l.run?.installName);
+  const list = (xs) => xs.map(([e, l]) => `.${e} (${l.name})`).join(", ");
+  const what = ext ? `Files ending in .${ext} aren't set up to run here.` : "This file has no ending (like .py), so Tu-Torus doesn't know what language it is.";
+  return `${what} To run code, put it in a file whose name ends in one of these — type the new name (for example main.py) in the file name box at the top left; this file stays saved under its own name.\n\nRun right away: ${list(builtIn)}\nRun once that language is installed on this computer (Run then shows where to get it): ${list(install)}`;
+}
+
 export async function runOnce({ file, ext, code, onData, onExit }) {
   const config = LANGUAGES[ext]?.run;
 
@@ -14,7 +26,7 @@ export async function runOnce({ file, ext, code, onData, onExit }) {
     // configured way to run it at all yet (not even "toolchain not found").
     // A language can carry its own explanation (`runNote`) when "run" doesn't
     // apply to it the way it does to a program — CSS, for one.
-    onExit({ ok: false, preExecution: true, error: LANGUAGES[ext]?.runNote || `Tu-Torus can't run .${ext} files yet. Python and JavaScript run built in, web pages (.html) show directly, and several other languages run once their tools are installed.` });
+    onExit({ ok: false, preExecution: true, error: LANGUAGES[ext]?.runNote || howToRun(ext) });
     return { write: () => {}, kill: () => {} };
   }
 
