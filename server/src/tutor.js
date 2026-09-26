@@ -54,9 +54,20 @@ export function buildUserContent({ trigger, question, filename, code, previousCo
     runContext = runContext.replace(/Traceback \(most recent call last\):\n[\s\S]*?(?=  File "<exec>")/g, "Traceback (most recent call last):\n");
     const ranCode = runContext.match(/## Code as run\n```\n([\s\S]*?)\n```/)?.[1];
     const stale = ranCode != null && code != null && ranCode.trimEnd() !== code.trimEnd();
-    parts.push(`Their most recent run, attached automatically by the app (the learner didn't paste it) — the Output section is exactly what appeared on their screen (what they typed at input() prompts isn't included).${stale ? " That run was of an earlier version of the code than what's in the file now." : ""}\n${runContext}`);
+    parts.push(`Their most recent run, attached automatically by the app (the learner didn't paste it) — the Output section is exactly what appeared on their screen, including what they typed at input() prompts.${stale ? " That run was of an earlier version of the code than what's in the file now." : ""}\n${runContext}`);
   }
   return parts.join("\n\n") || "Can you check my code?";
+}
+
+// Added to the instructions only when the tool is actually offered — with the
+// tool described unconditionally, a test run without it had the tutor claim
+// "I ran it privately to check" when it couldn't have.
+const TOOL_NOTE = `
+
+You have a tool, run_learner_code, that runs their file privately exactly as it is, with inputs you choose; they never see these runs. Use it to check before you claim what the code does or prints — especially with no run attached, or for an input you're about to talk about. Mention a run only when it helps ("I tried 30 and 25 and got \`5.0\`").`;
+
+export function buildSystemPrompt(instructions, { tools } = {}) {
+  return tools?.length ? instructions + TOOL_NOTE : instructions;
 }
 
 // Lets the tutor check what the learner's code actually does instead of
@@ -109,9 +120,10 @@ export async function* askTutor({ trigger, question, filename, code, previousCod
 
   const userContent = buildUserContent({ trigger, question, filename, code, previousCode, runContext });
 
+  const toolset = tutorTools({ filename, code });
   yield* chat({
-    ...tutorTools({ filename, code }),
-    systemPrompt,
+    ...toolset,
+    systemPrompt: buildSystemPrompt(systemPrompt, toolset),
     history,
     userContent,
     baseUrl: provider.baseUrl,

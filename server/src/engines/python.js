@@ -44,7 +44,14 @@ export function runPython({ code, onData, onExit }) {
 
   return {
     write: (text) => {
-      const bytes = new TextEncoder().encode(text.endsWith("\n") ? text : text + "\n");
+      const line = text.endsWith("\n") ? text : text + "\n";
+      // Echo what was typed, the way a terminal does — without it the output
+      // panel ran prompts and results together on one line ("Enter the first
+      // age: Enter the second age: 1.0"), and learners added print() calls
+      // to work around the app rather than their code.
+      output += line;
+      onData({ stream: "stdout", text: line });
+      const bytes = new TextEncoder().encode(line);
       dataBytes.set(bytes.subarray(0, dataBytes.length));
       Atomics.store(sync, 1, bytes.length);
       Atomics.store(sync, 0, 1);

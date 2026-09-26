@@ -20,7 +20,10 @@ function startServer() {
   // at all when tried that way. A raw fd from openSync is immediately valid.
   const logFd = fs.openSync(LOG_PATH, "a");
   serverProcess = spawn(process.execPath, [path.join(__dirname, "..", "server", "src", "index.js")], {
-    env: { ...process.env, ELECTRON_RUN_AS_NODE: "1", PORT: String(PORT) },
+    // TUTORUS_DATA_DIR: the learner's code, settings and run records go in
+    // the per-user data folder, which installs and updates never touch —
+    // not inside the install folder, where every reinstall wiped them.
+    env: { ...process.env, ELECTRON_RUN_AS_NODE: "1", PORT: String(PORT), TUTORUS_DATA_DIR: app.getPath("userData") },
     stdio: ["ignore", logFd, logFd],
   });
 }

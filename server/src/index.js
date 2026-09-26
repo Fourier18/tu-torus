@@ -7,7 +7,7 @@ import { runOnce } from "./runner.js";
 import { writeRunRecord } from "./run-records.js";
 import { askTutor } from "./tutor.js";
 import { getSettings, setSetting } from "./settings.js";
-import { WORKSPACE_DIR } from "./paths.js";
+import { WORKSPACE_DIR, APP_ROOT } from "./paths.js";
 import { LANGUAGES } from "./languages.js";
 
 const PROJECT_DIR = WORKSPACE_DIR;
@@ -110,7 +110,7 @@ wss.on("connection", (ws) => {
 // window at it. `npm run dev` (Vite's own dev server on 5173, proxying to
 // this backend) is unaffected: it never builds frontend/dist, so this block
 // silently does nothing during normal development.
-const distDir = path.join(path.dirname(WORKSPACE_DIR), "frontend", "dist");
+const distDir = path.join(APP_ROOT, "frontend", "dist");
 try {
   await import("node:fs").then((fs) => fs.accessSync(distDir));
   app.use(express.static(distDir));

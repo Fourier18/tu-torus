@@ -5,14 +5,18 @@ import { fileURLToPath } from "node:url";
 import { mkdirSync } from "node:fs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const REPO_ROOT = path.join(__dirname, "..", ".."); // tu-torus/
+export const APP_ROOT = path.join(__dirname, "..", ".."); // tu-torus/ — the app's own code (frontend build lives under here)
 
-export const WORKSPACE_DIR = path.join(REPO_ROOT, "workspace"); // the user's actual project files
+// Where the learner's files live. The packaged app gets Electron's per-user
+// data folder (%APPDATA%\tu-torus) from electron/main.js — installs and
+// updates never touch it. It used to be APP_ROOT/workspace, i.e. inside the
+// install folder, so every reinstall silently wiped the learner's code,
+// settings (API key) and run history. Dev mode (`npm run dev`) sets nothing
+// and keeps using the repo's own workspace/.
+const DATA_ROOT = process.env.TUTORUS_DATA_DIR || APP_ROOT;
+export const WORKSPACE_DIR = path.join(DATA_ROOT, "workspace"); // the user's actual project files
 export const TUTOR_DIR = path.join(WORKSPACE_DIR, ".tutor"); // run records, settings, usage log, tmp — lives inside the workspace, next to what it's about
 
-// The packaged Electron app never had a `workspace/` directory at all — the
-// `files` glob in package.json's build config only ever listed
-// electron/server/frontend, never workspace. Created here, at the source,
-// so this is robust regardless of packaging config rather than depending on
-// a files glob being remembered and kept in sync.
+// Created here rather than relying on it to exist — the packaged app never
+// ships a workspace/ of its own.
 mkdirSync(TUTOR_DIR, { recursive: true });

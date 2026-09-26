@@ -56,7 +56,13 @@ function runStage({ command, args, cwd, onData, getWrite }) {
     child.stdout.on("data", forward("stdout"));
     child.stderr.on("data", forward("stderr"));
 
-    if (getWrite) getWrite((text) => child.stdin.write(text.endsWith("\n") ? text : text + "\n"));
+    // Typed input is echoed like a terminal would (see python.js write()).
+    if (getWrite) getWrite((text) => {
+      const line = text.endsWith("\n") ? text : text + "\n";
+      output += line;
+      onData({ stream: "stdout", text: line });
+      child.stdin.write(line);
+    });
 
     child.on("close", (code) => {
       clearTimeout(timer);
