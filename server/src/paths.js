@@ -16,6 +16,9 @@ export const APP_ROOT = path.join(__dirname, "..", ".."); // tu-torus/ — the a
 const DATA_ROOT = process.env.TUTORUS_DATA_DIR || APP_ROOT;
 export const WORKSPACE_DIR = path.join(DATA_ROOT, "workspace"); // the user's actual project files
 export const TUTOR_DIR = path.join(WORKSPACE_DIR, ".tutor"); // run records, settings, usage log, tmp — lives inside the workspace, next to what it's about
+// Tools the app sets up on first use (the C/C++ compiler), kept beside the
+// workspace rather than in the install folder so updates don't re-download them.
+export const TOOLS_DIR = path.join(DATA_ROOT, "tools");
 
 // Created here rather than relying on it to exist — the packaged app never
 // ships a workspace/ of its own.

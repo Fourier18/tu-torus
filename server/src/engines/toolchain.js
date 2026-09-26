@@ -12,6 +12,7 @@ import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import os from "node:os";
 import { fileURLToPath } from "node:url";
+import { TOOLS_DIR } from "../paths.js";
 
 // The built-in language runners (server/src/runners) — languages.json refers
 // to them as {runners}/<name>.
@@ -60,7 +61,7 @@ function killTree(child) {
 
 // Runs one stage (compile or exec) to completion, streaming output live and
 // enforcing the timeout/output cap. Returns {ok, timedOut, output, error}.
-function runStage({ command, args, cwd, env, onData, getWrite }) {
+function runStage({ command, args, cwd, env, onData, getWrite, timeoutMs = TIMEOUT_MS }) {
   return new Promise((resolve) => {
     const child = spawn(command, args, { cwd, env });
     let output = "";
@@ -72,7 +73,7 @@ function runStage({ command, args, cwd, env, onData, getWrite }) {
     // and starts over when the learner types. A wall-clock limit had killed
     // programs mid-INPUT while a beginner was still thinking.
     let timer = null;
-    const startClock = () => { clearTimeout(timer); timer = setTimeout(() => { timedOut = true; killTree(child); }, TIMEOUT_MS); };
+    const startClock = () => { clearTimeout(timer); timer = setTimeout(() => { timedOut = true; killTree(child); }, timeoutMs); };
     const stopClock = () => { clearTimeout(timer); timer = null; };
     startClock();
 
@@ -129,16 +130,21 @@ export async function runToolchain({ filename, code, config: rawConfig, onData, 
   const filePath = path.join(dir, path.basename(filename)); // never outside the throwaway dir, whatever the caller passed
   const outPath = path.join(dir, "a.out" + (process.platform === "win32" ? ".exe" : ""));
   const classname = path.basename(filename, path.extname(filename));
-  const vars = { file: filePath, out: outPath, dir, classname, runners: RUNNERS_DIR };
+  const vars = { file: filePath, out: outPath, dir, classname, runners: RUNNERS_DIR, tools: TOOLS_DIR, node: process.execPath, name: path.basename(filename) };
   await writeFile(filePath, code);
 
+  // Lines typed before the program is running (while it compiles, or while
+  // the compiler sets itself up) wait here instead of being dropped.
   let stdinWriter = null;
+  const typedEarly = [];
   let killed = false; // known gap: this only prevents starting the *next* stage — it can't reach a child process that's mid-compile when kill() is called, since runStage doesn't expose it outward. Not reachable from the UI today (no stop button built yet); worth a real fix if one is added.
   const cleanup = () => rm(dir, { recursive: true, force: true }).catch(() => {});
 
   (async () => {
     if (config.compile) {
-      const compileResult = await runStage({ command: config.command, args: fill(config.compile, vars), cwd: dir, env, onData });
+      // compileTimeout: a first-use setup (the C/C++ compiler download) needs
+      // longer than a program run gets.
+      const compileResult = await runStage({ command: config.command, args: fill(config.compile, vars), cwd: dir, env, onData, timeoutMs: config.compileTimeout });
       if (!compileResult.ok) {
         await cleanup();
         onExit({ ok: false, error: compileResult.timedOut ? "Compile timed out." : compileResult.error });
@@ -157,7 +163,7 @@ export async function runToolchain({ filename, code, config: rawConfig, onData, 
       cwd: dir,
       env,
       onData,
-      getWrite: (write) => { stdinWriter = write; },
+      getWrite: (write) => { stdinWriter = write; for (const t of typedEarly.splice(0)) write(t); },
     });
 
     await cleanup();
@@ -165,7 +171,7 @@ export async function runToolchain({ filename, code, config: rawConfig, onData, 
   })();
 
   return {
-    write: (text) => stdinWriter?.(text),
+    write: (text) => (stdinWriter ? stdinWriter(text) : typedEarly.push(text)),
     kill: () => { killed = true; },
   };
 }

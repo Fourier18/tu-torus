@@ -2,15 +2,19 @@
 
 A live coding tutor: write code, run it, and get coached on what happened. Three panels — an editor, an output panel that shows what your program prints, and a chat panel where the tutor sees your code and your last run and talks you through it.
 
-Nine languages come built in and run the moment you press Run: Python, JavaScript, TypeScript (type-checked), Ruby, PHP, Perl, Lua, BASIC, and HTML/CSS web pages. Programs that ask for input wait for you to type, just like in a terminal. Go, Java, C#, Rust and others run too once their official tools are installed, and Run links you to them. The tutor talks to whatever model you connect in Settings — no built-in subscription, so it works with a free API key from several providers.
+Nine languages come built in and run the moment you press Run: Python, JavaScript, TypeScript (type-checked), Ruby, PHP, Perl, Lua, BASIC, and HTML/CSS web pages. Programs that ask for input wait for you to type, just like in a terminal.
+
+**C and C++ included.** The compiler sets itself up the first time you press Run on a `.c` or `.cpp` file: a one-time 27 MB download, then it works offline. No MSYS2, no PATH settings, no afternoon lost to installing a compiler.
+
+Go, Java, C#, Rust and others run too once their official tools are installed, and Run links you to them. The tutor talks to whatever model you connect in Settings — no built-in subscription, so it works with a free API key from several providers.
 
 ## To install it
 
-Download `Tu-Torus.Setup.1.0.9.exe` from [the latest release](https://github.com/Fourier18/tu-torus/releases/latest).
+Download `Tu-Torus.Setup.1.0.10.exe` from [the latest release](https://github.com/Fourier18/tu-torus/releases/latest).
 
 ## Requirements
 
-Windows. Everything for the built-in languages ships with the app. Go, Java, C#, Rust, C and C++ need their compiler on your machine; the first time you run one without it, the output panel says which and links to the download.
+Windows. Everything for the built-in languages ships with the app, and C/C++ need only an internet connection the first time. Go, Java, C# and Rust need their own tools on your machine; the first time you run one without them, the output panel says which and links to the download.
 
 ## Connecting a tutor model
 
@@ -42,4 +46,4 @@ npm run setup
 npm run package
 ```
 
-Builds `dist/Tu-Torus Setup 1.0.9.exe`.
+Builds `dist/Tu-Torus Setup 1.0.10.exe`.

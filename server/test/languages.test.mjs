@@ -15,6 +15,11 @@ const CASES = [
   { ext: "php", code: '<?php\n$a = (int) readline("Age? ");\necho "Next year: ", $a + 1, "\\n";\n', input: "41", expect: /Next year: 42/ },
   { ext: "pl", code: 'print "Age? ";\nmy $a = <STDIN>;\nprint "Next year: ", $a + 1, "\\n";\n', input: "41", expect: /Next year: 42/ },
   { ext: "ts", code: 'import * as readline from "node:readline/promises";\nconst rl = readline.createInterface({ input: process.stdin, output: process.stdout });\nconst a: number = Number(await rl.question("Age? "));\nconsole.log(`Next year: ${a + 1}`);\nrl.close();\n', input: "41", expect: /Next year: 42/ },
+  // C/C++: the first run downloads the compiler into the data folder's tools/
+  { ext: "c", code: '#include <stdio.h>\nint main(void) { int a; printf("Age? "); fflush(stdout); scanf("%d", &a); printf("Next year: %d\\n", a + 1); return 0; }\n', input: "41", expect: /Next year: 42/ },
+  { ext: "cpp", code: '#include <iostream>\n#include <vector>\nint main() { int a; std::cout << "Age? " << std::flush; std::cin >> a; std::vector<int> v{a}; std::cout << "Next year: " << v[0] + 1 << std::endl; }\n', input: "41", expect: /Next year: 42/ },
+  { ext: "c", code: "int main(void) { int x = ; }\n", expectError: /main\.c:1:26: error: expected expression/ },
+  { ext: "c", code: "int main(void) { int z = 0; return 5 / z; }\n", expectError: /The program crashed/ },
   // errors come back as plain messages that name the line
   { ext: "ts", code: 'const x: number = "text";\n', expectError: /line 1.*not assignable to type 'number'/ },
   { ext: "rb", code: 'x = nil\nputs x.upcase\n', expectError: /main\.rb:2: undefined method 'upcase'/ },

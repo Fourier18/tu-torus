@@ -11,11 +11,12 @@ import { LANGUAGES } from "./languages.js";
 // table, so a newly added language shows up here without touching this.
 export function howToRun(ext) {
   const entries = Object.entries(LANGUAGES).filter(([, l]) => l.name);
-  const builtIn = entries.filter(([, l]) => l.browserNative || l.run?.engine === "pyodide" || l.run?.bundledNode);
+  const builtIn = entries.filter(([, l]) => !l.setupOnFirstRun && (l.browserNative || l.run?.engine === "pyodide" || l.run?.bundledNode));
+  const firstRun = entries.filter(([, l]) => l.setupOnFirstRun);
   const install = entries.filter(([, l]) => l.run?.installName);
   const list = (xs) => xs.map(([e, l]) => `.${e} (${l.name})`).join(", ");
   const what = ext ? `Files ending in .${ext} aren't set up to run here.` : "This file has no ending (like .py), so Tu-Torus doesn't know what language it is.";
-  return `${what} To run code, put it in a file whose name ends in one of these — type the new name (for example main.py) in the file name box at the top left; this file stays saved under its own name.\n\nRun right away: ${list(builtIn)}\nRun once that language is installed on this computer (Run then shows where to get it): ${list(install)}`;
+  return `${what} To run code, put it in a file whose name ends in one of these — type the new name (for example main.py) in the file name box at the top left; this file stays saved under its own name.\n\nRun right away: ${list(builtIn)}\nSet themselves up the first time you run them (a one-time download): ${list(firstRun)}\nRun once that language is installed on this computer (Run then shows where to get it): ${list(install)}`;
 }
 
 export async function runOnce({ file, ext, code, onData, onExit }) {
