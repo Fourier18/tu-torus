@@ -2,15 +2,15 @@
 
 A live coding tutor: write code, run it, and get coached on what happened. Three panels — an editor, an output panel that shows what your program prints, and a chat panel where the tutor sees your code and your last run and talks you through it.
 
-Runs any language your machine has a compiler or interpreter for, plus Python out of the box with nothing to install and no signup. The tutor talks to whatever model you connect in Settings — no built-in subscription, so it works with a free API key from several providers.
+Nine languages come built in and run the moment you press Run: Python, JavaScript, TypeScript (type-checked), Ruby, PHP, Perl, Lua, BASIC, and HTML/CSS web pages. Programs that ask for input wait for you to type, just like in a terminal. Go, Java, C#, Rust and others run too once their official tools are installed, and Run links you to them. The tutor talks to whatever model you connect in Settings — no built-in subscription, so it works with a free API key from several providers.
 
 ## To install it
 
-Download `Tu-Torus.Setup.1.0.8.exe` from [the latest release](https://github.com/Fourier18/tu-torus/releases/latest).
+Download `Tu-Torus.Setup.1.0.9.exe` from [the latest release](https://github.com/Fourier18/tu-torus/releases/latest).
 
 ## Requirements
 
-Nothing, to run Python. Other languages need their own compiler/interpreter on your machine (e.g. `rustc` for Rust) — the app tells you plainly if one isn't found.
+Windows. Everything for the built-in languages ships with the app. Go, Java, C#, Rust, C and C++ need their compiler on your machine; the first time you run one without it, the output panel says which and links to the download.
 
 ## Connecting a tutor model
 
@@ -42,4 +42,4 @@ npm run setup
 npm run package
 ```
 
-Builds `dist/Tu-Torus Setup 1.0.8.exe`.
+Builds `dist/Tu-Torus Setup 1.0.9.exe`.

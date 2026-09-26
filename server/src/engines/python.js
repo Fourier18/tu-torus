@@ -31,7 +31,20 @@ export function runPython({ code, onData, onExit }) {
     worker.terminate();
   };
 
+  // Typed lines wait here until the worker's one-line slot is free, so
+  // answers typed before input() asks aren't overwritten or lost.
+  const queue = [];
+  const deliver = () => {
+    if (!queue.length || Atomics.load(sync, 0) === 1) return;
+    const bytes = queue.shift();
+    if (bytes === null) Atomics.store(sync, 1, -1);
+    else { dataBytes.set(bytes.subarray(0, dataBytes.length)); Atomics.store(sync, 1, Math.min(bytes.length, dataBytes.length)); }
+    Atomics.store(sync, 0, 1);
+    Atomics.notify(sync, 0, 1); // wakes the worker's Atomics.wait — this is what makes it genuinely live, not pre-buffered
+  };
+
   worker.on("message", (msg) => {
+    if (msg.type === "stdin-used") deliver();
     if (msg.type === "data") {
       if (msg.stream === "stdout") output += msg.text; else errorText += msg.text;
       onData({ stream: msg.stream, text: msg.text });
@@ -51,13 +64,11 @@ export function runPython({ code, onData, onExit }) {
       // to work around the app rather than their code.
       output += line;
       onData({ stream: "stdout", text: line });
-      const bytes = new TextEncoder().encode(line);
-      dataBytes.set(bytes.subarray(0, dataBytes.length));
-      Atomics.store(sync, 1, bytes.length);
-      Atomics.store(sync, 0, 1);
-      Atomics.notify(sync, 0, 1); // wakes the worker's Atomics.wait — this is what makes it genuinely live, not pre-buffered
+      queue.push(new TextEncoder().encode(line));
+      deliver();
     },
     kill: () => {
+      queue.length = 0;
       Atomics.store(sync, 1, -1);
       Atomics.store(sync, 0, 1);
       Atomics.notify(sync, 0, 1); // unblock a pending read with EOF so terminate() doesn't leave it hung

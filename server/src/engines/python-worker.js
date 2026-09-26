@@ -11,13 +11,20 @@ const sab = workerData.sab; // Int32Array view: [0]=signal (0=waiting,1=answered
 const sync = new Int32Array(sab, 0, 2);
 const dataBytes = new Uint8Array(sab, 8);
 
+// An answer may already be waiting (typed while Pyodide was still loading) —
+// use it rather than clearing the slot, which used to lose it and leave the
+// program waiting forever. The main thread refills the slot, one queued line
+// at a time, when told this one was used.
 function blockingReadLine() {
-  Atomics.store(sync, 0, 0);
-  parentPort.postMessage({ type: "need-stdin" });
-  Atomics.wait(sync, 0, 0); // genuinely blocks this thread — not a spin loop, not a timeout guess
+  if (Atomics.load(sync, 0) !== 1) {
+    parentPort.postMessage({ type: "need-stdin" });
+    Atomics.wait(sync, 0, 0); // genuinely blocks this thread — not a spin loop, not a timeout guess
+  }
   const len = Atomics.load(sync, 1);
-  if (len < 0) return null; // negative length is this module's own EOF signal
-  return new TextDecoder().decode(dataBytes.subarray(0, len));
+  const line = len < 0 ? null : new TextDecoder().decode(dataBytes.subarray(0, len)); // negative length is this module's own EOF signal
+  Atomics.store(sync, 0, 0);
+  parentPort.postMessage({ type: "stdin-used" });
+  return line;
 }
 
 // Two real bugs found by testing, not assumed away:

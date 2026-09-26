@@ -7,3 +7,4 @@ dist/
 HANDOFF.md
 server/test/results/
 server/test/_notes-1.0.5.mjs
+server/ts-types/

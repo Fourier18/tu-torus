@@ -11,6 +11,11 @@ import { spawn, execFile } from "node:child_process";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import os from "node:os";
+import { fileURLToPath } from "node:url";
+
+// The built-in language runners (server/src/runners) — languages.json refers
+// to them as {runners}/<name>.
+const RUNNERS_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "runners");
 
 const TIMEOUT_MS = 15000;
 const MAX_OUTPUT = 200_000;
@@ -62,7 +67,14 @@ function runStage({ command, args, cwd, env, onData, getWrite }) {
     let errorText = "";
     let outputLen = 0;
     let timedOut = false;
-    const timer = setTimeout(() => { timedOut = true; killTree(child); }, TIMEOUT_MS);
+    // The limit is for runaway programs, not slow typists: the clock stops
+    // while the latest output is a prompt (no line break yet, e.g. "Name? ")
+    // and starts over when the learner types. A wall-clock limit had killed
+    // programs mid-INPUT while a beginner was still thinking.
+    let timer = null;
+    const startClock = () => { clearTimeout(timer); timer = setTimeout(() => { timedOut = true; killTree(child); }, TIMEOUT_MS); };
+    const stopClock = () => { clearTimeout(timer); timer = null; };
+    startClock();
 
     const forward = (stream) => (chunk) => {
       outputLen += chunk.length;
@@ -70,6 +82,7 @@ function runStage({ command, args, cwd, env, onData, getWrite }) {
       const text = chunk.toString();
       if (stream === "stdout") output += text; else errorText += text;
       onData({ stream, text });
+      if (getWrite && stream === "stdout") { if (text.endsWith("\n")) { if (!timer) startClock(); } else stopClock(); }
     };
     child.stdout.on("data", forward("stdout"));
     child.stderr.on("data", forward("stderr"));
@@ -80,6 +93,7 @@ function runStage({ command, args, cwd, env, onData, getWrite }) {
       output += line;
       onData({ stream: "stdout", text: line });
       child.stdin.write(line);
+      startClock();
     });
 
     child.on("close", (code) => {
@@ -115,7 +129,7 @@ export async function runToolchain({ filename, code, config: rawConfig, onData, 
   const filePath = path.join(dir, path.basename(filename)); // never outside the throwaway dir, whatever the caller passed
   const outPath = path.join(dir, "a.out" + (process.platform === "win32" ? ".exe" : ""));
   const classname = path.basename(filename, path.extname(filename));
-  const vars = { file: filePath, out: outPath, dir, classname };
+  const vars = { file: filePath, out: outPath, dir, classname, runners: RUNNERS_DIR };
   await writeFile(filePath, code);
 
   let stdinWriter = null;

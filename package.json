@@ -1,6 +1,6 @@
 {
   "name": "tu-torus",
-  "version": "1.0.8",
+  "version": "1.0.9",
   "description": "A live coding tutor — self-contained, no Docker required.",
   "main": "electron/main.js",
   "scripts": {
@@ -9,7 +9,8 @@
     "setup": "npm --prefix server install && npm --prefix frontend install",
     "build:frontend": "npm --prefix frontend run build",
     "electron": "npm run build:frontend && electron .",
-    "package": "npm run build:frontend && electron-builder"
+    "package": "npm run build:frontend && npm run copy-ts-types && electron-builder",
+    "copy-ts-types": "node scripts/copy-ts-types.cjs"
   },
   "keywords": [],
   "author": "",
@@ -29,7 +30,26 @@
       "frontend/dist/**/*",
       "!server/node_modules/pyodide/**/*.wasm.map",
       "!**/*.test.mjs",
-      "!server/test/**/*"
+      "!server/test/**/*",
+      "!server/node_modules/php-wasm/0adccf32ebfcfc09b176a0c386d366adce426188.wasm",
+      "!server/node_modules/php-wasm/1a216518a10bf9c047e58bb2b368f12e40c5cfc3.wasm",
+      "!server/node_modules/php-wasm/22db49612f4428af12e15d948152e2e73898374c.wasm",
+      "!server/node_modules/php-wasm/30c376778ea82d16f16c1e78fc66212ff728a0d1.wasm",
+      "!server/node_modules/php-wasm/40d868d34dca3f36959a0eab83092ce0c66b70f7.wasm",
+      "!server/node_modules/php-wasm/5eec04f740c83548a49d4dfa5f4ad074383cc188.wasm",
+      "!server/node_modules/php-wasm/6e8a5184412b869348e4a1078dcb4483f456b4dc.wasm",
+      "!server/node_modules/php-wasm/7e15a5d62eeb5807a45976b4860c207f22ee88ff.wasm",
+      "!server/node_modules/php-wasm/846ab4c4d0999f57ac5270940b3820a9b6938633.wasm",
+      "!server/node_modules/php-wasm/b0c9520388d4d7e728c3a38998bed99987b679f4.wasm",
+      "!server/node_modules/php-wasm/c6ce833ef4ef0e2e62e6dae631ce2cc12fcb70ee.wasm",
+      "!server/node_modules/php-wasm/*-web.*",
+      "!server/node_modules/php-wasm/*_sdl-web.*",
+      "!server/node_modules/@ruby/3.4-wasm-wasi/dist/ruby.wasm",
+      "!server/node_modules/@ruby/3.4-wasm-wasi/dist/ruby.debug+stdlib.wasm",
+      "!server/node_modules/@6over3/zeroperl-ts/dist/cjs/**",
+      "!server/node_modules/typescript/lib/_tsc.js",
+      "!server/node_modules/typescript/lib/{cs,de,es,fr,it,ja,ko,pl,pt-br,ru,tr,zh-cn,zh-tw}/**",
+      "!server/node_modules/@vercel/**"
     ],
     "win": {
       "target": "nsis"
