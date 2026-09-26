@@ -17,5 +17,6 @@
   "cpp": { "monaco": "cpp", "run": { "engine": "toolchain", "command": "g++", "compile": ["{file}", "-o", "{out}"], "exec": "{out}", "installName": "a C++ compiler (g++, via MSYS2)", "installUrl": "https://www.msys2.org/" } },
   "cs": { "monaco": "csharp" },
   "sh": { "monaco": "shell", "run": { "engine": "toolchain", "command": "bash", "args": ["{file}"], "installName": "Bash (comes with Git for Windows)", "installUrl": "https://git-scm.com/downloads" } },
-  "pl": { "monaco": "perl", "run": { "engine": "toolchain", "command": "perl", "args": ["{file}"], "installName": "Perl", "installUrl": "https://strawberryperl.com/" } }
+  "pl": { "monaco": "perl", "run": { "engine": "toolchain", "command": "perl", "args": ["{file}"], "installName": "Perl", "installUrl": "https://strawberryperl.com/" } },
+  "bas": { "monaco": "vb", "run": { "engine": "toolchain", "command": "fbc", "compile": ["{file}", "-x", "{out}"], "exec": "{out}", "installName": "FreeBASIC", "installUrl": "https://sourceforge.net/projects/fbc/files/" } }
 }
