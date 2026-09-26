@@ -4,3 +4,5 @@ dist/
 *.log
 .env
 .devlog.md
+HANDOFF.md
+server/test/results/

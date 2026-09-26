@@ -28,7 +28,8 @@
       "server/**/*",
       "frontend/dist/**/*",
       "!server/node_modules/pyodide/**/*.wasm.map",
-      "!**/*.test.mjs"
+      "!**/*.test.mjs",
+      "!server/test/**/*"
     ],
     "win": {
       "target": "nsis"

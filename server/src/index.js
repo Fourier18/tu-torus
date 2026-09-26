@@ -50,14 +50,15 @@ app.post("/api/settings", async (req, res) => {
 // distinguishes which of those this call is; `history` is the last few
 // messages only, not the full session.
 app.post("/api/tutor", async (req, res) => {
-  const { trigger, question, lastRunPointer, filename, code, history } = req.body;
+  const { trigger, question, lastRunPointer, filename, code, previousCode, history } = req.body;
 
   res.setHeader("Content-Type", "text/event-stream");
   res.setHeader("Cache-Control", "no-cache");
 
   try {
-    for await (const event of askTutor({ trigger, question, filename, code, lastRunPointer, history, projectDir: PROJECT_DIR })) {
+    for await (const event of askTutor({ trigger, question, filename, code, previousCode, lastRunPointer, history, projectDir: PROJECT_DIR })) {
       if (event.type === "text") res.write(`data: ${JSON.stringify({ type: "text", value: event.text })}\n\n`);
+      if (event.type === "tool") res.write(`data: ${JSON.stringify({ type: "status", value: "Trying your code…" })}\n\n`);
     }
   } catch (err) {
     console.error("TUTOR ERROR:", err);

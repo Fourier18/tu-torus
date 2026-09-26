@@ -10,7 +10,55 @@
 // could, so the caller hands this provider everything it needs already
 // assembled (current code, last run, trimmed history) rather than letting it
 // read files itself. A disclosed tradeoff, not a hidden limitation.
-export async function* chat({ systemPrompt, history = [], userContent, baseUrl, apiKey, model, providerLabel }) {
+const MAX_TOOL_ROUNDS = 3;
+
+// With `tools`, the model may ask the app to run a tool (the app executes it —
+// the model only asks) before answering; capped at MAX_TOOL_ROUNDS so it can't
+// spin. These rounds aren't streamed. If the provider or model rejects tools,
+// this falls back to a plain answer so a tool-less model still works.
+export async function* chat({ tools, runTool, ...opts }) {
+  if (!tools?.length) return yield* streamChat(opts);
+
+  const { systemPrompt, history = [], userContent, baseUrl, apiKey, model } = opts;
+  const messages = [{ role: "system", content: systemPrompt }, ...history, { role: "user", content: userContent }];
+
+  for (let round = 0; ; round++) {
+    const lastRound = round >= MAX_TOOL_ROUNDS;
+    let res;
+    try {
+      res = await fetch(`${baseUrl.replace(/\/$/, "")}/chat/completions`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...(apiKey ? { Authorization: `Bearer ${apiKey}` } : {}) },
+        body: JSON.stringify({ model, messages, tools, tool_choice: lastRound ? "none" : "auto", temperature: 0.3 }),
+      });
+    } catch {
+      return yield* streamChat(opts); // let the plain path report the connection problem its usual way
+    }
+    // A 400/404/422 here is most often "this model doesn't do tools" — answer
+    // without them rather than failing. Auth and rate limits get the plain
+    // path's normal messages too.
+    if (!res.ok) return yield* streamChat(opts);
+
+    const msg = (await res.json()).choices?.[0]?.message;
+    const calls = msg?.tool_calls ?? [];
+    if (!calls.length || lastRound) {
+      if (msg?.content) yield { type: "text", text: msg.content };
+      yield { type: "done", usage: null };
+      return;
+    }
+
+    messages.push({ role: "assistant", content: msg.content ?? "", tool_calls: calls });
+    for (const call of calls) {
+      let args = {};
+      try { args = JSON.parse(call.function.arguments || "{}"); } catch { /* malformed args — run with defaults */ }
+      yield { type: "tool", name: call.function.name, args };
+      const result = await runTool(call.function.name, args);
+      messages.push({ role: "tool", tool_call_id: call.id, name: call.function.name, content: JSON.stringify(result) });
+    }
+  }
+}
+
+async function* streamChat({ systemPrompt, history = [], userContent, baseUrl, apiKey, model, providerLabel }) {
   const messages = [{ role: "system", content: systemPrompt }, ...history, { role: "user", content: userContent }];
 
   let res;

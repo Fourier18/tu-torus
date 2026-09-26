@@ -63,6 +63,7 @@ body { margin: 0; background: var(--bg); color: var(--text); font-family: var(--
 .chat-user { align-self: flex-end; background: var(--accent); color: white; padding: 6px 10px; border-radius: 8px; max-width: 85%; }
 .chat-tutor { color: var(--text); }
 .chat-system { color: var(--text-dim); font-size: 12px; font-style: italic; }
+.chat-status { color: var(--text-dim); }
 .chat-input-row { border-top: 1px solid var(--border); padding: 10px; }
 .chat-input-row input { width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 6px; }
 .chat-actions-row { display: flex; gap: 8px; margin-bottom: 8px; }

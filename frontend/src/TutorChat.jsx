@@ -10,6 +10,7 @@ export default function TutorChat({ lastRun, filename, code }) {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
+  const lastSentCode = useRef(null); // lets the server tell the tutor whether the code changed since its last reply
 
   const send = async ({ trigger, question = null }) => {
     if (sending) return;
@@ -30,8 +31,9 @@ export default function TutorChat({ lastRun, filename, code }) {
       const res = await fetch("/api/tutor", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ trigger, question, lastRunPointer: lastRun?.pointer ?? null, filename, code, history }),
+        body: JSON.stringify({ trigger, question, lastRunPointer: lastRun?.pointer ?? null, filename, code, previousCode: lastSentCode.current, history }),
       });
+      lastSentCode.current = code;
       if (!res.ok || !res.body) throw new Error(`Tutor request failed (${res.status})`);
 
       const reader = res.body.getReader();
@@ -49,6 +51,9 @@ export default function TutorChat({ lastRun, filename, code }) {
             reply += evt.value;
             setMessages((m) => [...m.slice(0, -1), { role: "tutor", text: reply }]);
           }
+          // The tutor is privately running the learner's code before answering;
+          // shown until the real reply replaces it, never kept in history.
+          if (evt.type === "status" && !reply) setMessages((m) => [...m.slice(0, -1), { role: "tutor", text: "", status: evt.value }]);
           if (evt.type === "error") throw new Error(evt.value);
         }
       }
@@ -63,7 +68,7 @@ export default function TutorChat({ lastRun, filename, code }) {
     <div className="panel tutor-chat">
       <div className="chat-messages">
         {messages.map((m, i) => (
-          <div key={i} className={`chat-msg chat-${m.role}`}>{m.text}</div>
+          <div key={i} className={`chat-msg chat-${m.role}`}>{m.text || (m.status && <em className="chat-status">{m.status}</em>)}</div>
         ))}
       </div>
       <div className="chat-input-row">
