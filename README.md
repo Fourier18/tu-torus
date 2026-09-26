@@ -6,7 +6,7 @@ Runs any language your machine has a compiler or interpreter for, plus Python ou
 
 ## To install it
 
-Download `Tu-Torus Setup 1.0.1.exe` from [the latest release](https://github.com/Fourier18/tu-torus/releases/latest) and run it.
+Download `Tu-Torus.Setup.1.0.1.exe` from [the latest release](https://github.com/Fourier18/tu-torus/releases/latest) and run it.
 
 ## Requirements
 
