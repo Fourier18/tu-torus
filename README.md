@@ -1,6 +1,6 @@
 # Tu-Torus
 
-A live coding tutor: write code, run it, and get coached on what happened — without the tutor ever writing or editing your code for you. Three panels — an editor, an output panel that shows only what your program actually prints (never a raw terminal), and a chat panel where the tutor sees your code and your last run and talks you through it.
+A live coding tutor: write code, run it, and get coached on what happened. Three panels — an editor, an output panel that shows what your program prints, and a chat panel where the tutor sees your code and your last run and talks you through it.
 
 Runs any language your machine has a compiler or interpreter for, plus Python out of the box with nothing to install — no Docker, no separate sandbox, no signup. The tutor talks to whatever model you connect in Settings — no built-in subscription, so it works with a free API key from several providers.
 
