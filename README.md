@@ -2,7 +2,7 @@
 
 A live coding tutor: write code, run it, and get coached on what happened. Three panels — an editor, an output panel that shows what your program prints, and a chat panel where the tutor sees your code and your last run and talks you through it.
 
-Runs any language your machine has a compiler or interpreter for, plus Python out of the box with nothing to install — no Docker, no separate sandbox, no signup. The tutor talks to whatever model you connect in Settings — no built-in subscription, so it works with a free API key from several providers.
+Runs any language your machine has a compiler or interpreter for, plus Python out of the box with nothing to install and no signup. The tutor talks to whatever model you connect in Settings — no built-in subscription, so it works with a free API key from several providers.
 
 ## To install it
 
@@ -16,7 +16,7 @@ Nothing, to run Python. Other languages need their own compiler/interpreter on y
 
 Open Settings (the gear icon, top right). You'll see two options: **Add your own** (default) to enter any OpenAI-compatible endpoint manually, or **Browse providers** to pick from a list of pre-configured ones. Picking a preset fills in its base URL; base URL and model name stay editable either way. API keys are saved only on this machine, never sent anywhere but the provider you chose.
 
-Model names aren't pre-filled. Provider model lineups change too often to bake a specific one into this app — each preset instead links to that provider's own live, current model list, so you always copy a model ID that actually exists right now instead of one we guessed and left to go stale.
+Model names aren't pre-filled. Provider model lineups change too often to bake a specific one into this app — each preset links to that provider's current model list to copy one from.
 
 ### Preset providers
 
