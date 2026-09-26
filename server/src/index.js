@@ -10,25 +10,34 @@ import { getSettings, setSetting } from "./settings.js";
 import { getLearnerNotes, setLearnerNotes, NOTES_MAX } from "./learner-notes.js";
 import { WORKSPACE_DIR, APP_ROOT } from "./paths.js";
 import { LANGUAGES } from "./languages.js";
+import { isAllowedRequest, safeFileName } from "./security.js";
 
 const PROJECT_DIR = WORKSPACE_DIR;
 
 const app = express();
+
+// Only the app itself may use this server — see security.js for why.
+app.use((req, res, next) => {
+  if (isAllowedRequest({ host: req.headers.host, origin: req.headers.origin })) return next();
+  res.status(403).json({ error: "Forbidden" });
+});
 app.use(express.json({ limit: "15mb" })); // headroom for an attached canvas screenshot
 
 // [DESIGN.md, Panel 1] Autosave target — the tutor has no live keystroke
 // channel; the frontend sends its current in-memory code directly with each
 // tutor call, but this file on disk is what the app reloads on a refresh.
 app.post("/api/file", async (req, res) => {
-  const { filename, code } = req.body;
-  await writeFile(path.join(PROJECT_DIR, filename), code);
+  const filename = safeFileName(req.body?.filename);
+  if (!filename || typeof req.body?.code !== "string") return res.status(400).json({ error: "Bad file name" });
+  await writeFile(path.join(PROJECT_DIR, filename), req.body.code);
   res.json({ ok: true });
 });
 
 // Load on startup so a page refresh shows what's actually on disk, not a
 // hardcoded default that can silently drift from the real file.
 app.get("/api/file", async (req, res) => {
-  const filename = req.query.filename;
+  const filename = safeFileName(req.query.filename);
+  if (!filename) return res.status(400).json({ error: "Bad file name" });
   try {
     res.json({ filename, code: await readFile(path.join(PROJECT_DIR, filename), "utf-8") });
   } catch {
@@ -78,16 +87,28 @@ const httpServer = createServer(app);
 // Run channel: the frontend talks to this WebSocket, which dispatches to
 // whichever engine the language actually needs (Pyodide or a local
 // toolchain) — see runner.js.
-const wss = new WebSocketServer({ server: httpServer, path: "/run" });
+// verifyClient: browsers let any website open a WebSocket to localhost, and
+// this channel runs code — only the app's own page may connect.
+const wss = new WebSocketServer({
+  server: httpServer,
+  path: "/run",
+  verifyClient: ({ origin, req }) => isAllowedRequest({ host: req.headers.host, origin: origin || undefined }),
+});
 
 wss.on("connection", (ws) => {
   let session = null;
 
   ws.on("message", async (raw) => {
-    const msg = JSON.parse(raw.toString());
+    let msg;
+    try { msg = JSON.parse(raw.toString()); } catch { return; }
 
     if (msg.type === "start") {
-      const { filename, code } = msg;
+      const filename = safeFileName(msg.filename);
+      const { code } = msg;
+      if (!filename || typeof code !== "string") {
+        ws.send(JSON.stringify({ type: "exit", ok: false, preExecution: true, error: "That file name can't be run." }));
+        return;
+      }
       const ext = filename.split(".").pop();
 
       session = await runOnce({
@@ -124,4 +145,5 @@ try {
 } catch { /* dist not built — dev mode via Vite, nothing to do here */ }
 
 const PORT = process.env.PORT || 4310;
-httpServer.listen(PORT, () => console.log(`Backend on http://localhost:${PORT}`));
+// 127.0.0.1 only — never reachable from other machines on the network.
+httpServer.listen(PORT, "127.0.0.1", () => console.log(`Backend on http://127.0.0.1:${PORT}`));

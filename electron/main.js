@@ -46,7 +46,7 @@ function waitForServer(timeoutMs = 20000) {
   const started = Date.now();
   return new Promise((resolve, reject) => {
     const attempt = () => {
-      http.get(`http://localhost:${PORT}/api/settings`, (res) => { res.resume(); resolve(); })
+      http.get(`http://127.0.0.1:${PORT}/api/settings`, (res) => { res.resume(); resolve(); })
         .on("error", () => {
           if (Date.now() - started > timeoutMs) reject(new Error("Backend didn't come up in time."));
           else setTimeout(attempt, 300);
@@ -84,11 +84,18 @@ app.whenReady().then(async () => {
   // Settings links out to each provider's API-key page (target="_blank") —
   // without this, Electron either navigates this window away from the app
   // or silently drops the click. Send it to the system browser instead.
+  // Only ordinary web links go out: shell.openExternal hands a URL to
+  // whatever Windows has registered for its scheme, and pages the learner
+  // builds render inside this window — a file:, ms-* or other custom-scheme
+  // link must never reach it.
   win.webContents.setWindowOpenHandler(({ url }) => {
-    shell.openExternal(url);
+    if (/^https?:\/\//i.test(url)) shell.openExternal(url);
     return { action: "deny" };
   });
-  win.loadURL(`http://localhost:${PORT}`);
+  // The window only ever shows the app itself.
+  const appOrigin = `http://127.0.0.1:${PORT}`;
+  win.webContents.on("will-navigate", (e, url) => { if (!url.startsWith(appOrigin)) e.preventDefault(); });
+  win.loadURL(appOrigin);
 });
 
 app.on("window-all-closed", () => {

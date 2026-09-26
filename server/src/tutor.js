@@ -5,6 +5,7 @@ import { getSettings } from "./settings.js";
 import { chat } from "./providers/openai-compatible.js";
 import { runLearnerCode } from "./tools/run-learner-code.js";
 import { getLearnerNotes, setLearnerNotes, reviseLearnerNotes } from "./learner-notes.js";
+import { safeRunRecordPath } from "./security.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const INSTRUCTIONS_PATH = path.join(__dirname, "tutor-instructions.md");
@@ -127,7 +128,9 @@ export async function* askTutor({ trigger, question, filename, code, previousCod
   // tool-use loop on this path, so anything it needs has to already be in
   // the message.
   let runContext = "";
-  const lastRunRecordPath = lastRunPointer?.match(/record in (.+)$/)?.[1];
+  // Only a path of the exact form run-records.js writes — the pointer comes
+  // from the client, and anything read here is sent to the model provider.
+  const lastRunRecordPath = safeRunRecordPath(lastRunPointer?.match(/record in (.+)$/)?.[1]);
   if (lastRunRecordPath) {
     try { runContext = await readFile(path.join(projectDir, lastRunRecordPath), "utf-8"); }
     catch { /* record may not exist yet — fine, just no context this time */ }
