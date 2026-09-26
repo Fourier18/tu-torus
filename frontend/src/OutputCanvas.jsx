@@ -7,6 +7,13 @@ import { isBrowserNative } from "./content-type";
 // local toolchain, whichever the language needs) and shows its output.
 // The Run button works identically either way; which path runs is an
 // internal detail, never something the user sees or picks.
+// A "needs X installed" message carries that tool's download page — make it
+// clickable (Electron's window-open handler sends it to the system browser).
+function withLinks(text) {
+  return text.split(/(https?:\/\/\S+)/).map((part, i) =>
+    /^https?:\/\//.test(part) ? <a key={i} href={part} target="_blank" rel="noreferrer">{part}</a> : part);
+}
+
 export default function OutputCanvas({ file, running, setRunning, onRunRecorded }) {
   const [lines, setLines] = useState([]);
   const [stdin, setStdin] = useState("");
@@ -72,7 +79,7 @@ export default function OutputCanvas({ file, running, setRunning, onRunRecorded 
       <pre className="output-text">
         {lines.join("")}
         {crashed && <div className="output-error-line">Program stopped with an error</div>}
-        {setupError && <div className="output-error-line">{setupError}</div>}
+        {setupError && <div className="output-error-line">{withLinks(setupError)}</div>}
       </pre>
       {running && (
         <div className="stdin-row">

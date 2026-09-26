@@ -12,7 +12,9 @@ export async function runOnce({ file, ext, code, onData, onExit }) {
   if (!config) {
     // [R4] Say so plainly, don't fail silently — this extension has no
     // configured way to run it at all yet (not even "toolchain not found").
-    onExit({ ok: false, preExecution: true, error: `Nothing configured to run .${ext} files yet.` });
+    // A language can carry its own explanation (`runNote`) when "run" doesn't
+    // apply to it the way it does to a program — CSS, for one.
+    onExit({ ok: false, preExecution: true, error: LANGUAGES[ext]?.runNote || `Tu-Torus can't run .${ext} files yet. Python and JavaScript run built in, web pages (.html) show directly, and several other languages run once their tools are installed.` });
     return { write: () => {}, kill: () => {} };
   }
 

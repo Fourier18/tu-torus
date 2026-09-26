@@ -37,9 +37,9 @@ function killTree(child) {
 
 // Runs one stage (compile or exec) to completion, streaming output live and
 // enforcing the timeout/output cap. Returns {ok, timedOut, output, error}.
-function runStage({ command, args, cwd, onData, getWrite }) {
+function runStage({ command, args, cwd, env, onData, getWrite }) {
   return new Promise((resolve) => {
-    const child = spawn(command, args, { cwd });
+    const child = spawn(command, args, { cwd, env });
     let output = "";
     let errorText = "";
     let outputLen = 0;
@@ -72,9 +72,19 @@ function runStage({ command, args, cwd, onData, getWrite }) {
   });
 }
 
-export async function runToolchain({ filename, code, config, onData, onExit }) {
-  if (!(await isInstalled(config.command))) {
-    onExit({ ok: false, preExecution: true, error: `${config.command} isn't installed, or isn't on your PATH. Install it to run .${filename.split(".").pop()} files.` });
+export async function runToolchain({ filename, code, config: rawConfig, onData, onExit }) {
+  // `bundledNode`: run on the Node that's already running this server —
+  // Electron's own copy in the installed app (ELECTRON_RUN_AS_NODE makes
+  // electron.exe behave as plain Node), real node in dev. So .js needs no
+  // separate Node.js install.
+  const config = rawConfig.bundledNode ? { ...rawConfig, command: process.execPath } : rawConfig;
+  const env = rawConfig.bundledNode ? { ...process.env, ELECTRON_RUN_AS_NODE: "1" } : process.env;
+
+  if (!rawConfig.bundledNode && !(await isInstalled(config.command))) {
+    const ext = filename.split(".").pop();
+    const what = config.installName || config.command;
+    const where = config.installUrl ? ` Get it here: ${config.installUrl}` : "";
+    onExit({ ok: false, preExecution: true, error: `To run .${ext} files, this computer needs ${what} installed (the \`${config.command}\` command wasn't found).${where}` });
     return { write: () => {}, kill: () => {} };
   }
 
@@ -91,7 +101,7 @@ export async function runToolchain({ filename, code, config, onData, onExit }) {
 
   (async () => {
     if (config.compile) {
-      const compileResult = await runStage({ command: config.command, args: fill(config.compile, vars), cwd: dir, onData });
+      const compileResult = await runStage({ command: config.command, args: fill(config.compile, vars), cwd: dir, env, onData });
       if (!compileResult.ok) {
         await cleanup();
         onExit({ ok: false, error: compileResult.timedOut ? "Compile timed out." : compileResult.error });
@@ -108,6 +118,7 @@ export async function runToolchain({ filename, code, config, onData, onExit }) {
       command: execCommand,
       args: execArgs,
       cwd: dir,
+      env,
       onData,
       getWrite: (write) => { stdinWriter = write; },
     });
