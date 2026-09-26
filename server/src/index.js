@@ -7,7 +7,7 @@ import { runOnce } from "./runner.js";
 import { writeRunRecord } from "./run-records.js";
 import { askTutor } from "./tutor.js";
 import { getSettings, setSetting } from "./settings.js";
-import { getLearnerNotes, setLearnerNotes, NOTES_MAX } from "./learner-notes.js";
+import { getLearnerNotes, setLearnerNotes, getNotesHistory, NOTES_MAX } from "./learner-notes.js";
 import { WORKSPACE_DIR, APP_ROOT } from "./paths.js";
 import { LANGUAGES } from "./languages.js";
 import { isAllowedRequest, safeFileName } from "./security.js";
@@ -51,7 +51,7 @@ app.get("/api/languages", (_req, res) => res.json(LANGUAGES));
 
 // What the tutor remembers about the learner — shown in Settings so it's
 // never hidden from them, and editable/clearable there.
-app.get("/api/learner-notes", async (_req, res) => res.json({ notes: await getLearnerNotes(), max: NOTES_MAX }));
+app.get("/api/learner-notes", async (_req, res) => res.json({ notes: await getLearnerNotes(), max: NOTES_MAX, history: await getNotesHistory(20) }));
 app.post("/api/learner-notes", async (req, res) => res.json({ notes: await setLearnerNotes(req.body?.notes ?? "") }));
 
 app.get("/api/settings", async (_req, res) => res.json(await getSettings()));

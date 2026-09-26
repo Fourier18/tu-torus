@@ -8,11 +8,13 @@ function LearnerNotes() {
   const [notes, setNotes] = useState("");
   const [max, setMax] = useState(1200);
   const [status, setStatus] = useState("loading"); // loading | saved | edited | error
+  const [history, setHistory] = useState([]);
+  const [showHistory, setShowHistory] = useState(false);
 
   useEffect(() => {
     fetch("/api/learner-notes")
       .then((r) => r.json())
-      .then((d) => { setNotes(d.notes); setMax(d.max); setStatus("saved"); })
+      .then((d) => { setNotes(d.notes); setMax(d.max); setHistory(d.history ?? []); setStatus("saved"); })
       .catch(() => setStatus("error"));
   }, []);
 
@@ -38,6 +40,13 @@ function LearnerNotes() {
         <button onClick={() => save(notes)} disabled={status !== "edited"}>{status === "edited" ? "Save notes" : "Saved"}</button>
         <button onClick={() => { setNotes(""); save(""); }} disabled={!notes}>Clear</button>
       </div>
+      <div className="settings-hint">Start a line with <code>*</code> to pin it — the tutor won't change pinned lines.</div>
+      {history.length > 0 && (
+        <div className="settings-hint">
+          <button onClick={() => setShowHistory((s) => !s)} style={{ fontSize: "12px" }}>{showHistory ? "Hide" : "Show"} recent changes</button>
+          {showHistory && <pre style={{ whiteSpace: "pre-wrap", fontSize: "11px", margin: "6px 0 0" }}>{history.slice().reverse().join("\n")}</pre>}
+        </div>
+      )}
       {status === "error" && <div className="settings-hint">Couldn't reach the app's server — notes not saved.</div>}
     </div>
   );

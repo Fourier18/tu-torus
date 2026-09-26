@@ -39,7 +39,7 @@ for (const [name, opts, expectRequests] of cases) {
   const r = await reviseLearnerNotes({ notes: "", exchanges, baseUrl, apiKey: "test", model: "fake" });
   server.closeAllConnections();
   await new Promise((done) => server.close(done));
-  const pass = r?.notes === "New to coding." && JSON.stringify(seen) === JSON.stringify(expectRequests);
+  const pass = r?.notes === "About them:\n- New to coding." && JSON.stringify(seen) === JSON.stringify(expectRequests);
   if (!pass) failed++;
   console.log(`${pass ? "PASS" : "FAIL"}  ${name}  (requests: ${seen.join(" → ")}; notes: ${JSON.stringify(r?.notes)})`);
 }

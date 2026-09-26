@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 import { getSettings } from "./settings.js";
 import { chat } from "./providers/openai-compatible.js";
 import { runLearnerCode } from "./tools/run-learner-code.js";
-import { getLearnerNotes, setLearnerNotes, reviseLearnerNotes } from "./learner-notes.js";
+import { getLearnerNotes, setLearnerNotes, reviseLearnerNotes, startSession, recordHistory } from "./learner-notes.js";
 import { safeRunRecordPath } from "./security.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -156,9 +156,13 @@ export async function* askTutor({ trigger, question, filename, code, previousCod
 
   // Not awaited: the answer is already on screen; updating the notes happens
   // behind it and never delays the learner.
-  updateNotesAfterReply({ trigger, question, reply, history, provider, store: { get: getLearnerNotes, set: setLearnerNotes } })
+  updateNotesAfterReply({ trigger, question, reply, history, code, previousCode, provider, store: APP_NOTES })
     .catch(() => { /* a failed notes update just means no update this time */ });
 }
+
+// The real notes file. One server process = one app session, so the first
+// update after startup begins a new session ("Working on now" is cleared).
+const APP_NOTES = { get: getLearnerNotes, set: setLearnerNotes, record: recordHistory, state: { pending: new Map(), sessionStarted: false } };
 
 // Asks the model whether the last few exchanges change what's worth
 // remembering about the learner, and saves the grounded result if so.
@@ -166,16 +170,25 @@ export async function* askTutor({ trigger, question, filename, code, previousCod
 // file. Returns { notes, dropped } when the notes changed, else null.
 const NOT_A_REAL_REPLY = /^(Rate limit reached|Invalid API key|Couldn't reach|Model connection failed|No model connected)/;
 const NOTE_WINDOW = 3; // exchanges, including the one just finished
-export async function updateNotesAfterReply({ trigger, question, reply, history = [], provider, store }) {
+// `store`: { get, set, record?(changes), state: { pending, sessionStarted } }.
+export async function updateNotesAfterReply({ trigger, question, reply, history = [], code, previousCode, provider, store }) {
   if (!reply?.trim() || NOT_A_REAL_REPLY.test(reply)) return null;
-  const notes = await store.get();
+  store.state ??= { pending: new Map(), sessionStarted: false };
+  let notes = await store.get();
+  const sessionChanges = [];
+  if (!store.state.sessionStarted) {
+    store.state.sessionStarted = true;
+    const s = startSession(notes);
+    if (s.notes !== notes) { notes = s.notes; await store.set(notes); sessionChanges.push(...s.changes); }
+  }
   const exchanges = [];
   for (let i = 0; i + 1 < history.length; i++) {
     if (history[i].role === "user" && history[i + 1].role === "assistant") exchanges.push({ learner: history[i].content, tutor: history[i + 1].content });
   }
   exchanges.push({ learner: question || (trigger === "check" ? '(clicked "Check my code")' : ""), tutor: reply });
-  const revised = await reviseLearnerNotes({ notes, exchanges: exchanges.slice(-NOTE_WINDOW), baseUrl: provider.baseUrl, apiKey: provider.apiKey, model: provider.model });
-  if (revised == null) return null;
+  const revised = await reviseLearnerNotes({ notes, exchanges: exchanges.slice(-NOTE_WINDOW), code, previousCode, state: store.state, baseUrl: provider.baseUrl, apiKey: provider.apiKey, model: provider.model });
+  if (revised == null) { await store.record?.(sessionChanges); return null; }
+  await store.record?.([...sessionChanges, ...revised.changes]);
   if (revised.notes === notes) return revised.dropped.length ? { notes, dropped: revised.dropped, unchanged: true } : null;
   await store.set(revised.notes);
   return revised;
