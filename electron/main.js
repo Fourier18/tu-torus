@@ -11,7 +11,21 @@ const PORT = 4310;
 // actually readable.
 const LOG_PATH = path.join(app.getPath("userData"), "backend.log");
 
+// Backstop for build/installer.nsh: if 1.0.0-era files are still sitting
+// inside the app folder (e.g. the app was run from an unpacked build rather
+// than upgraded by the installer) and the data folder has no workspace yet,
+// copy them across before the server starts. Never overwrites.
+function migrateLegacyWorkspace() {
+  const legacy = path.join(__dirname, "..", "workspace");
+  const current = path.join(app.getPath("userData"), "workspace");
+  const hasCurrent = ["main.py", path.join(".tutor", "settings.json")].some((f) => fs.existsSync(path.join(current, f)));
+  if (hasCurrent || !fs.existsSync(legacy)) return;
+  try { fs.cpSync(legacy, current, { recursive: true, force: false, errorOnExist: false }); }
+  catch (err) { fs.appendFileSync(LOG_PATH, `Workspace migration failed: ${err.message}\n`); }
+}
+
 function startServer() {
+  migrateLegacyWorkspace();
   // Runs the backend with Electron's own bundled Node (ELECTRON_RUN_AS_NODE)
   // — this is the actual point of packaging with Electron: someone running
   // the built app needs no separate Node.js install at all.
