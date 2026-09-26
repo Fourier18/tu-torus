@@ -1,6 +1,6 @@
 {
   "name": "tu-torus",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "A live coding tutor — self-contained, no Docker required.",
   "main": "electron/main.js",
   "scripts": {

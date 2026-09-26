@@ -1,6 +1,10 @@
 import { useRef, useState } from "react";
 
 const HISTORY_KEEP = 6; // trimmed — last few turns only, not the full session
+// The server's own notices (rate limit, bad key, connection failures) arrive
+// as tutor text but aren't part of the conversation — sending them back as
+// the tutor's past replies confuses the model.
+const NOTICE = /^(Rate limit reached|Invalid API key|Couldn't reach|Model connection failed|No model connected|Lost connection to the tutor|The tutor didn't answer)/;
 
 // Fires only on: the "check my code" button or a typed question — never
 // per keystroke, never on its own schedule. Each call sends the current
@@ -17,7 +21,7 @@ export default function TutorChat({ lastRun, filename, code }) {
     if (trigger === "manual" && !question?.trim()) return;
 
     const history = messages
-      .filter((m) => m.role === "user" || m.role === "tutor")
+      .filter((m) => (m.role === "user" || m.role === "tutor") && m.text?.trim() && !NOTICE.test(m.text))
       .slice(-HISTORY_KEEP)
       .map((m) => ({ role: m.role === "tutor" ? "assistant" : "user", content: m.text }));
 
@@ -57,6 +61,7 @@ export default function TutorChat({ lastRun, filename, code }) {
           if (evt.type === "error") throw new Error(evt.value);
         }
       }
+      if (!reply.trim()) setMessages((m) => [...m.slice(0, -1), { role: "tutor", text: "The tutor didn't answer — try asking again." }]);
     } catch {
       setMessages((m) => [...m, { role: "tutor", text: "Lost connection to the tutor. Try asking again." }]);
     } finally {

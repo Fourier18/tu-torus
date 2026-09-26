@@ -16,7 +16,11 @@ const MAX_TOOL_ROUNDS = 3;
 // the model only asks) before answering; capped at MAX_TOOL_ROUNDS so it can't
 // spin. These rounds aren't streamed. If the provider or model rejects tools,
 // this falls back to a plain answer so a tool-less model still works.
-export async function* chat({ tools, runTool, ...opts }) {
+export async function* chat({ tools, runTool, ...rawOpts }) {
+  // An empty turn in history (a reply that never arrived) makes Mistral
+  // reject every later request with 400 — seen in a simulated session, where
+  // one empty reply turned the rest of the conversation into errors.
+  const opts = { ...rawOpts, history: (rawOpts.history ?? []).filter((m) => typeof m.content === "string" && m.content.trim()) };
   if (!tools?.length) return yield* streamChat(opts);
 
   const { systemPrompt, history = [], userContent, baseUrl, apiKey, model } = opts;
@@ -42,7 +46,10 @@ export async function* chat({ tools, runTool, ...opts }) {
     const msg = (await res.json()).choices?.[0]?.message;
     const calls = msg?.tool_calls ?? [];
     if (!calls.length || lastRound) {
-      if (msg?.content) yield { type: "text", text: msg.content };
+      // Never finish silently: if the tool rounds end without any text,
+      // answer the plain way instead.
+      if (!msg?.content?.trim()) return yield* streamChat(opts);
+      yield { type: "text", text: msg.content };
       yield { type: "done", usage: null };
       return;
     }

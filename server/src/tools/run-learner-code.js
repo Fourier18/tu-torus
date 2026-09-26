@@ -22,7 +22,10 @@ export function runLearnerCode({ code, inputs = [] }) {
     const sync = new Int32Array(sab, 0, 2);
     const dataBytes = new Uint8Array(sab, 8);
     const worker = new Worker(WORKER, { workerData: { code, sab } });
-    const queue = [...inputs];
+    // One queued answer = one line typed. Models sometimes send "8\n": with
+    // the newline added below that became an extra empty answer, the next
+    // input() got "" and crashed, and the tutor blamed the learner's code.
+    const queue = inputs.map((s) => String(s).replace(/[\r\n]+/g, " ").trim());
     let screen = "";
     let errorText = "";
     let done = false;

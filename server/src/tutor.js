@@ -156,19 +156,27 @@ export async function* askTutor({ trigger, question, filename, code, previousCod
 
   // Not awaited: the answer is already on screen; updating the notes happens
   // behind it and never delays the learner.
-  updateNotesAfterReply({ trigger, question, reply, provider, store: { get: getLearnerNotes, set: setLearnerNotes } })
+  updateNotesAfterReply({ trigger, question, reply, history, provider, store: { get: getLearnerNotes, set: setLearnerNotes } })
     .catch(() => { /* a failed notes update just means no update this time */ });
 }
 
-// Asks the model whether this exchange changes what's worth remembering about
-// the learner, and saves the new notes if so. `store` is injectable so tests
-// keep notes in memory instead of the real file.
+// Asks the model whether the last few exchanges change what's worth
+// remembering about the learner, and saves the grounded result if so.
+// `store` is injectable so tests keep notes in memory instead of the real
+// file. Returns { notes, dropped } when the notes changed, else null.
 const NOT_A_REAL_REPLY = /^(Rate limit reached|Invalid API key|Couldn't reach|Model connection failed|No model connected)/;
-export async function updateNotesAfterReply({ trigger, question, reply, provider, store }) {
+const NOTE_WINDOW = 3; // exchanges, including the one just finished
+export async function updateNotesAfterReply({ trigger, question, reply, history = [], provider, store }) {
   if (!reply?.trim() || NOT_A_REAL_REPLY.test(reply)) return null;
   const notes = await store.get();
-  const learnerSaid = question || (trigger === "check" ? '(clicked "Check my code")' : "");
-  const revised = await reviseLearnerNotes({ notes, learnerSaid, tutorSaid: reply, baseUrl: provider.baseUrl, apiKey: provider.apiKey, model: provider.model });
-  if (revised == null || revised === notes) return null;
-  return store.set(revised);
+  const exchanges = [];
+  for (let i = 0; i + 1 < history.length; i++) {
+    if (history[i].role === "user" && history[i + 1].role === "assistant") exchanges.push({ learner: history[i].content, tutor: history[i + 1].content });
+  }
+  exchanges.push({ learner: question || (trigger === "check" ? '(clicked "Check my code")' : ""), tutor: reply });
+  const revised = await reviseLearnerNotes({ notes, exchanges: exchanges.slice(-NOTE_WINDOW), baseUrl: provider.baseUrl, apiKey: provider.apiKey, model: provider.model });
+  if (revised == null) return null;
+  if (revised.notes === notes) return revised.dropped.length ? { notes, dropped: revised.dropped, unchanged: true } : null;
+  await store.set(revised.notes);
+  return revised;
 }
