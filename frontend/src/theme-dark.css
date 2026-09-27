@@ -8,6 +8,7 @@
   --text: #e8e8ea;
   --text-dim: #97979f;
   --accent: #5b8dee;
+  --on-accent: #0f1a2e; /* white on this blue measured 3.2:1 — too faint for the Run button */
   --output-bg: #1a1a1e;
   --error: #ff6b64;
 }

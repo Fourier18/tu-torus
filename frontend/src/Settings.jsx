@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { THEMES } from "./monaco-setup";
 
 // A setting's name with a short explanation that pops up on hover (or while
 // its control has keyboard focus) — styles in App.css.
@@ -12,7 +13,7 @@ function Tip({ text, children }) {
 }
 
 const TIPS = {
-  theme: "Light or dark colors for the whole app, the editor included.",
+  theme: "Colors for the whole app, the editor included.",
   editorHints: "When on, the editor suggests completions as you type, shows hints for functions, and underlines mistakes. Off by default.",
   provider: "The AI service the tutor runs on. Pick one from the list, or enter any service yourself.",
   custom: "Enter a service by hand: its web address, model name and key. Works with any OpenAI-compatible service.",
@@ -150,8 +151,7 @@ export default function Settings({ settings, onChange }) {
           <label>
             <Tip text={TIPS.theme}>Theme</Tip>
             <select value={settings.theme} onChange={(e) => setPref("theme", e.target.value)}>
-              <option value="light">Light (default)</option>
-              <option value="dark">Dark</option>
+              {Object.entries(THEMES).map(([value, t]) => <option key={value} value={value}>{t.label}</option>)}
             </select>
           </label>
 
@@ -177,7 +177,7 @@ export default function Settings({ settings, onChange }) {
                 border: form.preset === "custom" ? "1px solid var(--accent)" : "1px solid var(--border)",
                 borderRadius: "4px",
                 background: form.preset === "custom" ? "var(--accent)" : "var(--bg)",
-                color: form.preset === "custom" ? "white" : "var(--text)",
+                color: form.preset === "custom" ? "var(--on-accent, #fff)" : "var(--text)",
                 fontSize: "13px",
                 cursor: "pointer",
                 marginBottom: "6px"
@@ -217,7 +217,7 @@ export default function Settings({ settings, onChange }) {
                       border: form.preset === key ? "1px solid var(--accent)" : "1px solid var(--border)",
                       borderRadius: "4px",
                       background: form.preset === key ? "var(--accent)" : "var(--bg)",
-                      color: form.preset === key ? "white" : "var(--text)",
+                      color: form.preset === key ? "var(--on-accent, #fff)" : "var(--text)",
                       fontSize: "12px",
                       cursor: "pointer",
                       marginBottom: "4px"

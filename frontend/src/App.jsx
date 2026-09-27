@@ -4,9 +4,10 @@ import OutputCanvas from "./OutputCanvas";
 import TutorChat from "./TutorChat";
 import { monacoLanguage, languagesReady } from "./content-type";
 import Settings from "./Settings";
-import { editorHintOptions, setLanguageDiagnostics } from "./monaco-setup";
+import { editorHintOptions, setLanguageDiagnostics, monacoTheme } from "./monaco-setup";
 import "./theme.css";
 import "./theme-dark.css";
+import "./themes.css";
 import "./App.css";
 
 const DEFAULT_FILE = { name: "main.py", code: 'name = input("What\'s your name? ")\nprint("Hello, " + name + "!")\n' };
@@ -79,9 +80,6 @@ export default function App() {
           onBlur={openFile}
         />
         {saveFailed && <span className="save-failed">not saved — check connection</span>}
-        <button onClick={() => setRunning(true)} disabled={running}>
-          {running ? "Running…" : "Run"}
-        </button>
         <Settings settings={settings} onChange={applySettings} />
       </header>
       <main className="app-panels">
@@ -90,7 +88,7 @@ export default function App() {
           language={monacoLanguage(file.name)}
           value={file.code}
           onChange={onCodeChange}
-          theme={settings.theme === "dark" ? "vs-dark" : "light"} // [review finding] was hardcoded to "light" — dark mode only ever tested the page background, never the editor itself, so switching to dark left the editor stuck light
+          theme={monacoTheme(settings.theme)} // the editor follows the app theme (monaco-setup.js THEMES) — it once stayed light in dark mode
           options={{
             minimap: { enabled: false },
             fontSize: 14,

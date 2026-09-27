@@ -20,6 +20,9 @@ export default function OutputCanvas({ file, running, setRunning, onRunRecorded 
   const [crashed, setCrashed] = useState(false);
   const [setupError, setSetupError] = useState(null); // distinct from `crashed`: nothing ran at all, so there's a plain reason to show, not a traceback to hide
   const wsRef = useRef(null);
+  const [pageKey, setPageKey] = useState(0); // bumped by Run on a web page to reload it
+  const stdinRef = useRef(null);
+  useEffect(() => { if (running) stdinRef.current?.focus(); }, [running]); // once per run, so typing in the editor meanwhile isn't interrupted
   const nativePage = isBrowserNative(file.name);
 
   useEffect(() => {
@@ -66,32 +69,43 @@ export default function OutputCanvas({ file, running, setRunning, onRunRecorded 
     setStdin("");
   };
 
+  // Run sits at the bottom right of this panel, beside the box for typing
+  // input, like Send beside a chat box. For a web page, Run reloads it.
+  const bar = (
+    <div className="output-bar">
+      <input
+        value={stdin}
+        disabled={!running || nativePage}
+        ref={stdinRef}
+        onChange={(e) => setStdin(e.target.value)}
+        onKeyDown={(e) => e.key === "Enter" && sendStdin()}
+        placeholder={running ? "Type input and press Enter" : "Input for your program goes here while it runs"}
+      />
+      <button className="run-btn" onClick={() => (nativePage ? setPageKey((k) => k + 1) : setRunning(true))} disabled={running}>
+        {running ? "Running…" : "Run"}
+      </button>
+    </div>
+  );
+
   if (nativePage) {
     return (
       <div className="panel output-canvas output-canvas-page">
-        <iframe title="output" sandbox="allow-scripts" srcDoc={file.code} />
+        <iframe key={pageKey} title="output" sandbox="allow-scripts" srcDoc={file.code} />
+        {bar}
       </div>
     );
   }
 
   return (
     <div className="panel output-canvas">
-      <pre className="output-text">
-        {lines.join("")}
-        {crashed && <div className="output-error-line">Program stopped with an error</div>}
-        {setupError && <div className="output-error-line">{withLinks(setupError)}</div>}
-      </pre>
-      {running && (
-        <div className="stdin-row">
-          <input
-            autoFocus
-            value={stdin}
-            onChange={(e) => setStdin(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && sendStdin()}
-            placeholder="Type input and press Enter"
-          />
-        </div>
-      )}
+      <div className="output-scroll">
+        <pre className="output-text">
+          {lines.join("")}
+          {crashed && <div className="output-error-line">Program stopped with an error</div>}
+          {setupError && <div className="output-error-line">{withLinks(setupError)}</div>}
+        </pre>
+      </div>
+      {bar}
     </div>
   );
 }
