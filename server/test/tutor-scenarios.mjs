@@ -449,6 +449,103 @@ const SCENARIOS = {
     turns: [{ check: true }, { say: "what does abs do again?" }],
     expect: "Never suggests removing or reducing the print() lines/blank lines again, in any wording. Answers abs() plainly.",
   },
+  // From the user's live session on 2026-09-27 (ask_age / agecompare): quiz
+  // questions for their own sake, a false "it crashes" claim, overcorrecting
+  // to the finished code after pushback, and repeating a point after "stop".
+  // Mostly different programs and wording, so they test the judgment, not
+  // the worked example in the instructions.
+  howToUseHelper: {
+    code: `def get_temp(prompt):
+    while True:
+        text = input(prompt)
+        try:
+            t = float(text)
+        except ValueError:
+            print("Please type a number.")
+            continue
+        if -90 <= t <= 60:
+            return t
+        print("That's not a real outdoor temperature.")
+
+high = float(input("Today's high: "))
+low = float(input("Today's low: "))
+print("Range:", high - low)
+`,
+    run: `# Run 3 — main.py
+
+## Code as run
+\`\`\`
+def get_temp(prompt):
+    while True:
+        text = input(prompt)
+        try:
+            t = float(text)
+        except ValueError:
+            print("Please type a number.")
+            continue
+        if -90 <= t <= 60:
+            return t
+        print("That's not a real outdoor temperature.")
+
+high = float(input("Today's high: "))
+low = float(input("Today's low: "))
+print("Range:", high - low)
+\`\`\`
+
+## Output
+\`\`\`
+Today's high: 500
+Today's low: -3
+Range: 503.0
+\`\`\`
+
+## Error
+(none)`,
+    turns: [{ say: "my checker didnt stop 500. how do i use get_temp there?" }],
+    expect: "Says in words to replace float(input(...)) with get_temp(\"...\"). No quiz question (e.g. 'what should the second one be?'), no claim that it crashes, no full rewritten program.",
+  },
+  stopMeansStop: {
+    code: "x = 7\nif x > 5\n    print('big')\nelse:\n    print('small')\n",
+    seed: [
+      ["user", "Check my code"],
+      ["assistant", "Python stops at line 2: an `if` line needs a `:` at the end."],
+    ],
+    turns: [{ say: "ya ya i see it, let me fix it myself" }, { say: "what does elif do btw?" }],
+    expect: "Turn 1: brief acknowledgement, no restating the colon. Turn 2: explains elif; does not mention the missing colon again.",
+  },
+  noQuizPushback: {
+    code: "nums = [3, 8, 1]\nbiggest = 0\nfor n in nums:\n    if n > biggest:\n        biggest = n\nprint(biggest)\nsmallest = 0\nfor n in nums:\n    if n < smallest:\n        smallest = n\nprint(smallest)\n",
+    seed: [
+      ["user", "why does smallest print 0?"],
+      ["assistant", "What value does `smallest` start at?"],
+      ["user", "0"],
+      ["assistant", "And is any number in the list smaller than that?"],
+    ],
+    turns: [{ say: "stop asking me random questions lol just tell me whats wrong" }],
+    expect: "Says plainly that smallest starts at 0, which is below every number, so it never changes; may say to start it at the first item. Does not paste a full corrected program, and doesn't end with another question.",
+  },
+  realParenSession: {
+    code: `def ask_age(prompt):
+    while True:
+        text = input(prompt)
+        if text.isdigit() and 1 <= int(text) <= 100:
+            return int(text)
+        print("Please enter a whole number from 1 to 100.")
+
+def agecompare():
+    a = ask_age("Enter the first age: "))
+    b = ask_age("Enter the second age: "))
+    return abs(a - b)
+
+print(f"The difference is {agecompare()}.")
+`,
+    seed: [
+      ["user", "interesting. the input moved from the variable = , to the ask_age f(x),"],
+      ["assistant", "There's one extra closing parenthesis on each of the two lines you changed. Remove those, and the code will run."],
+    ],
+    turns: [{ say: "geez bro gimme a chance to change it willya?" }],
+    expect: "Short acknowledgement only. Does not mention parentheses or restate the fix.",
+  },
   meta: {
     code: AGE,
     turns: [{ say: "do you save my conversations somewhere?" }],
