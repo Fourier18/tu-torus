@@ -13,14 +13,14 @@ function Tip({ text, children }) {
 
 const TIPS = {
   theme: "Light or dark colors for the whole app, the editor included.",
-  editorHints: "When on, the editor suggests completions as you type, shows hints for functions, and underlines mistakes. Off by default, so every line is yours to write.",
+  editorHints: "When on, the editor suggests completions as you type, shows hints for functions, and underlines mistakes. Off by default.",
   provider: "The AI service the tutor runs on. Pick one from the list, or enter any service yourself.",
   custom: "Enter a service by hand: its web address, model name and key. Works with any OpenAI-compatible service.",
   presets: "Ready-made entries for common services. Picking one fills in its web address; you add the model name and your key.",
   baseUrl: "The web address of the AI service's API. Filled in for you when you pick a provider.",
   model: "Which of that service's AI models the tutor uses, spelled exactly as the service lists it.",
   apiKey: "Your password for the AI service. Stored only on this computer and sent only to that service.",
-  notes: "Short notes the tutor keeps about how you're doing, so it can pitch its explanations to you. You can edit, pin or clear them.",
+  notes: "Short notes the tutor keeps about how you're doing, used to pitch its explanations. You can edit, pin or clear them.",
 };
 
 // The tutor's own notes about the learner (it keeps them up to date itself).
@@ -31,13 +31,11 @@ function LearnerNotes() {
   const [notes, setNotes] = useState("");
   const [max, setMax] = useState(1200);
   const [status, setStatus] = useState("loading"); // loading | saved | edited | error
-  const [history, setHistory] = useState([]);
-  const [showHistory, setShowHistory] = useState(false);
 
   useEffect(() => {
     fetch("/api/learner-notes")
       .then((r) => r.json())
-      .then((d) => { setNotes(d.notes); setMax(d.max); setHistory(d.history ?? []); setStatus("saved"); })
+      .then((d) => { setNotes(d.notes); setMax(d.max); setStatus("saved"); })
       .catch(() => setStatus("error"));
   }, []);
 
@@ -64,12 +62,6 @@ function LearnerNotes() {
         <button onClick={() => { setNotes(""); save(""); }} disabled={!notes}>Clear</button>
       </div>
       <div className="settings-hint">Start a line with <code>*</code> to pin it — the tutor won't change pinned lines.</div>
-      {history.length > 0 && (
-        <div className="settings-hint">
-          <button onClick={() => setShowHistory((s) => !s)} style={{ fontSize: "12px" }}>{showHistory ? "Hide" : "Show"} recent changes</button>
-          {showHistory && <pre style={{ whiteSpace: "pre-wrap", fontSize: "11px", margin: "6px 0 0" }}>{history.slice().reverse().join("\n")}</pre>}
-        </div>
-      )}
       {status === "error" && <div className="settings-hint">Couldn't reach the app's server — notes not saved.</div>}
     </div>
   );
