@@ -72,3 +72,18 @@ body { margin: 0; background: var(--bg); color: var(--text); font-family: var(--
   padding: 4px 10px; font-size: 12px; cursor: pointer;
 }
 .check-code-btn:disabled { opacity: 0.5; cursor: default; }
+
+/* Hover explanations in Settings (Tip in Settings.jsx): shown while the mouse
+   rests on a setting's name, or while its control has keyboard focus. */
+.tip { position: relative; }
+.tip-label { border-bottom: 1px dotted var(--text-dim); cursor: help; }
+.tip-bubble {
+  display: none;
+  position: absolute; left: 0; top: calc(100% + 6px); z-index: 30; width: 210px;
+  padding: 8px 10px; border-radius: 6px; border: 1px solid var(--border);
+  background: var(--bg); color: var(--text); box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
+  font-size: 12px; font-weight: normal; line-height: 1.45; text-align: left; white-space: normal;
+}
+.tip:hover > .tip-bubble, label:focus-within .tip-bubble, button:focus-visible .tip-bubble {
+  display: block;
+}

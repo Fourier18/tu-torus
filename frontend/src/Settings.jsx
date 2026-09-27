@@ -1,5 +1,28 @@
 import { useEffect, useState } from "react";
 
+// A setting's name with a short explanation that pops up on hover (or while
+// its control has keyboard focus) — styles in App.css.
+function Tip({ text, children }) {
+  return (
+    <span className="tip">
+      <span className="tip-label">{children}</span>
+      <span className="tip-bubble" role="tooltip">{text}</span>
+    </span>
+  );
+}
+
+const TIPS = {
+  theme: "Light or dark colors for the whole app, the editor included.",
+  editorHints: "When on, the editor suggests completions as you type, shows hints for functions, and underlines mistakes. Off by default, so every line is yours to write.",
+  provider: "The AI service the tutor runs on. Pick one from the list, or enter any service yourself.",
+  custom: "Enter a service by hand: its web address, model name and key. Works with any OpenAI-compatible service.",
+  presets: "Ready-made entries for common services. Picking one fills in its web address; you add the model name and your key.",
+  baseUrl: "The web address of the AI service's API. Filled in for you when you pick a provider.",
+  model: "Which of that service's AI models the tutor uses, spelled exactly as the service lists it.",
+  apiKey: "Your password for the AI service. Stored only on this computer and sent only to that service.",
+  notes: "Short notes the tutor keeps about how you're doing, so it can pitch its explanations to you. You can edit, pin or clear them.",
+};
+
 // The tutor's own notes about the learner (it keeps them up to date itself).
 // Shown here so nothing it remembers is hidden, and so a wrong note can be
 // corrected or wiped. Reloaded each time Settings opens, since the tutor may
@@ -27,7 +50,7 @@ function LearnerNotes() {
 
   return (
     <div>
-      <div style={{ fontSize: "13px", color: "var(--text-dim)", marginBottom: "6px" }}>What the tutor remembers about you</div>
+      <div style={{ fontSize: "13px", color: "var(--text-dim)", marginBottom: "6px" }}><Tip text={TIPS.notes}>What the tutor remembers about you</Tip></div>
       <textarea
         value={notes}
         maxLength={max}
@@ -133,7 +156,7 @@ export default function Settings({ settings, onChange }) {
       {open && (
         <div className="settings-panel">
           <label>
-            Theme
+            <Tip text={TIPS.theme}>Theme</Tip>
             <select value={settings.theme} onChange={(e) => setPref("theme", e.target.value)}>
               <option value="light">Light (default)</option>
               <option value="dark">Dark</option>
@@ -143,7 +166,7 @@ export default function Settings({ settings, onChange }) {
           <label style={{ display: "flex", gap: "8px", alignItems: "flex-start", marginTop: "10px" }}>
             <input type="checkbox" checked={Boolean(settings.editorHints)} onChange={(e) => setPref("editorHints", e.target.checked)} style={{ width: "auto", marginTop: "3px" }} />
             <span>
-              Editor suggestions
+              <Tip text={TIPS.editorHints}>Editor suggestions</Tip>
               <span style={{ display: "block", fontSize: "12px", color: "var(--text-dim)" }}>Autocomplete, hints and error underlines as you type. Fullest for JavaScript, TypeScript, HTML and CSS.</span>
             </span>
           </label>
@@ -151,7 +174,7 @@ export default function Settings({ settings, onChange }) {
           <div className="settings-divider" />
 
           <div style={{ marginBottom: "10px" }}>
-            <div style={{ fontSize: "13px", color: "var(--text-dim)", marginBottom: "6px" }}>Provider</div>
+            <div style={{ fontSize: "13px", color: "var(--text-dim)", marginBottom: "6px" }}><Tip text={TIPS.provider}>Provider</Tip></div>
             <button
               onClick={() => pickPreset("custom")}
               style={{
@@ -168,7 +191,7 @@ export default function Settings({ settings, onChange }) {
                 marginBottom: "6px"
               }}
             >
-              Add your own
+              <Tip text={TIPS.custom}>Add your own</Tip>
             </button>
             <button
               onClick={() => setShowProviders((s) => !s)}
@@ -186,7 +209,7 @@ export default function Settings({ settings, onChange }) {
                 marginBottom: "6px"
               }}
             >
-              {showProviders ? "▼" : "▶"} Browse providers
+              {showProviders ? "▼" : "▶"} <Tip text={TIPS.presets}>Browse providers</Tip>
             </button>
             {showProviders && (
               <div style={{ marginLeft: "6px", borderLeft: "2px solid var(--border)", paddingLeft: "8px" }}>
@@ -215,7 +238,7 @@ export default function Settings({ settings, onChange }) {
             )}
           </div>
           <label>
-            Base URL
+            <Tip text={TIPS.baseUrl}>Base URL</Tip>
             <input value={form.baseUrl} onChange={(e) => updateField("baseUrl", e.target.value)} placeholder="https://api.example.com/v1" />
           </label>
           {preset.modelsUrl && (
@@ -224,11 +247,11 @@ export default function Settings({ settings, onChange }) {
             </div>
           )}
           <label>
-            Model name
+            <Tip text={TIPS.model}>Model name</Tip>
             <input value={form.model} onChange={(e) => updateField("model", e.target.value)} placeholder={preset.modelsUrl ? "paste the model ID from the link above" : "model-id"} />
           </label>
           <label>
-            API key
+            <Tip text={TIPS.apiKey}>API key</Tip>
             <input
               value={form.apiKey}
               onChange={(e) => updateField("apiKey", e.target.value)}
