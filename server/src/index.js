@@ -109,7 +109,7 @@ wss.on("connection", (ws) => {
         ws.send(JSON.stringify({ type: "exit", ok: false, preExecution: true, error: "That file name can't be run." }));
         return;
       }
-      const ext = filename.split(".").pop();
+      const ext = filename.includes(".") ? filename.split(".").pop() : ""; // "WUE" has no ending — not ".WUE"
 
       session = await runOnce({
         file: filename,

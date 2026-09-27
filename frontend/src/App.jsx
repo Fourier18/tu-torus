@@ -76,8 +76,13 @@ export default function App() {
           className="file-name-input"
           value={nameInput}
           onChange={(e) => setNameInput(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && openFile()}
-          onBlur={openFile}
+          // Switches files only on Enter. It used to switch on blur too, so
+          // stray typing here plus a click elsewhere silently moved the
+          // learner to a new file ("WUE") — their edits then saved there while
+          // main.py kept the old version. Clicking away now undoes the edit.
+          onKeyDown={(e) => { if (e.key === "Enter") openFile(); if (e.key === "Escape") { setNameInput(file.name); e.currentTarget.blur(); } }}
+          onBlur={() => setNameInput(file.name)}
+          title="File name — type another name and press Enter to open or start that file"
         />
         {saveFailed && <span className="save-failed">not saved — check connection</span>}
         <Settings settings={settings} onChange={applySettings} />
