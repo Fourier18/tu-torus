@@ -9,6 +9,7 @@ const SETTINGS_PATH = path.join(TUTOR_DIR, "settings.json");
 
 const FACTORY_DEFAULTS = {
   theme: "light", // [DESIGN.md] "Light theme by default... a second theme later is a new file"
+  editorHints: false, // autocomplete, hints and error underlines in the editor — off until the learner turns them on
   // No subscription/OAuth login — Anthropic's terms don't allow third-party
   // apps offering claude.ai login, and this repo is public. One generic
   // OpenAI-compatible chat-completions client covers every provider below;

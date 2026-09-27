@@ -4,6 +4,7 @@ import OutputCanvas from "./OutputCanvas";
 import TutorChat from "./TutorChat";
 import { monacoLanguage, languagesReady } from "./content-type";
 import Settings from "./Settings";
+import { editorHintOptions, setLanguageDiagnostics } from "./monaco-setup";
 import "./theme.css";
 import "./theme-dark.css";
 import "./App.css";
@@ -28,6 +29,7 @@ export default function App() {
   const applySettings = (s) => {
     setSettings(s);
     document.documentElement.dataset.theme = s.theme; // theme-dark.css activates on this attribute — no component re-render needed
+    setLanguageDiagnostics(Boolean(s.editorHints));
   };
 
   // Load whatever's actually on disk on first mount — a refresh should never
@@ -92,18 +94,11 @@ export default function App() {
           options={{
             minimap: { enabled: false },
             fontSize: 14,
-            // "no pop-ups. No suggestions." — this was said explicitly early
-            // on and never actually implemented; only the tutor's own edit
-            // tools were ever blocked. Monaco's own native autocomplete
-            // (unrelated to the tutor entirely) was still on by default.
-            // Off by default here; a real Settings toggle to turn it back on
-            // is the natural next step, matching "later, if they want to,
-            // they can turn active suggestions on."
-            quickSuggestions: false,
-            suggestOnTriggerCharacters: false,
-            parameterHints: { enabled: false },
-            wordBasedSuggestions: "off",
-            inlineSuggest: { enabled: false },
+            // "no pop-ups. No suggestions." by default; Settings → "Editor
+            // suggestions" turns Monaco's own autocomplete, hints and error
+            // underlines on ("later, if they want to, they can turn active
+            // suggestions on"). Nothing to do with the tutor.
+            ...editorHintOptions(Boolean(settings.editorHints)),
           }}
         />
         <OutputCanvas

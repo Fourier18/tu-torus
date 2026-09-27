@@ -89,13 +89,13 @@ export default function Settings({ settings, onChange }) {
   });
   const [saved, setSaved] = useState(true);
 
-  const setTheme = (value) => {
+  const setPref = (key, value) => {
     const previous = settings;
-    onChange({ ...settings, theme: value }); // optimistic — apply immediately, don't wait on the round trip
+    onChange({ ...settings, [key]: value }); // optimistic — apply immediately, don't wait on the round trip
     fetch("/api/settings", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ key: "theme", value }),
+      body: JSON.stringify({ key, value }),
     })
       .then((r) => { if (!r.ok) throw new Error(); })
       .catch(() => onChange(previous)); // roll back — a save that silently failed shouldn't leave the UI claiming something that isn't true
@@ -134,10 +134,18 @@ export default function Settings({ settings, onChange }) {
         <div className="settings-panel">
           <label>
             Theme
-            <select value={settings.theme} onChange={(e) => setTheme(e.target.value)}>
+            <select value={settings.theme} onChange={(e) => setPref("theme", e.target.value)}>
               <option value="light">Light (default)</option>
               <option value="dark">Dark</option>
             </select>
+          </label>
+
+          <label style={{ display: "flex", gap: "8px", alignItems: "flex-start", marginTop: "10px" }}>
+            <input type="checkbox" checked={Boolean(settings.editorHints)} onChange={(e) => setPref("editorHints", e.target.checked)} style={{ width: "auto", marginTop: "3px" }} />
+            <span>
+              Editor suggestions
+              <span style={{ display: "block", fontSize: "12px", color: "var(--text-dim)" }}>Autocomplete, hints and error underlines as you type. Fullest for JavaScript, TypeScript, HTML and CSS.</span>
+            </span>
           </label>
 
           <div className="settings-divider" />
