@@ -47,6 +47,7 @@ body { margin: 0; background: var(--bg); color: var(--text); font-family: var(--
 .output-canvas-page iframe { flex: 1; width: 100%; min-height: 0; border: none; background: #fff; }
 .output-text { flex: 1; white-space: pre-wrap; font-family: var(--mono); font-size: 13px; margin: 0; }
 .output-error-line { color: var(--error); margin-top: 8px; white-space: pre-wrap; }
+.output-done { color: var(--text-dim); margin-top: 8px; font-style: italic; }
 .output-bar { display: flex; gap: 8px; align-items: center; border-top: 1px solid var(--border); padding: 10px; background: var(--panel-bg); }
 .output-bar input {
   flex: 1; min-width: 0; padding: 8px; border: 1px solid var(--border); border-radius: 6px;
