@@ -116,10 +116,15 @@ wss.on("connection", (ws) => {
         ext,
         code,
         onData: ({ stream, text }) => ws.send(JSON.stringify({ type: "output", stream, text })),
+        // Record first, then "exit": the output panel closes this socket as
+        // soon as it hears "exit", so a "run-recorded" sent after it usually
+        // arrived on a closed connection — the app never learned the run
+        // existed and the tutor was sent no run at all (it then described a
+        // run of its own as "your last run").
         onExit: async ({ ok, output, error, preExecution }) => {
-          ws.send(JSON.stringify({ type: "exit", ok, preExecution, error: preExecution ? error : undefined }));
           const record = await writeRunRecord({ filename, code, output, error });
           ws.send(JSON.stringify({ type: "run-recorded", ...record }));
+          ws.send(JSON.stringify({ type: "exit", ok, preExecution, error: preExecution ? error : undefined }));
           session = null;
         },
       });

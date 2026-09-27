@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import { formatReply } from "./chat-format";
 
 const HISTORY_KEEP = 6; // trimmed — last few turns only, not the full session
 // The server's own notices (rate limit, bad key, connection failures) arrive
@@ -73,7 +74,7 @@ export default function TutorChat({ lastRun, filename, code }) {
     <div className="panel tutor-chat">
       <div className="chat-messages">
         {messages.map((m, i) => (
-          <div key={i} className={`chat-msg chat-${m.role}`}>{m.text || (m.status && <em className="chat-status">{m.status}</em>)}</div>
+          <div key={i} className={`chat-msg chat-${m.role}`}>{m.text ? (m.role === "tutor" ? formatReply(m.text) : m.text) : (m.status && <em className="chat-status">{m.status}</em>)}</div>
         ))}
       </div>
       <div className="chat-input-row">

@@ -58,7 +58,8 @@ export function buildUserContent({ trigger, question, filename, code, previousCo
     // buries the actual error line. Keep only the learner's frames.
     runContext = runContext.replace(/Traceback \(most recent call last\):\n[\s\S]*?(?=  File "<exec>")/g, "Traceback (most recent call last):\n");
     const ranCode = runContext.match(/## Code as run\n```\n([\s\S]*?)\n```/)?.[1];
-    const stale = ranCode != null && code != null && ranCode.trimEnd() !== code.trimEnd();
+    const same = (s) => s.replace(/\r\n/g, "\n").trimEnd(); // Windows vs Unix line endings aren't an edit
+    const stale = ranCode != null && code != null && same(ranCode) !== same(code);
     // A run of older code is left out, not just flagged: a live session had
     // the learner delete their print(a)/print(b) lines, and the tutor — with
     // the old run attached and labelled "earlier version" — still told them
