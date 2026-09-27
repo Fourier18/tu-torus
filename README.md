@@ -36,6 +36,14 @@ Model names aren't pre-filled. Provider model lineups change too often to bake a
 
 Free tiers from Mistral and Gemini may use your prompts for training data — a paid key generally avoids this.
 
+## Other settings
+
+- **Theme**: Light, Dark, Forest Green, Azure Night, Desert Sunset, Arctic Dawn or Plum Midnight. The editor changes with the rest of the app.
+- **Editor suggestions**: autocomplete, hints and error underlines as you type. Off by default. Fullest for JavaScript, TypeScript, HTML and CSS; other languages get suggestions from words already in the file.
+- **What the tutor remembers about you**: short notes the tutor keeps on how you're doing, stored on this computer. You can edit them, clear them, or start a line with `*` to pin it so the tutor won't change it.
+
+Rest the mouse on a setting's name in Settings for a short explanation.
+
 ## Building from source
 
 Only needed if you're modifying the app, not to install it.
