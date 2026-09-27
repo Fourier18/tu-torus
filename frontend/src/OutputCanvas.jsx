@@ -18,7 +18,6 @@ export default function OutputCanvas({ file, running, setRunning, onRunRecorded 
   const [lines, setLines] = useState([]);
   const [stdin, setStdin] = useState("");
   const [crashed, setCrashed] = useState(false);
-  const [finished, setFinished] = useState(false); // shown as "Program finished." — without it a program that ended quietly looked like the input box refusing input
   const [setupError, setSetupError] = useState(null); // distinct from `crashed`: nothing ran at all, so there's a plain reason to show, not a traceback to hide
   const wsRef = useRef(null);
   const [pageKey, setPageKey] = useState(0); // bumped by Run on a web page to reload it
@@ -31,7 +30,6 @@ export default function OutputCanvas({ file, running, setRunning, onRunRecorded 
     setLines([]);
     setCrashed(false);
     setSetupError(null);
-    setFinished(false);
     setStdin(""); // leftover typing from the last run doesn't carry into this one
 
     if (nativePage) {
@@ -50,7 +48,6 @@ export default function OutputCanvas({ file, running, setRunning, onRunRecorded 
       if (msg.type === "exit") {
         exited = true;
         setStdin("");
-        if (!msg.preExecution) setFinished(true);
         if (!msg.ok) {
           if (msg.preExecution) setSetupError(msg.error);
           else setCrashed(true);
@@ -108,7 +105,6 @@ export default function OutputCanvas({ file, running, setRunning, onRunRecorded 
           {lines.join("")}
           {crashed && <div className="output-error-line">Program stopped with an error</div>}
           {setupError && <div className="output-error-line">{withLinks(setupError)}</div>}
-          {finished && <div className="output-done">Program finished.</div>}
         </pre>
       </div>
       {bar}
