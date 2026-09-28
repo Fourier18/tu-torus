@@ -2,7 +2,9 @@
 
 A live coding tutor: write code, run it, and get coached on what happened. Three panels — an editor, an output panel that shows what your program prints, and a chat panel where the tutor sees your code and your last run and talks you through it. When a question turns on what the code actually does — is this comma allowed, does this print what I think — the tutor runs your file privately to check before it answers.
 
-Nine languages come built in and run the moment you press Run: Python, JavaScript, TypeScript (type-checked), Ruby, PHP, Perl, Lua, BASIC, and HTML/CSS web pages. Programs that ask for input wait for you to type, just like in a terminal.
+Nine languages come built in and run the moment you press Run: Python, JavaScript, TypeScript (type-checked), Ruby, PHP, Perl, Lua, BASIC, and HTML/CSS web pages. Programs that ask for input wait for you to type, just like in a terminal. While a program runs, Run becomes Stop (Ctrl+C in the input box does the same). A program that prints endlessly is stopped after 200,000 characters of output, and one that loops silently after 15 seconds; in Python, use Stop.
+
+BASIC is QBasic-style, with text output. Pressing Run on a JSON file checks it and shows "Valid JSON." or the first mistake with its line and column.
 
 **C and C++ included.** The compiler sets itself up the first time you press Run on a `.c` or `.cpp` file: a one-time 27 MB download, then it works offline. No MSYS2, no PATH settings, no afternoon lost to installing a compiler.
 
@@ -11,6 +13,8 @@ Go, Java, C#, Rust and others run too once their official tools are installed, a
 ## To install it
 
 Download `Tu-Torus.Setup.1.5.1.exe` from [the latest release](https://github.com/Fourier18/tu-torus/releases/latest).
+
+Your files are kept in `%APPDATA%\tu-torus\workspace` and stay there through updates. The ▾ beside the file name opens them and starts new ones in any language.
 
 ## Requirements
 
