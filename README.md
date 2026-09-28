@@ -10,7 +10,7 @@ Go, Java, C#, Rust and others run too once their official tools are installed, a
 
 ## To install it
 
-Download `Tu-Torus.Setup.1.3.0.exe` from [the latest release](https://github.com/Fourier18/tu-torus/releases/latest).
+Download `Tu-Torus.Setup.1.3.1.exe` from [the latest release](https://github.com/Fourier18/tu-torus/releases/latest).
 
 ## Requirements
 
@@ -54,4 +54,4 @@ npm run setup
 npm run package
 ```
 
-Builds `dist/Tu-Torus Setup 1.3.0.exe`.
+Builds `dist/Tu-Torus Setup 1.3.1.exe`.
