@@ -546,6 +546,31 @@ print(f"The difference is {agecompare()}.")
     turns: [{ say: "geez bro gimme a chance to change it willya?" }],
     expect: "Short acknowledgement only. Does not mention parentheses or restate the fix.",
   },
+  // From two live BASIC sessions on 2026-09-27: graphics requests got
+  // SCREEN/PSET code for a text-only BASIC, then 8+ rounds of comma guesses.
+  // Varied wording and language so this tests the rule, not the example.
+  basicGraphicsAsk: {
+    filename: "art.bas",
+    code: '10 INPUT "Name"; N$\n20 PRINT "Hi "; N$\n',
+    turns: [{ say: "how do i draw a little red square on screen?" }],
+    expect: "Says graphics aren't available here yet (text output only) and stops there. No SCREEN/PSET/LINE code and no character-art substitute.",
+  },
+  pythonGraphicsAsk: {
+    code: 'print("hello")\n',
+    turns: [{ say: "can I use turtle to draw a star?" }],
+    expect: "Says graphics (turtle) aren't available here yet, text output only, and stops there. No turtle code and no asterisk-art substitute.",
+  },
+  sameMeansWrong: {
+    filename: "loop.bas",
+    code: '10 FOR I = 1 TO 3\n20 PRINT I\n30 NEXT\n40 PRINT "done"\n',
+    seed: [
+      ["user", "Check my code"],
+      ["assistant", "Line 30 needs the loop variable: change it to `NEXT I`."],
+      ["user", "did that, same error"],
+    ],
+    turns: [{ say: "still same" }],
+    expect: "Doesn't repeat 'NEXT I'. Says that wasn't it and looks again at the code/error instead.",
+  },
   meta: {
     code: AGE,
     turns: [{ say: "do you save my conversations somewhere?" }],
