@@ -571,6 +571,36 @@ print(f"The difference is {agecompare()}.")
     turns: [{ say: "still same" }],
     expect: "Doesn't repeat 'NEXT I'. Says that wasn't it and looks again at the code/error instead.",
   },
+  // Replay of the user's pixel-dot session (2026-09-27, 20:22) with the new
+  // runner message: the old run showed a baffling syntax error and the tutor
+  // cycled comma / no comma / space for eight replies.
+  pixelDotReplay: {
+    filename: "new001.bas",
+    code: "10 SCREEN 1\n20 PSET(100,100),1\n",
+    run: `# Run 30 — new001.bas
+
+## Code as run
+\`\`\`
+10 SCREEN 1
+20 PSET(100,100),1
+\`\`\`
+
+## Output
+\`\`\`
+(no output)
+\`\`\`
+
+## Error
+\`\`\`
+new001.bas line 1: SCREEN is a graphics command. BASIC in Tu-Torus shows text only for now, so graphics commands (SCREEN, PSET, LINE, CIRCLE, PAINT, DRAW) can't run.
+\`\`\``,
+    seed: [
+      ["user", "gimme code to make a pixel dot"],
+      ["assistant", "Use `SCREEN 1` then `PSET (100, 100), 1`."],
+    ],
+    turns: [{ check: true }, { say: "but i already tried that" }],
+    expect: "Says plainly graphics aren't available here (owning that its earlier code can't run); no comma/space fixes; doesn't repeat.",
+  },
   meta: {
     code: AGE,
     turns: [{ say: "do you save my conversations somewhere?" }],
