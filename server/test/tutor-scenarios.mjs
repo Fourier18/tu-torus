@@ -625,6 +625,29 @@ new001.bas line 1: SCREEN is a graphics command. BASIC in Tu-Torus shows text on
     turns: [{ say: "huh???? why inside" }],
     expect: "Treats ???? as confusion and explains nesting more simply; does not say their file contains question marks.",
   },
+  // From the user's Ruby session (2026-09-27): "why would I use it instead
+  // of python or basic?" got print/input syntax comparisons three times,
+  // then a long list. Different languages here than the worked example.
+  whyThisLanguage: {
+    filename: "hello.rb",
+    code: "",
+    seed: [
+      ["user", "tell me more abt its commands"],
+      ["assistant", "A few basics: `puts` prints a line, `print` prints without a new line, `gets` reads what you type."],
+    ],
+    turns: [{ say: "but like why would I use ruby to print or take inputs instead of python or even basic?" }],
+    expect: "Big picture in a few sentences: what Ruby is known for / used for (e.g. Rails web apps, scripting, readable code) and when you'd pick it vs Python/BASIC. Not a print/input syntax comparison, not a long list.",
+  },
+  zoomOutAfterComplaint: {
+    filename: "main.php",
+    code: "<?php\necho \"hi\";\n",
+    seed: [
+      ["user", "why would anyone use php over javascript?"],
+      ["assistant", "PHP uses `echo` to print while JavaScript uses `console.log`, and PHP variables start with `$`."],
+    ],
+    turns: [{ say: "thats a non answer, i want the overview" }],
+    expect: "Steps back to the big picture (PHP runs on web servers, powers WordPress/many sites, etc. vs JavaScript in the browser/Node) in a few sentences; no more syntax comparison.",
+  },
   meta: {
     code: AGE,
     turns: [{ say: "do you save my conversations somewhere?" }],
