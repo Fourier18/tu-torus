@@ -16,6 +16,13 @@ const SAB_SIZE = 8 + 65536; // matches python-worker.js's layout
 const TIMEOUT_MS = 10000; // includes Pyodide's own startup, ~1-3s
 const OUTPUT_CAP = 4000;
 
+// Said outright: with only `error: null`, the tutor read a blank screen as
+// "a syntax error, so nothing ran" (Ruby `elif`, which is silently read as a
+// method call in a branch that never runs).
+const outcome = (error) => error
+  ? "It stopped with the error above."
+  : "It ran to the end with NO error. If the screen is blank, the code ran but printed nothing.";
+
 // Every other built-in language: the same private run through the app's own
 // runner (runner.js), answers typed up front. The logic suite had the tutor
 // right about Lua/Ruby/PHP syntax, then agreeing with a learner's false
@@ -33,7 +40,7 @@ export async function runLearnerFile({ filename, code, inputs = [] }) {
       done = true;
       clearTimeout(timer);
       const cap = (s) => (s.length > OUTPUT_CAP ? `${s.slice(0, OUTPUT_CAP)}\n...[output cut]` : s);
-      resolve({ screen: cap(screen) || "(nothing appeared on screen)", error: error ? cap(String(error)) : null });
+      resolve({ screen: cap(screen) || "(nothing appeared on screen)", error: error ? cap(String(error)) : null, outcome: outcome(error) });
     };
     // The runner pauses its own clock while a program waits for input, so a
     // private run needs a hard limit of its own.
@@ -82,7 +89,7 @@ export function runLearnerCode({ code, inputs = [] }) {
       const cap = (s) => (s.length > OUTPUT_CAP ? `${s.slice(0, OUTPUT_CAP)}\n...[output cut]` : s);
       // Same Pyodide-internal traceback frames tutor.js strips from run records.
       const err = (errorText.trim() || extra || "").replace(/Traceback \(most recent call last\):\n[\s\S]*?(?=  File "<exec>")/g, "Traceback (most recent call last):\n");
-      resolve({ screen: cap(screen) || "(nothing appeared on screen)", error: cap(err) || null });
+      resolve({ screen: cap(screen) || "(nothing appeared on screen)", error: cap(err) || null, outcome: outcome(err) });
     };
 
     const timer = setTimeout(() => finish(`Stopped after ${TIMEOUT_MS / 1000}s — it may be stuck in a loop or waiting for more input.`), TIMEOUT_MS);
