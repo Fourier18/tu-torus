@@ -1,6 +1,6 @@
 # Tu-Torus
 
-A live coding tutor: write code, run it, and get coached on what happened. Three panels — an editor, an output panel that shows what your program prints, and a chat panel where the tutor sees your code and your last run and talks you through it.
+A live coding tutor: write code, run it, and get coached on what happened. Three panels — an editor, an output panel that shows what your program prints, and a chat panel where the tutor sees your code and your last run and talks you through it. When a question turns on what the code actually does — is this comma allowed, does this print what I think — the tutor runs your file privately to check before it answers.
 
 Nine languages come built in and run the moment you press Run: Python, JavaScript, TypeScript (type-checked), Ruby, PHP, Perl, Lua, BASIC, and HTML/CSS web pages. Programs that ask for input wait for you to type, just like in a terminal.
 
@@ -17,7 +17,7 @@ Go, Java, C#, Rust and others run too once their official tools are installed, a
 
 ## To install it
 
-Download `Tu-Torus.Setup.1.4.1.exe` from [the latest release](https://github.com/Fourier18/tu-torus/releases/latest).
+Download `Tu-Torus.Setup.1.5.0.exe` from [the latest release](https://github.com/Fourier18/tu-torus/releases/latest).
 
 ## Requirements
 
@@ -61,4 +61,4 @@ npm run setup
 npm run package
 ```
 
-Builds `dist/Tu-Torus Setup 1.4.1.exe`.
+Builds `dist/Tu-Torus Setup 1.5.0.exe`.
