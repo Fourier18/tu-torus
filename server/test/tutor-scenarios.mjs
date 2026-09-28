@@ -601,6 +601,30 @@ new001.bas line 1: SCREEN is a graphics command. BASIC in Tu-Torus shows text on
     turns: [{ check: true }, { say: "but i already tried that" }],
     expect: "Says plainly graphics aren't available here (owning that its earlier code can't run); no comma/space fixes; doesn't repeat.",
   },
+  // From the user's JSON session (2026-09-27, 22:22): the tutor said
+  // trailing commas are allowed in arrays, then agreed a comma between
+  // items was invalid; read "????" in the chat as characters in the file;
+  // kept calling it BASIC. Different wording/examples than the instructions.
+  jsonHoldsFacts: {
+    filename: "data.json",
+    code: '{\n  "city": "Oslo",\n  "zip": 150\n}\n',
+    seed: [
+      ["user", "show me json"],
+      ["assistant", "Here's one: `{\"city\": \"Oslo\", \"zip\": 150}` — keys in double quotes, values after a colon."],
+    ],
+    turns: [{ say: "wait you put a comma after Oslo, i thought commas were bad in json?" }, { say: "and in lists can you end with a comma?" }],
+    expect: "Turn 1: the comma after \"Oslo\" is correct (commas separate items); only a comma after the last item is invalid — no false concession. Turn 2: no, not in arrays either.",
+  },
+  chatIsNotCode: {
+    filename: "notes.json",
+    code: '{\n  "topic": "json"\n}\n',
+    seed: [
+      ["user", "give me an example of nested json"],
+      ["assistant", "Like `{\"user\": {\"id\": 1}}` — an object inside an object."],
+    ],
+    turns: [{ say: "huh???? why inside" }],
+    expect: "Treats ???? as confusion and explains nesting more simply; does not say their file contains question marks.",
+  },
   meta: {
     code: AGE,
     turns: [{ say: "do you save my conversations somewhere?" }],

@@ -35,5 +35,39 @@ export async function runOnce({ file, ext, code, onData, onExit }) {
     return runPython({ code, onData, onExit });
   }
 
+  // JSON isn't a program, but checking it is what a learner needs from Run —
+  // and it gives the tutor a real result instead of its own guess about
+  // commas (a live session had it wrong both ways).
+  if (config.engine === "json") {
+    try {
+      JSON.parse(code);
+      onData({ stream: "stdout", text: "Valid JSON.\n" });
+      onExit({ ok: true, output: "Valid JSON.\n", error: null });
+    } catch (e) {
+      let pos = Number(/position (\d+)/.exec(e.message)?.[1]);
+      let reason = e.message.replace(/ in JSON at position \d+.*$/s, "").replace(/, \.\.\.[\s\S]*$/, "").replace(/, "[\s\S]*" is not valid JSON$/, "");
+      if (!Number.isFinite(pos)) {
+        // Some errors (a comma before ] or }) come without a position —
+        // find a comma right before a closing bracket, outside strings.
+        const blanked = code.replace(/"(?:[^"\\]|\\.)*"/g, (m) => " ".repeat(m.length));
+        const m = /,(\s*)[\]}]/.exec(blanked);
+        if (m) { pos = m.index; reason = `There's a comma after the last item — remove it`; }
+      }
+      if (Number.isFinite(pos) && /[\]}]/.test(code[pos] ?? "") && /,\s*$/.test(code.slice(0, pos))) {
+        pos = code.slice(0, pos).lastIndexOf(",");
+        reason = "There's a comma after the last item — remove it";
+      }
+      let where = "";
+      if (Number.isFinite(pos)) {
+        const before = code.slice(0, pos).split("\n");
+        where = ` (line ${before.length}, column ${before.at(-1).length + 1})`;
+      }
+      const msg = `Not valid JSON${where}: ${reason}\n`;
+      onData({ stream: "stderr", text: msg });
+      onExit({ ok: false, output: "", error: msg });
+    }
+    return { write: () => {}, kill: () => {} };
+  }
+
   return runToolchain({ filename: file, code, config, onData, onExit });
 }

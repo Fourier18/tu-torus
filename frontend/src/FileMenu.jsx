@@ -18,7 +18,7 @@ export default function FileMenu({ current, onOpen }) {
     if (!open) return;
     fetch("/api/files").then((r) => r.json()).then(setFiles).catch(() => setFiles([]));
     fetch("/api/languages").then((r) => r.json())
-      .then((L) => setLanguages(Object.entries(L).filter(([, l]) => l.name && (l.run || l.browserNative)).map(([e, l]) => ({ ext: e, name: l.name.replace(/^a (.)/, (_, c) => c.toUpperCase()) }))))
+      .then((L) => setLanguages(Object.entries(L).filter(([, l]) => l.name && l.monaco).map(([e, l]) => ({ ext: e, name: l.name.replace(/^a (.)/, (_, c) => c.toUpperCase()) }))))
       .catch(() => {});
     const away = (e) => { if (!box.current?.contains(e.target)) close(); };
     const esc = (e) => { if (e.key === "Escape") close(); };
