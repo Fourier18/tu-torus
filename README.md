@@ -8,13 +8,6 @@ Nine languages come built in and run the moment you press Run: Python, JavaScrip
 
 Go, Java, C#, Rust and others run too once their official tools are installed, and Run links you to them. The tutor talks to whatever model you connect in Settings — no built-in subscription, so it works with a free API key from several providers.
 
-## How to use it
-
-- **Files:** the ▾ beside the file name lists your saved files and has **New file**: pick a language, type a name, and the ending is added for you. Your files are kept in `%APPDATA%\tu-torus\workspace`.
-- **Run and Stop:** Run is at the bottom right of the output panel. While a program runs it becomes Stop (Ctrl+C in the input box does the same). A program that prints endlessly is stopped after 200,000 characters of output; one that loops silently is stopped after 15 seconds (in Python, use Stop).
-- **JSON files:** Run checks them and shows "Valid JSON." or the first mistake with its line and column.
-- **BASIC** is QBasic-style and text only for now: graphics commands such as `SCREEN` and `PSET` aren't available.
-
 ## To install it
 
 Download `Tu-Torus.Setup.1.5.1.exe` from [the latest release](https://github.com/Fourier18/tu-torus/releases/latest).
