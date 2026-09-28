@@ -16,6 +16,39 @@ const SAB_SIZE = 8 + 65536; // matches python-worker.js's layout
 const TIMEOUT_MS = 10000; // includes Pyodide's own startup, ~1-3s
 const OUTPUT_CAP = 4000;
 
+// Every other built-in language: the same private run through the app's own
+// runner (runner.js), answers typed up front. The logic suite had the tutor
+// right about Lua/Ruby/PHP syntax, then agreeing with a learner's false
+// pushback — and wrong about BASIC's PRINT with nothing to check against.
+export async function runLearnerFile({ filename, code, inputs = [] }) {
+  const { runOnce } = await import("../runner.js");
+  const ext = filename.split(".").pop().toLowerCase();
+  return new Promise((resolve) => {
+    let screen = "";
+    let errText = "";
+    let session = null;
+    let done = false;
+    const finish = (error) => {
+      if (done) return;
+      done = true;
+      clearTimeout(timer);
+      const cap = (s) => (s.length > OUTPUT_CAP ? `${s.slice(0, OUTPUT_CAP)}\n...[output cut]` : s);
+      resolve({ screen: cap(screen) || "(nothing appeared on screen)", error: error ? cap(String(error)) : null });
+    };
+    // The runner pauses its own clock while a program waits for input, so a
+    // private run needs a hard limit of its own.
+    const timer = setTimeout(() => { session?.kill(); finish(`Stopped after ${TIMEOUT_MS / 1000}s — it may be stuck in a loop or waiting for more input.`); }, TIMEOUT_MS);
+    runOnce({
+      file: path.basename(filename), ext, code,
+      onData: (d) => { if (d.stream === "stderr") errText += d.text; else screen += d.text; },
+      onExit: (e) => finish(e.ok ? null : e.error || errText || "It ended with an error."),
+    }).then((s) => {
+      session = s;
+      for (const t of inputs) s.write(String(t).replace(/[\r\n]+/g, " ").trim());
+    });
+  });
+}
+
 export function runLearnerCode({ code, inputs = [] }) {
   return new Promise((resolve) => {
     const sab = new SharedArrayBuffer(SAB_SIZE);

@@ -3,7 +3,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { getSettings } from "./settings.js";
 import { chat } from "./providers/openai-compatible.js";
-import { runLearnerCode } from "./tools/run-learner-code.js";
+import { runLearnerCode, runLearnerFile } from "./tools/run-learner-code.js";
 import { getLearnerNotes, setLearnerNotes, reviseLearnerNotes, startSession, recordHistory } from "./learner-notes.js";
 import { safeRunRecordPath } from "./security.js";
 import { LANGUAGES } from "./languages.js";
@@ -82,7 +82,7 @@ export function buildUserContent({ trigger, question, filename, code, previousCo
 // couldn't have.
 const RUN_TOOL_NOTE = `
 
-You have a tool, run_learner_code, that runs their file privately exactly as it is, with inputs you choose; they never see these runs. Use it to check before you claim what the code does or prints — especially with no run attached, or for an input you're about to talk about. Mention a run only when it helps ("I tried 30 and 25 and got \`5.0\`").`;
+You have a tool, run_learner_code, that runs their file privately exactly as it is, with inputs you choose; they never see these runs. Use it to check before you claim what the code does or prints — especially with no run attached, or for an input you're about to talk about. Use it too before you say whether something is allowed in the language (a comma, parentheses, a semicolon, indentation) and whenever the learner disputes what you said: the result is the truth, whatever they or you believed. If the run backs you, keep your answer and say it ran; don't switch sides because they sound sure. Mention a run only when it helps ("I tried 30 and 25 and got \`5.0\`", "I ran it — it works as written").`;
 
 // Notes are written between replies by reviseLearnerNotes (learner-notes.js);
 // here they're only read, so the tutor starts every message knowing who it's
@@ -99,29 +99,37 @@ export function buildSystemPrompt(instructions, { tools, notes } = {}) {
 
 // run_learner_code: lets the tutor check what the learner's code actually
 // does instead of predicting it (live tests caught it inventing output more
-// than once) — Python only, the one engine that runs privately in-process.
+// than once). Python runs in its own worker; the other built-in languages (bundled
+// runners, JSON's checker) through runner.js. Not languages that download
+// or need an install first — a private check mustn't start a 27 MB download.
+export function canRunPrivately(filename) {
+  const ext = filename?.includes(".") ? filename.split(".").pop().toLowerCase() : "";
+  const l = LANGUAGES[ext];
+  return Boolean(l?.run && !l.setupOnFirstRun && (l.run.engine === "pyodide" || l.run.engine === "json" || l.run.bundledNode));
+}
+
 export function tutorTools({ filename, code }) {
-  const tools = [];
-  if (filename?.endsWith(".py") && code != null) {
-    tools.push({
-      type: "function",
-      function: {
-        name: "run_learner_code",
-        description: "Privately run the learner's file exactly as it is now, typing the given answers at its input() prompts in order. Returns what would appear on their screen (typed answers included) and any error. The learner never sees this run. You can't change the code — only choose the inputs.",
-        parameters: {
-          type: "object",
-          properties: { inputs: { type: "array", items: { type: "string" }, description: "Answers to type at each input() prompt, in order. Empty if the program asks for none." } },
-          required: ["inputs"],
-        },
+  if (code == null || !canRunPrivately(filename)) return {};
+  const py = filename.toLowerCase().endsWith(".py");
+  const tools = [{
+    type: "function",
+    function: {
+      name: "run_learner_code",
+      description: "Privately run the learner's file exactly as it is now in this app's own runtime, typing the given answers at its input prompts in order. Returns what would appear on their screen (typed answers included) and any error. The learner never sees this run. You can't change the code — only choose the inputs.",
+      parameters: {
+        type: "object",
+        properties: { inputs: { type: "array", items: { type: "string" }, description: "Answers to type at each input prompt, in order. Empty if the program asks for none." } },
+        required: ["inputs"],
       },
-    });
-  }
-  if (!tools.length) return {};
+    },
+  }];
   return {
     tools,
-    runTool: async (name, args) => (name === "run_learner_code" && code != null
-      ? runLearnerCode({ code, inputs: Array.isArray(args.inputs) ? args.inputs.map(String).slice(0, 20) : [] })
-      : { error: `No tool named ${name}.` }),
+    runTool: async (name, args) => {
+      if (name !== "run_learner_code") return { error: `No tool named ${name}.` };
+      const inputs = Array.isArray(args.inputs) ? args.inputs.map(String).slice(0, 20) : [];
+      return py ? runLearnerCode({ code, inputs }) : runLearnerFile({ filename, code, inputs });
+    },
   };
 }
 
