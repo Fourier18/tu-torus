@@ -10,6 +10,28 @@ const { default: Executor } = require("qbjc/dist/runtime/executor");
 const { NodePlatform } = require("qbjc/dist/runtime/node-platform");
 const { readLine } = require("./stdin-sync.cjs");
 
+// qbjc's grammar reads `PRINT LEN("ab") + 1` two ways — as the function call,
+// and as a variable LEN printed next to `("ab") + 1` — and then refuses the
+// line with "2 parse trees". So any PRINT of a function call in a sum failed
+// (PRINT VAL(x$) + 1, PRINT UBOUND(A) + 1). When the grammar allows several
+// readings, take the one QBasic means: the most function calls/indexing,
+// then the fewest bare names.
+const parserModule = require("qbjc/dist/parser/parser");
+const qbjcParse = parserModule.default;
+parserModule.default = (input, opts) => {
+  let results;
+  try {
+    const parser = parserModule.createParser(opts);
+    parser.feed(input);
+    parser.feed("\n");
+    results = parser.results;
+  } catch { return qbjcParse(input, opts); } // qbjc's own parse gives the readable syntax error
+  if (results.length < 2) return results.length ? results[0] : qbjcParse(input, opts);
+  const count = (s, re) => (s.match(re) ?? []).length;
+  const score = (tree) => { const s = JSON.stringify(tree); return count(s, /"type":"fnCall"/g) * 10 - count(s, /"type":"varRef"/g); };
+  return results.reduce((best, t) => (score(t) > score(best) ? t : best));
+};
+
 class PipePlatform extends NodePlatform {
   async inputLine() { return readLine() ?? ""; }
   async getChar() { return null; }

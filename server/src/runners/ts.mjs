@@ -48,6 +48,7 @@ if (diags.length) {
   process.exit(1);
 }
 // Run it as a module (so import and top-level await work), types removed by Node.
+require("./prompt.cjs"); // prompt()/alert() for the learner's file, as for .js
 const mts = file.replace(/\.ts$/, ".mts");
 copyFileSync(file, mts);
 await import(pathToFileURL(mts).href);
