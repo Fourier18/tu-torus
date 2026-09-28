@@ -46,6 +46,10 @@ export function runPython({ code, onData, onExit }) {
   worker.on("message", (msg) => {
     if (msg.type === "stdin-used") deliver();
     if (msg.type === "data") {
+      // Same cap as the other languages (toolchain.js): an endless printing
+      // loop otherwise streamed forever and swamped the output panel.
+      if (settled) return;
+      if (output.length + errorText.length > 200_000) { finish({ ok: false, error: "Stopped — the program printed more than 200,000 characters (probably a loop that never ends)." }); return; }
       if (msg.stream === "stdout") output += msg.text; else errorText += msg.text;
       onData({ stream: msg.stream, text: msg.text });
     }

@@ -61,29 +61,36 @@ function killTree(child) {
 
 // Runs one stage (compile or exec) to completion, streaming output live and
 // enforcing the timeout/output cap. Returns {ok, timedOut, output, error}.
-function runStage({ command, args, cwd, env, onData, getWrite, timeoutMs = TIMEOUT_MS }) {
+function runStage({ command, args, cwd, env, onData, getWrite, onChild, timeoutMs = TIMEOUT_MS }) {
   return new Promise((resolve) => {
     const child = spawn(command, args, { cwd, env });
+    onChild?.(child); // so Stop can reach the process that's actually running
     let output = "";
     let errorText = "";
     let outputLen = 0;
     let timedOut = false;
-    // The limit is for runaway programs, not slow typists: the clock stops
-    // while the latest output is a prompt (no line break yet, e.g. "Name? ")
-    // and starts over when the learner types. A wall-clock limit had killed
-    // programs mid-INPUT while a beginner was still thinking.
-    let timer = null;
+    let capped = false;
+    // The limit is for runaway programs, not slow typists. The clock pauses
+    // only when the program has gone quiet after a prompt (output ending
+    // without a line break, e.g. "Name? ", then nothing for half a second —
+    // it's waiting for input), and starts over when the learner types. A
+    // plain wall clock had killed programs mid-INPUT while a beginner was
+    // thinking; pausing on any line-break-less output let a loop printing
+    // without line breaks run forever.
+    let timer = null, quiet = null;
     const startClock = () => { clearTimeout(timer); timer = setTimeout(() => { timedOut = true; killTree(child); }, timeoutMs); };
     const stopClock = () => { clearTimeout(timer); timer = null; };
     startClock();
 
     const forward = (stream) => (chunk) => {
       outputLen += chunk.length;
-      if (outputLen > MAX_OUTPUT) { killTree(child); return; }
+      if (outputLen > MAX_OUTPUT) { capped = true; killTree(child); return; }
       const text = chunk.toString();
       if (stream === "stdout") output += text; else errorText += text;
       onData({ stream, text });
-      if (getWrite && stream === "stdout") { if (text.endsWith("\n")) { if (!timer) startClock(); } else stopClock(); }
+      clearTimeout(quiet);
+      if (!timer) startClock();
+      if (getWrite && stream === "stdout" && !text.endsWith("\n")) quiet = setTimeout(stopClock, 500);
     };
     child.stdout.on("data", forward("stdout"));
     child.stderr.on("data", forward("stderr"));
@@ -98,8 +105,8 @@ function runStage({ command, args, cwd, env, onData, getWrite, timeoutMs = TIMEO
     });
 
     child.on("close", (code) => {
-      clearTimeout(timer);
-      resolve({ ok: code === 0 && !timedOut, timedOut, output, error: errorText });
+      clearTimeout(timer); clearTimeout(quiet);
+      resolve({ ok: code === 0 && !timedOut && !capped, timedOut, output, error: capped ? "Stopped — the program printed more than 200,000 characters (probably a loop that never ends)." : errorText });
     });
     child.on("error", (err) => { clearTimeout(timer); resolve({ ok: false, timedOut: false, output, error: err.message }); });
   });
@@ -137,22 +144,23 @@ export async function runToolchain({ filename, code, config: rawConfig, onData, 
   // the compiler sets itself up) wait here instead of being dropped.
   let stdinWriter = null;
   const typedEarly = [];
-  let killed = false; // known gap: this only prevents starting the *next* stage — it can't reach a child process that's mid-compile when kill() is called, since runStage doesn't expose it outward. Not reachable from the UI today (no stop button built yet); worth a real fix if one is added.
+  let killed = false; // Stop pressed: end the running stage (compile or program) and don't start another
+  let current = null;
   const cleanup = () => rm(dir, { recursive: true, force: true }).catch(() => {});
 
   (async () => {
     if (config.compile) {
       // compileTimeout: a first-use setup (the C/C++ compiler download) needs
       // longer than a program run gets.
-      const compileResult = await runStage({ command: config.command, args: fill(config.compile, vars), cwd: dir, env, onData, timeoutMs: config.compileTimeout });
+      const compileResult = await runStage({ command: config.command, args: fill(config.compile, vars), cwd: dir, env, onData, onChild: (c) => { current = c; }, timeoutMs: config.compileTimeout });
       if (!compileResult.ok) {
         await cleanup();
-        onExit({ ok: false, error: compileResult.timedOut ? "Compile timed out." : compileResult.error });
+        onExit({ ok: false, error: killed ? "Stopped." : compileResult.timedOut ? "Compile timed out." : compileResult.error });
         return;
       }
     }
 
-    if (killed) { await cleanup(); return; }
+    if (killed) { await cleanup(); onExit({ ok: false, error: "Stopped." }); return; }
 
     const execCommand = config.execCommand ? fill(config.execCommand, vars) : (config.exec ? fill(config.exec, vars) : config.command);
     const execArgs = config.execArgs ? fill(config.execArgs, vars) : (config.exec ? [] : fill(config.args, vars));
@@ -163,15 +171,16 @@ export async function runToolchain({ filename, code, config: rawConfig, onData, 
       cwd: dir,
       env,
       onData,
+      onChild: (c) => { current = c; },
       getWrite: (write) => { stdinWriter = write; for (const t of typedEarly.splice(0)) write(t); },
     });
 
     await cleanup();
-    onExit({ ok: result.ok, output: result.output, error: result.timedOut ? "Timed out — stopped after 15 seconds." : (result.error || null) });
+    onExit({ ok: result.ok, output: result.output, error: killed ? "Stopped." : result.timedOut ? "Timed out — stopped after 15 seconds." : (result.error || null) });
   })();
 
   return {
     write: (text) => (stdinWriter ? stdinWriter(text) : typedEarly.push(text)),
-    kill: () => { killed = true; },
+    kill: () => { killed = true; if (current && current.exitCode === null) killTree(current); },
   };
 }

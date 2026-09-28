@@ -6,6 +6,7 @@ import { chat } from "./providers/openai-compatible.js";
 import { runLearnerCode } from "./tools/run-learner-code.js";
 import { getLearnerNotes, setLearnerNotes, reviseLearnerNotes, startSession, recordHistory } from "./learner-notes.js";
 import { safeRunRecordPath } from "./security.js";
+import { LANGUAGES } from "./languages.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const INSTRUCTIONS_PATH = path.join(__dirname, "tutor-instructions.md");
@@ -48,6 +49,11 @@ export function buildUserContent({ trigger, question, filename, code, previousCo
   const note = codeChangeNote(previousCode, code);
   if (note) parts.push(note);
   if (filename && code != null) parts.push(`Current contents of ${filename}:\n\`\`\`\n${code}\n\`\`\``);
+  // What this app's runtime for the file can and can't do (languages.json).
+  // Without it the tutor wrote QB64 graphics (SCREEN 13 / PSET) for a BASIC
+  // that has none, then chased an invisible comma for eight replies.
+  const runtime = filename && LANGUAGES[filename.includes(".") ? filename.split(".").pop().toLowerCase() : ""]?.tutorNote;
+  if (runtime) parts.push(`How ${filename} runs in this app: ${runtime}`);
   // Labelled as what the learner actually saw — with a bare "Most recent run:"
   // header, a live test showed the model telling the learner "I can't see the
   // actual output" while the record was right there, then arguing about output

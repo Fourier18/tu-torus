@@ -124,7 +124,10 @@ wss.on("connection", (ws) => {
         onExit: async ({ ok, output, error, preExecution }) => {
           const record = await writeRunRecord({ filename, code, output, error });
           ws.send(JSON.stringify({ type: "run-recorded", ...record }));
-          ws.send(JSON.stringify({ type: "exit", ok, preExecution, error: preExecution ? error : undefined }));
+          // The app's own reasons for ending a run (time limit, output cap)
+          // are shown; a program's own error output already streamed as-is.
+          const reason = !preExecution && /^(Timed out|Stopped —|Compile timed out)/.test(error ?? "") ? error : undefined;
+          ws.send(JSON.stringify({ type: "exit", ok, preExecution, error: preExecution ? error : undefined, reason }));
           session = null;
         },
       });
