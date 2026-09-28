@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { isBrowserNative } from "./content-type";
+import useStickToBottom from "./useStickToBottom";
 
 // [DESIGN.md, Panel 2, R6] Behaves like a browser — no mode, no toggle.
 // Browser-native files (HTML/SVG) render directly, right here, the same as
@@ -35,6 +36,7 @@ export default function OutputCanvas({ file, running, setRunning, onRunRecorded 
   const stopping = useRef(false); // Stop pressed — the run ends without an error message
   const [pageKey, setPageKey] = useState(0); // bumped by Run on a web page to reload it
   const stdinRef = useRef(null);
+  const follow = useStickToBottom(`${lines.length}|${setupError ?? ""}|${crashed}`);
   useEffect(() => { if (running) stdinRef.current?.focus(); }, [running]); // once per run, so typing in the editor meanwhile isn't interrupted
   const nativePage = isBrowserNative(file.name);
 
@@ -124,7 +126,7 @@ export default function OutputCanvas({ file, running, setRunning, onRunRecorded 
 
   return (
     <div className="panel output-canvas">
-      <div className="output-scroll">
+      <div className="output-scroll" ref={follow.ref} onScroll={follow.onScroll}>
         <pre className="output-text">
           {lines}
           {crashed && <div className="output-error-line">Program stopped with an error</div>}

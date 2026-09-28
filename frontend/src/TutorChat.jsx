@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
 import { formatReply } from "./chat-format";
+import useStickToBottom from "./useStickToBottom";
 
 const HISTORY_KEEP = 6; // trimmed — last few turns only, not the full session
 // The server's own notices (rate limit, bad key, connection failures) arrive
@@ -15,6 +16,7 @@ export default function TutorChat({ lastRun, filename, code }) {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
+  const follow = useStickToBottom(messages);
   const lastSentCode = useRef(null); // lets the server tell the tutor whether the code changed since its last reply
 
   const send = async ({ trigger, question = null }) => {
@@ -72,7 +74,7 @@ export default function TutorChat({ lastRun, filename, code }) {
 
   return (
     <div className="panel tutor-chat">
-      <div className="chat-messages">
+      <div className="chat-messages" ref={follow.ref} onScroll={follow.onScroll}>
         {messages.map((m, i) => (
           <div key={i} className={`chat-msg chat-${m.role}`}>{m.text ? (m.role === "tutor" ? formatReply(m.text) : m.text) : (m.status && <em className="chat-status">{m.status}</em>)}</div>
         ))}
