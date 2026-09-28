@@ -4,6 +4,7 @@ import OutputCanvas from "./OutputCanvas";
 import TutorChat from "./TutorChat";
 import { monacoLanguage, languagesReady } from "./content-type";
 import Settings from "./Settings";
+import FileMenu from "./FileMenu";
 import { editorHintOptions, setLanguageDiagnostics, monacoTheme } from "./monaco-setup";
 import "./theme.css";
 import "./theme-dark.css";
@@ -84,12 +85,19 @@ export default function App() {
           onBlur={() => setNameInput(file.name)}
           title="File name — type another name and press Enter to open or start that file"
         />
+        <FileMenu current={file.name} onOpen={(name) => { setNameInput(name); loadFile(name).catch(() => setNameInput(file.name)); }} />
         {saveFailed && <span className="save-failed">not saved — check connection</span>}
+        <span style={{ flex: 1 }} />
         <Settings settings={settings} onChange={applySettings} />
       </header>
       <main className="app-panels">
         <Editor
           className="panel editor-panel"
+          // One editor document per file. Without it, switching between two
+          // files of the same language could leave the old file's text on
+          // screen while the app held the new file's (empty) contents — the
+          // next keystroke then saved the old text into the new file.
+          path={file.name}
           language={monacoLanguage(file.name)}
           value={file.code}
           onChange={onCodeChange}

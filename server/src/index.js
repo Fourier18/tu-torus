@@ -45,6 +45,15 @@ app.get("/api/file", async (req, res) => {
   }
 });
 
+// The learner's files, newest first, for the file menu. Only plain files
+// the file routes would accept (no folders, nothing starting with ".").
+app.get("/api/files", async (_req, res) => {
+  const { readdir, stat } = await import("node:fs/promises");
+  const names = (await readdir(PROJECT_DIR, { withFileTypes: true })).filter((e) => e.isFile() && safeFileName(e.name) === e.name).map((e) => e.name);
+  const files = await Promise.all(names.map(async (name) => ({ name, modified: (await stat(path.join(PROJECT_DIR, name))).mtimeMs })));
+  res.json(files.sort((a, b) => b.modified - a.modified));
+});
+
 // Single source of truth (languages.json) — the frontend has no hardcoded
 // copy of this table, so it can never drift from what runner.js actually uses.
 app.get("/api/languages", (_req, res) => res.json(LANGUAGES));

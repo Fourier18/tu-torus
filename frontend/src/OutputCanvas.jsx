@@ -105,7 +105,7 @@ export default function OutputCanvas({ file, running, setRunning, onRunRecorded 
         ref={stdinRef}
         onChange={(e) => setStdin(e.target.value)}
         onKeyDown={(e) => { if (e.key === "Enter") sendStdin(); if (e.key === "c" && e.ctrlKey && running) { e.preventDefault(); stop(); } }}
-        placeholder={running ? "Type input and press Enter" : "Input for your program goes here while it runs"}
+        placeholder={running ? "Type input and press Enter" : ""}
       />
       <button className="run-btn" onClick={() => (running ? stop() : nativePage ? setPageKey((k) => k + 1) : setRunning(true))} title={running ? "Stop the program (Ctrl+C in the input box)" : undefined}>
         {running ? "Stop" : "Run"}
