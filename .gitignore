@@ -5,6 +5,7 @@ dist/
 .env
 .devlog.md
 .testing-proposal.md
+.user-testing-log.md
 HANDOFF.md
 server/test/results/
 server/test/_notes-1.0.5.mjs
