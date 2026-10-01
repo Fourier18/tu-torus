@@ -12,7 +12,7 @@ Go, Java, C#, Rust and others run too once their official tools are installed, a
 
 ## To install it
 
-Download `Tu-Torus.Setup.1.6.0.exe` from [the latest release](https://github.com/Fourier18/tu-torus/releases/latest).
+Download `Tu-Torus.Setup.1.6.1.exe` from [the latest release](https://github.com/Fourier18/tu-torus/releases/latest).
 
 Your files are kept in `%APPDATA%\tu-torus\workspace` and stay there through updates. The ▾ beside the file name opens them and starts new ones in any language.
 
@@ -58,4 +58,4 @@ npm run setup
 npm run package
 ```
 
-Builds `dist/Tu-Torus Setup 1.6.0.exe`.
+Builds `dist/Tu-Torus Setup 1.6.1.exe`.
