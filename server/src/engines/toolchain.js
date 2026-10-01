@@ -112,13 +112,44 @@ function runStage({ command, args, cwd, env, onData, getWrite, onChild, timeoutM
   });
 }
 
-export async function runToolchain({ filename, code, config: rawConfig, onData, onExit }) {
+// The server folder: the runners and the packages they load. A restricted
+// run may read it, and nothing else outside its own throwaway folder.
+const SERVER_DIR = path.join(RUNNERS_DIR, "..", "..");
+
+// `restricted`: the tutor's private checks, which run the learner's file
+// without them pressing Run. Since 1.5.0 the tutor can check Python, JS, TS
+// and the other built-in languages that way, and JS/TS (and Python, through
+// Pyodide's `js` module) otherwise get full access to the computer — pasted
+// code could have read the API key, deleted files or started programs. Node's
+// permission system limits reading and writing to the run folder (plus the
+// server folder for reading), refuses child processes, workers, addons and
+// process.binding; no-network.cjs turns off the network; the environment is
+// cut to what Node needs, so no variables (keys, paths) leak in. The
+// learner's own Run is left as it is: running their program is their choice,
+// like running it in a terminal.
+export function restrictedArgs(dir) {
+  return ["--permission", `--allow-fs-read=${SERVER_DIR}`, `--allow-fs-read=${dir}`, `--allow-fs-write=${dir}`, "--allow-wasi", "--no-warnings",
+    "--require", path.join(RUNNERS_DIR, "no-network.cjs"), "--require", path.join(RUNNERS_DIR, "restricted-compat.cjs")];
+}
+export function restrictedEnv(dir) {
+  const env = { ELECTRON_RUN_AS_NODE: "1", TEMP: dir, TMP: dir };
+  for (const key of ["SystemRoot", "SYSTEMROOT", "windir"]) if (process.env[key]) env[key] = process.env[key];
+  return env;
+}
+
+export async function runToolchain({ filename, code, config: rawConfig, onData, onExit, restricted = false }) {
+  // Only languages that run on the app's own Node, in one stage, can be
+  // restricted this way; anything else is never run privately.
+  if (restricted && (!rawConfig.bundledNode || rawConfig.compile)) {
+    onExit({ ok: false, preExecution: true, error: "This language can't be checked privately." });
+    return { write: () => {}, kill: () => {} };
+  }
   // `bundledNode`: run on the Node that's already running this server —
   // Electron's own copy in the installed app (ELECTRON_RUN_AS_NODE makes
   // electron.exe behave as plain Node), real node in dev. So .js needs no
   // separate Node.js install.
   const config = rawConfig.bundledNode ? { ...rawConfig, command: process.execPath } : rawConfig;
-  const env = { ...process.env, ...(rawConfig.bundledNode ? { ELECTRON_RUN_AS_NODE: "1" } : {}), ...(rawConfig.env ?? {}) };
+  let env = { ...process.env, ...(rawConfig.bundledNode ? { ELECTRON_RUN_AS_NODE: "1" } : {}), ...(rawConfig.env ?? {}) };
 
   const ext = filename.split(".").pop();
   const what = config.installName || config.command;
@@ -139,11 +170,13 @@ export async function runToolchain({ filename, code, config: rawConfig, onData, 
   const classname = path.basename(filename, path.extname(filename));
   const vars = { file: filePath, out: outPath, dir, classname, runners: RUNNERS_DIR, tools: TOOLS_DIR, node: process.execPath, name: path.basename(filename) };
   await writeFile(filePath, code);
+  if (restricted) env = restrictedEnv(dir);
 
   // Lines typed before the program is running (while it compiles, or while
   // the compiler sets itself up) wait here instead of being dropped.
   let stdinWriter = null;
   const typedEarly = [];
+  let inputEnded = false; // end(): no more input after what's queued — the program reads end-of-input instead of waiting
   let killed = false; // Stop pressed: end the running stage (compile or program) and don't start another
   let current = null;
   const cleanup = () => rm(dir, { recursive: true, force: true }).catch(() => {});
@@ -163,7 +196,8 @@ export async function runToolchain({ filename, code, config: rawConfig, onData, 
     if (killed) { await cleanup(); onExit({ ok: false, error: "Stopped." }); return; }
 
     const execCommand = config.execCommand ? fill(config.execCommand, vars) : (config.exec ? fill(config.exec, vars) : config.command);
-    const execArgs = config.execArgs ? fill(config.execArgs, vars) : (config.exec ? [] : fill(config.args, vars));
+    let execArgs = config.execArgs ? fill(config.execArgs, vars) : (config.exec ? [] : fill(config.args, vars));
+    if (restricted) execArgs = [...restrictedArgs(dir), ...execArgs];
 
     const result = await runStage({
       command: execCommand,
@@ -172,7 +206,7 @@ export async function runToolchain({ filename, code, config: rawConfig, onData, 
       env,
       onData,
       onChild: (c) => { current = c; },
-      getWrite: (write) => { stdinWriter = write; for (const t of typedEarly.splice(0)) write(t); },
+      getWrite: (write) => { stdinWriter = write; for (const t of typedEarly.splice(0)) write(t); if (inputEnded) current?.stdin.end(); },
     });
 
     await cleanup();
@@ -181,6 +215,7 @@ export async function runToolchain({ filename, code, config: rawConfig, onData, 
 
   return {
     write: (text) => (stdinWriter ? stdinWriter(text) : typedEarly.push(text)),
+    end: () => { inputEnded = true; if (stdinWriter) current?.stdin.end(); },
     kill: () => { killed = true; if (current && current.exitCode === null) killTree(current); },
   };
 }

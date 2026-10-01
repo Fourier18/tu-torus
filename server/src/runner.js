@@ -71,3 +71,19 @@ export async function runOnce({ file, ext, code, onData, onExit }) {
 
   return runToolchain({ filename: file, code, config, onData, onExit });
 }
+
+// The tutor's private checks (tools/run-learner-code.js): the same languages,
+// but every program runs as a restricted subprocess (toolchain.js) — Python
+// included, through its own runner instead of the in-process worker the
+// learner's Run uses. JSON is only parsed, never run.
+const PYTHON_PRIVATE = { bundledNode: true, command: "node", args: ["--no-warnings", "{runners}/python-private.mjs", "{file}"] };
+export async function runPrivately({ file, ext, code, onData, onExit }) {
+  const config = LANGUAGES[ext]?.run;
+  if (config?.engine === "json") return runOnce({ file, ext, code, onData, onExit });
+  const privateConfig = config?.engine === "pyodide" ? PYTHON_PRIVATE : config;
+  if (!privateConfig || LANGUAGES[ext]?.setupOnFirstRun) {
+    onExit({ ok: false, preExecution: true, error: "This language can't be checked privately." });
+    return { write: () => {}, kill: () => {} };
+  }
+  return runToolchain({ filename: file, code, config: privateConfig, onData, onExit, restricted: true });
+}
