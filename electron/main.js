@@ -1,15 +1,46 @@
-const { app, BrowserWindow, shell } = require("electron");
+const { app, BrowserWindow, shell, dialog } = require("electron");
 const { spawn } = require("node:child_process");
 const path = require("node:path");
 const http = require("node:http");
+const net = require("node:net");
 const fs = require("node:fs");
+const { attachKeyring } = require("./keyring.cjs");
+
+// A separate data folder for test runs, so they never share the real one
+// (or its single-instance lock, which is tied to the data folder).
+if (process.env.TUTORUS_USER_DATA) app.setPath("userData", process.env.TUTORUS_USER_DATA);
+
+// One Tu-Torus at a time: opening it again brings the open window forward.
+// Two copies used to start two servers on one port — the second failed
+// with "The backend didn't start".
+if (!app.requestSingleInstanceLock()) {
+  app.quit();
+} else {
+  app.on("second-instance", () => {
+    const win = BrowserWindow.getAllWindows()[0];
+    if (win) { if (win.isMinimized()) win.restore(); win.focus(); }
+  });
+}
 
 let serverProcess;
-const PORT = 4310;
+const PREFERRED_PORT = 4310;
+let PORT = PREFERRED_PORT;
 // A packaged, double-clicked app has no visible console — `stdio: 'inherit'`
 // goes nowhere. Logging to a real file instead, so backend errors are
 // actually readable.
 const LOG_PATH = path.join(app.getPath("userData"), "backend.log");
+
+// 4310 unless another program already holds it — then any free port, so
+// the app still starts.
+function choosePort() {
+  const tryPort = (port) => new Promise((resolve) => {
+    const probe = net.createServer().once("error", () => resolve(null)).once("listening", () => {
+      const chosen = probe.address().port;
+      probe.close(() => resolve(chosen));
+    }).listen(port, "127.0.0.1");
+  });
+  return tryPort(PREFERRED_PORT).then((p) => p ?? tryPort(0));
+}
 
 // Backstop for build/installer.nsh: if 1.0.0-era files are still sitting
 // inside the app folder (e.g. the app was run from an unpacked build rather
@@ -38,15 +69,16 @@ function startServer() {
     // the per-user data folder, which installs and updates never touch —
     // not inside the install folder, where every reinstall wiped them.
     env: { ...process.env, ELECTRON_RUN_AS_NODE: "1", PORT: String(PORT), TUTORUS_DATA_DIR: app.getPath("userData") },
-    stdio: ["ignore", logFd, logFd],
+    stdio: ["ignore", logFd, logFd, "ipc"],
   });
+  attachKeyring(serverProcess); // encrypts and decrypts the API key for the server (keyring.cjs)
 }
 
 function waitForServer(timeoutMs = 20000) {
   const started = Date.now();
   return new Promise((resolve, reject) => {
     const attempt = () => {
-      http.get(`http://127.0.0.1:${PORT}/api/settings`, (res) => { res.resume(); resolve(); })
+      http.get(`http://127.0.0.1:${PORT}/api/about`, (res) => { res.resume(); resolve(); })
         .on("error", () => {
           if (Date.now() - started > timeoutMs) reject(new Error("Backend didn't come up in time."));
           else setTimeout(attempt, 300);
@@ -57,12 +89,13 @@ function waitForServer(timeoutMs = 20000) {
 }
 
 app.whenReady().then(async () => {
+  if (!app.hasSingleInstanceLock()) return;
+  PORT = await choosePort();
   startServer();
   try {
     await waitForServer();
   } catch (err) {
     // Real, honest failure — no silent hang, no fake success.
-    const { dialog } = require("electron");
     dialog.showErrorBox("Tu-Torus", `The backend didn't start: ${err.message}`);
     app.quit();
     return;

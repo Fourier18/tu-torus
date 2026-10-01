@@ -6,7 +6,7 @@ import path from "node:path";
 import { runOnce } from "./runner.js";
 import { writeRunRecord } from "./run-records.js";
 import { askTutor } from "./tutor.js";
-import { getSettings, setSetting } from "./settings.js";
+import { getPublicSettings, setSetting } from "./settings.js";
 import { getLearnerNotes, setLearnerNotes, getNotesHistory, NOTES_MAX } from "./learner-notes.js";
 import { WORKSPACE_DIR, APP_ROOT } from "./paths.js";
 import { LANGUAGES } from "./languages.js";
@@ -76,7 +76,9 @@ app.get("/api/licenses", async (_req, res) => {
   }
 });
 
-app.get("/api/settings", async (_req, res) => res.json(await getSettings()));
+// The page gets the settings without the API key (getPublicSettings: only
+// whether one is saved and its last four characters).
+app.get("/api/settings", async (_req, res) => res.json(await getPublicSettings()));
 app.post("/api/settings", async (req, res) => {
   const { key, value } = req.body;
   res.json(await setSetting(key, value));

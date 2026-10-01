@@ -19,7 +19,7 @@ export default function App() {
   const [running, setRunning] = useState(false);
   const [lastRun, setLastRun] = useState(null); // { pointer, ok }
   const [ready, setReady] = useState(false); // gates first render until the language table has loaded — isBrowserNative/monacoLanguage must never run against an empty table
-  const [settings, setSettings] = useState({ theme: "light", provider: { preset: "mistral", baseUrl: "", model: "", apiKey: "" } });
+  const [settings, setSettings] = useState({ theme: "light", provider: { preset: "mistral", baseUrl: "", model: "", apiKeySet: false } });
   const [saveFailed, setSaveFailed] = useState(false); // a silent autosave failure is worse than most errors here — the tutor reads from disk, so a save that never happened means it's coaching against code the learner already changed
   const saveTimer = useRef(null);
 

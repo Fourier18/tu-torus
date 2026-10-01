@@ -16,15 +16,10 @@ import { chat } from "../src/providers/openai-compatible.js";
 import { buildUserContent, buildSystemPrompt, tutorTools, updateNotesAfterReply } from "../src/tutor.js";
 import { runLearnerCode } from "../src/tools/run-learner-code.js";
 import { runOnce } from "../src/runner.js";
+import { loadProvider } from "./test-provider.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const SETTINGS_CANDIDATES = [
-  process.env.SETTINGS,
-  path.join(process.env.APPDATA ?? "", "tu-torus", "workspace", ".tutor", "settings.json"),
-].filter(Boolean);
-let provider;
-for (const p of SETTINGS_CANDIDATES) { try { provider = JSON.parse(await readFile(p, "utf-8")).provider; break; } catch { /* next */ } }
-if (!provider) throw new Error("no settings.json with a provider found");
+const provider = await loadProvider(); // test-provider.mjs (TUTOR_API_KEY when the app's key is encrypted)
 const tutorModel = process.env.MODEL || provider.model;
 const studentModel = process.env.STUDENT_MODEL || provider.model;
 const instructions = await readFile(path.join(__dirname, "..", "src", "tutor-instructions.md"), "utf-8");

@@ -11,10 +11,11 @@
 //        extracted with: git show 77ddd96:server/src/learner-notes.js)
 import { readFile } from "node:fs/promises";
 import path from "node:path";
+import { loadProvider } from "./test-provider.mjs";
 
 const OLD = process.env.NOTES_IMPL === "old";
 const impl = OLD ? await import("./_notes-1.0.5.mjs") : await import("../src/learner-notes.js");
-const provider = JSON.parse(await readFile(path.join(process.env.APPDATA ?? "", "tu-torus", "workspace", ".tutor", "settings.json"), "utf-8")).provider;
+const provider = await loadProvider(); // test-provider.mjs (TUTOR_API_KEY when the app's key is encrypted)
 const model = process.env.MODEL || provider.model;
 const WINDOW = 3;
 

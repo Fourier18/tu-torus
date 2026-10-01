@@ -20,7 +20,7 @@ const TIPS = {
   presets: "Ready-made entries for common services. Picking one fills in its web address; you add the model name and your key.",
   baseUrl: "The web address of the AI service's API. Filled in for you when you pick a provider.",
   model: "Which of that service's AI models the tutor uses, spelled exactly as the service lists it.",
-  apiKey: "Your password for the AI service. Stored only on this computer and sent only to that service.",
+  apiKey: "Your password for the AI service. Saved on this computer, encrypted with your Windows account, and sent only to that service.",
   notes: "Short notes the tutor keeps about how you're doing, used to pitch its explanations. You can edit, pin or clear them.",
 };
 
@@ -122,15 +122,25 @@ function presetOf(provider) {
   return PRESETS[provider?.preset] ? provider.preset : "custom";
 }
 
+function keyHintFor(preset) {
+  return PRESETS[preset]?.keyUrl ? "paste your key" : "usually none for a local server";
+}
+
 export default function Settings({ settings, onChange }) {
   const [open, setOpen] = useState(false);
   const [showProviders, setShowProviders] = useState(false);
   const initial = settings.provider || {};
+  // The page never holds the saved key (the server sends only whether one is
+  // saved and its last four characters). `apiKey` is only what's typed here;
+  // `keyAction` says what Save does with the saved one: keep it, replace it
+  // with the typed key, or clear it (switching provider — a key belongs to one
+  // service, and sending it to another would leak it).
   const [form, setForm] = useState({
     preset: presetOf(initial),
     baseUrl: initial.baseUrl ?? PRESETS[presetOf(initial)].baseUrl,
     model: initial.model ?? "",
-    apiKey: initial.apiKey ?? "",
+    apiKey: "",
+    keyAction: "keep",
   });
   const [saved, setSaved] = useState(true);
 
@@ -148,7 +158,7 @@ export default function Settings({ settings, onChange }) {
 
   const pickPreset = (preset) => {
     const p = PRESETS[preset];
-    setForm({ preset, baseUrl: p.baseUrl, model: "", apiKey: "" }); // a key is provider-specific — carrying one over would silently send it to the wrong service; model is left blank on purpose, see PRESETS comment
+    setForm({ preset, baseUrl: p.baseUrl, model: "", apiKey: "", keyAction: "clear" }); // a key is provider-specific — carrying one over would silently send it to the wrong service; model is left blank on purpose, see PRESETS comment
     setSaved(false);
   };
 
@@ -157,18 +167,34 @@ export default function Settings({ settings, onChange }) {
     setSaved(false);
   };
 
+  // Typing a key replaces the saved one; emptying the box again keeps it
+  // (unless the provider was just switched, which clears it).
+  const updateKey = (value) => {
+    setForm((f) => ({ ...f, apiKey: value, keyAction: value ? "replace" : f.keyAction === "clear" ? "clear" : "keep" }));
+    setSaved(false);
+  };
+
   const saveProvider = () => {
-    const previous = settings;
-    onChange({ ...settings, provider: form });
+    const value = { preset: form.preset, baseUrl: form.baseUrl, model: form.model };
+    if (form.keyAction === "replace") value.apiKey = form.apiKey;
+    if (form.keyAction === "clear") value.apiKey = "";
     setSaved(true);
     fetch("/api/settings", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ key: "provider", value: form }),
+      body: JSON.stringify({ key: "provider", value }),
     })
-      .then((r) => { if (!r.ok) throw new Error(); })
-      .catch(() => { onChange(previous); setSaved(false); });
+      .then((r) => { if (!r.ok) throw new Error(); return r.json(); })
+      .then((next) => { onChange(next); setForm((f) => ({ ...f, apiKey: "", keyAction: "keep" })); })
+      .catch(() => setSaved(false));
   };
+
+  const savedKey = settings.provider || {};
+  const keyPlaceholder = form.keyAction === "keep" && savedKey.apiKeyUnreadable
+    ? "the saved key can't be read on this computer — paste it again"
+    : form.keyAction === "keep" && savedKey.apiKeySet
+      ? `saved — ends in ${savedKey.apiKeyLast4}; type to replace it`
+      : keyHintFor(form.preset);
 
   const preset = PRESETS[form.preset];
 
@@ -275,9 +301,10 @@ export default function Settings({ settings, onChange }) {
             <Tip text={TIPS.apiKey}>API key</Tip>
             <input
               value={form.apiKey}
-              onChange={(e) => updateField("apiKey", e.target.value)}
+              onChange={(e) => updateKey(e.target.value)}
               type="password"
-              placeholder={preset.keyUrl ? "paste your key" : "usually none for a local server"}
+              autoComplete="off"
+              placeholder={keyPlaceholder}
             />
           </label>
           {preset.keyUrl && (
@@ -290,7 +317,7 @@ export default function Settings({ settings, onChange }) {
             Free tiers from Mistral and Gemini may use your prompts for training data. A paid key generally avoids this.
           </div>
           <div className="settings-hint">
-            Your API key is saved only on this machine — never sent anywhere but the provider you picked.
+            Your API key is saved on this computer, encrypted with your Windows account, and sent only to the provider you picked.
           </div>
 
           <button onClick={saveProvider} disabled={saved || !form.baseUrl || !form.model}>

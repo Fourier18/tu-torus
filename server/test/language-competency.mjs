@@ -18,10 +18,10 @@ import { chat } from "../src/providers/openai-compatible.js";
 import { buildUserContent, buildSystemPrompt } from "../src/tutor.js";
 import { runOnce } from "../src/runner.js";
 import { LANGUAGES } from "../src/languages.js";
+import { loadProvider } from "./test-provider.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const settingsPath = process.env.SETTINGS || path.join(process.env.APPDATA ?? "", "tu-torus", "workspace", ".tutor", "settings.json");
-const { provider } = JSON.parse(await readFile(settingsPath, "utf-8"));
+const provider = await loadProvider(); // test-provider.mjs (TUTOR_API_KEY when the app's key is encrypted)
 const model = process.env.MODEL || provider.model;
 const instructions = await readFile(path.join(__dirname, "..", "src", "tutor-instructions.md"), "utf-8");
 const label = process.argv[2] || "run";

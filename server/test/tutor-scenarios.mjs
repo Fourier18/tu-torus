@@ -16,19 +16,10 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { chat } from "../src/providers/openai-compatible.js";
 import { buildUserContent, buildSystemPrompt, tutorTools, updateNotesAfterReply } from "../src/tutor.js";
+import { loadProvider } from "./test-provider.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-// The installed app keeps its settings in its per-user data folder; builds
-// before 2026-09-26 kept them inside the install folder.
-const SETTINGS_CANDIDATES = [
-  process.env.SETTINGS,
-  path.join(process.env.APPDATA ?? "", "tu-torus", "workspace", ".tutor", "settings.json"),
-  path.join(process.env.LOCALAPPDATA ?? "", "Programs", "tu-torus", "resources", "app", "workspace", ".tutor", "settings.json"),
-].filter(Boolean);
-let settingsText;
-for (const p of SETTINGS_CANDIDATES) { try { settingsText = await readFile(p, "utf-8"); break; } catch { /* try the next */ } }
-if (!settingsText) throw new Error(`No settings.json found in: ${SETTINGS_CANDIDATES.join(", ")}`);
-const { provider } = JSON.parse(settingsText);
+const provider = await loadProvider(); // test-provider.mjs (TUTOR_API_KEY when the app's key is encrypted)
 const model = process.env.MODEL || provider.model;
 const instructions = await readFile(process.env.INSTRUCTIONS || path.join(__dirname, "..", "src", "tutor-instructions.md"), "utf-8");
 
