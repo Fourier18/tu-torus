@@ -68,6 +68,35 @@ function LearnerNotes() {
   );
 }
 
+// The version, and every license the app ships under (its own and the
+// third-party notices), readable inside the app.
+function About() {
+  const [version, setVersion] = useState("");
+  const [licenses, setLicenses] = useState(null);
+  useEffect(() => {
+    fetch("/api/about").then((r) => r.json()).then((d) => setVersion(d.version)).catch(() => {});
+  }, []);
+  const show = () => fetch("/api/licenses").then((r) => r.text()).then(setLicenses).catch(() => setLicenses("Couldn't reach the app's server to load the licenses."));
+  return (
+    <div>
+      <div style={{ fontSize: "13px", color: "var(--text-dim)", marginBottom: "6px" }}>About</div>
+      <div className="settings-hint">Tu-Torus {version}</div>
+      <button className="settings-secondary" onClick={show}>Licenses</button>
+      {licenses !== null && (
+        <div className="licenses-overlay" role="dialog" aria-modal="true" aria-label="Licenses" onKeyDown={(e) => e.key === "Escape" && setLicenses(null)} onClick={(e) => e.target === e.currentTarget && setLicenses(null)}>
+          <div className="licenses-box">
+            <div className="licenses-head">
+              <span>Licenses</span>
+              <button className="settings-secondary" onClick={() => setLicenses(null)} autoFocus>Close</button>
+            </div>
+            <pre className="licenses-text" tabIndex={0}>{licenses}</pre>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // Deliberately no hardcoded `model` values here. A specific model ID
 // (e.g. a frozen Groq snapshot name) goes stale the moment that provider
 // retires it — this app would keep silently offering a dead default with
@@ -270,6 +299,9 @@ export default function Settings({ settings, onChange }) {
 
           <div className="settings-divider" />
           <LearnerNotes />
+
+          <div className="settings-divider" />
+          <About />
         </div>
       )}
     </div>

@@ -9,12 +9,13 @@
     "setup": "npm --prefix server install && npm --prefix frontend install",
     "build:frontend": "npm --prefix frontend run build",
     "electron": "npm run build:frontend && electron .",
-    "package": "npm run build:frontend && npm run copy-ts-types && electron-builder",
-    "copy-ts-types": "node scripts/copy-ts-types.cjs"
+    "package": "npm run build:frontend && npm run copy-ts-types && npm run notices && electron-builder",
+    "copy-ts-types": "node scripts/copy-ts-types.cjs",
+    "notices": "node scripts/third-party-notices.cjs"
   },
   "keywords": [],
   "author": "",
-  "license": "ISC",
+  "license": "SEE LICENSE IN LICENSE",
   "type": "commonjs",
   "devDependencies": {
     "concurrently": "^10.0.5",
@@ -28,6 +29,8 @@
       "electron/**/*",
       "server/**/*",
       "frontend/dist/**/*",
+      "THIRD_PARTY_NOTICES.txt",
+      "LICENSE",
       "!server/node_modules/pyodide/**/*.wasm.map",
       "!**/*.test.mjs",
       "!server/test/**/*",

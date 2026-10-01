@@ -63,6 +63,19 @@ app.get("/api/languages", (_req, res) => res.json(LANGUAGES));
 app.get("/api/learner-notes", async (_req, res) => res.json({ notes: await getLearnerNotes(), max: NOTES_MAX, history: await getNotesHistory(20) }));
 app.post("/api/learner-notes", async (req, res) => res.json({ notes: await setLearnerNotes(req.body?.notes ?? "") }));
 
+// Settings → About: the version, and the licenses (the app's own LICENSE and
+// THIRD_PARTY_NOTICES.txt, both shipped in the app folder).
+const APP_VERSION = JSON.parse(await readFile(path.join(APP_ROOT, "package.json"), "utf-8")).version;
+app.get("/api/about", (_req, res) => res.json({ version: APP_VERSION }));
+app.get("/api/licenses", async (_req, res) => {
+  try {
+    const [own, notices] = await Promise.all(["LICENSE", "THIRD_PARTY_NOTICES.txt"].map((f) => readFile(path.join(APP_ROOT, f), "utf-8")));
+    res.type("text/plain").send(`${own.trim()}\n\n\n${notices}`);
+  } catch {
+    res.status(404).type("text/plain").send("The license files aren't in this copy of Tu-Torus. They're at https://github.com/Fourier18/tu-torus (LICENSE and THIRD_PARTY_NOTICES.txt).");
+  }
+});
+
 app.get("/api/settings", async (_req, res) => res.json(await getSettings()));
 app.post("/api/settings", async (req, res) => {
   const { key, value } = req.body;

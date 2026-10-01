@@ -59,3 +59,7 @@ npm run package
 ```
 
 Builds `dist/Tu-Torus Setup 1.6.1.exe`.
+
+## License
+
+Tu-Torus © 2026 Joshua. You may download, install and use the published releases; the terms are in [LICENSE](LICENSE). The language engines and other components inside it are under their own licenses, listed in [THIRD_PARTY_NOTICES.txt](THIRD_PARTY_NOTICES.txt) and in Settings → About → Licenses.
