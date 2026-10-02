@@ -6,6 +6,8 @@
 // for real interactive stdin in a WASM/worker setup, not a workaround.
 import { parentPort, workerData } from "node:worker_threads";
 import { loadPyodide } from "pyodide";
+import { createRequire } from "node:module";
+import path from "node:path";
 
 const sab = workerData.sab; // Int32Array view: [0]=signal (0=waiting,1=answered), [1]=answer byte length, [2..]=UTF-8 bytes
 const sync = new Int32Array(sab, 0, 2);
@@ -51,7 +53,11 @@ function rawStream(stream) {
   };
 }
 
-const pyodide = await loadPyodide();
+// Pyodide finds its own files by reading a stack trace, which breaks when
+// the install path has brackets in it (a Windows username like "Jo (Work)"
+// — it looked for "Jo Work"); told where they are, it doesn't guess.
+const indexURL = path.dirname(createRequire(import.meta.url).resolve("pyodide")) + path.sep;
+const pyodide = await loadPyodide({ indexURL });
 // isatty: true — CPython's input() only force-flushes its prompt before
 // reading when stdout looks like a real terminal; otherwise C stdio treats
 // it as fully-buffered and holds the prompt back. This is the actual fix

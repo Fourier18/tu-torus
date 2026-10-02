@@ -7,12 +7,16 @@
 // usage: node python-private.mjs <file.py>
 import { readFileSync, writeSync } from "node:fs";
 import { createRequire } from "node:module";
+import path from "node:path";
 import { loadPyodide } from "pyodide";
 
 const { readLine } = createRequire(import.meta.url)("./stdin-sync.cjs");
 const code = readFileSync(process.argv[2], "utf8");
 
-const pyodide = await loadPyodide();
+// Told where its files are (see python-worker.js: brackets in the install
+// path broke Pyodide's own guess).
+const indexURL = path.dirname(createRequire(import.meta.url).resolve("pyodide")) + path.sep;
+const pyodide = await loadPyodide({ indexURL });
 // isatty: CPython only flushes input()'s prompt before reading when stdout
 // looks like a terminal (same reason as python-worker.js).
 pyodide.setStdout({ write: (buf) => writeSync(1, buf), isatty: true });
