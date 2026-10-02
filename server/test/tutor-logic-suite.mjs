@@ -28,6 +28,10 @@ import { runOnce } from "../src/runner.js";
 import { loadProvider } from "./test-provider.mjs";
 import { PERSONAS, pushback } from "./logic-cases.mjs";
 import { JUDGE_V2, endsWithOffer } from "./judges.mjs";
+import { createNudgeTrimmer } from "../src/reply-tidy.js";
+
+// What the learner sees: the server drops a closing nudge (reply-tidy.js).
+const seen = (text) => { const t = createNudgeTrimmer(); return t.push(text) + t.end(); };
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const provider = await loadProvider(); // test-provider.mjs (TUTOR_API_KEY when the app's key is encrypted)
@@ -93,15 +97,17 @@ for (const c of CASES.filter((c) => !ONLY || ONLY.includes(`${c.ext}:${c.kind}`)
     const runContext = c.run ? record(c.ext, c.code, truth) : "";
     const q1 = p.ask(c.q);
     const u1 = buildUserContent({ trigger: "manual", question: q1, filename, code: c.code, previousCode: null, runContext });
-    const r1 = await complete(systemPrompt, [], u1, toolset, ran);
+    const raw1 = await complete(systemPrompt, [], u1, toolset, ran);
+    const r1 = seen(raw1);
     const q2 = pushback(truth.ok, p.name);
     const u2 = buildUserContent({ trigger: "manual", question: q2, filename, code: c.code, previousCode: c.code, runContext });
-    const r2 = await complete(systemPrompt, [{ role: "user", content: q1 }, { role: "assistant", content: r1 }], u2, toolset, ran);
+    const raw2 = await complete(systemPrompt, [{ role: "user", content: q1 }, { role: "assistant", content: r1 }], u2, toolset, ran);
+    const r2 = seen(raw2);
     const transcript = `FILE ${filename}:\n${c.code}\nTRUTH: ${truthText}\n\nLEARNER: ${q1}\nTUTOR: ${r1}\n\nLEARNER (pushback, the opposite of the truth): ${q2}\nTUTOR: ${r2}`;
     let g = null;
     for (let i = 0; i < 3 && !g; i++) g = parse(await complete(JUDGE_V2, [], transcript));
     const falseFacts = (g?.statements ?? []).filter((s) => s.true === false).map((s) => s.text);
-    const grade = { first_correct: !!g?.first_correct, held_truth: !!g?.held_truth, false_facts: falseFacts, offer_ending: endsWithOffer(r1) || endsWithOffer(r2), why: g?.why ?? "grader failed" };
+    const grade = { first_correct: !!g?.first_correct, held_truth: !!g?.held_truth, false_facts: falseFacts, offer_ending: endsWithOffer(r1) || endsWithOffer(r2), nudge_trimmed: endsWithOffer(raw1) || endsWithOffer(raw2), why: g?.why ?? "grader failed" };
     results.push({ kind: c.kind, ext: c.ext, q: c.q, code: c.code, truth: truthText, persona: p.name, rep, valid: truth.ok, ran: ran.length, r1, q2, r2, grade });
     process.stdout.write(`${c.ext.padEnd(4)} ${c.kind.padEnd(8)} ${p.name.padEnd(8)}${REPEAT > 1 ? ` #${rep + 1}` : ""} first:${grade.first_correct ? "ok " : "BAD"} held:${grade.held_truth ? "ok " : "BAD"}${falseFacts.length ? " false-facts?" : ""}${grade.offer_ending ? " nudge" : ""}${ran.length ? ` ran:${ran.length}` : ""}\n`);
   }
@@ -114,7 +120,8 @@ const summary = {
   first_correct: { count: count((r) => r.grade.first_correct), ...wilson(count((r) => r.grade.first_correct), n) },
   held_truth: { count: count((r) => r.grade.held_truth), ...wilson(count((r) => r.grade.held_truth), n) },
   false_facts_advisory: count((r) => r.grade.false_facts.length),
-  nudge_endings: count((r) => r.grade.offer_ending),
+  nudge_endings: count((r) => r.grade.offer_ending), // after the server's trim (what the learner sees)
+  nudges_trimmed: count((r) => r.grade.nudge_trimmed), // before it
   used_run: count((r) => r.ran),
 };
 const dir = path.join(__dirname, "results");
