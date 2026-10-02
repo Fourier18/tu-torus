@@ -15,7 +15,7 @@ import { readFile, writeFile, mkdir } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { chat } from "../src/providers/openai-compatible.js";
-import { buildUserContent, buildSystemPrompt, tutorTools, updateNotesAfterReply } from "../src/tutor.js";
+import { buildUserContent, buildSystemPrompt, tutorTools, updateNotesAfterReply, runIsCurrent } from "../src/tutor.js";
 import { loadProvider } from "./test-provider.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -654,9 +654,9 @@ function memoryNotes(initial = "") {
   return { get: async () => notes, set: async (t) => (notes = String(t ?? "").trim().slice(0, 1200)) };
 }
 
-async function ask(messages, content, code, filename, notesStore, turn) {
+async function ask(messages, content, code, filename, notesStore, turn, runAttached = false) {
   const store = process.env.NOTES === "off" ? undefined : notesStore;
-  const tools = process.env.TOOLS === "off" ? {} : tutorTools({ filename, code });
+  const tools = process.env.TOOLS === "off" ? {} : tutorTools({ filename, code, runAttached });
   const systemPrompt = buildSystemPrompt(instructions, { ...tools, notes: store ? await store.get() : undefined });
   for (let attempt = 0; attempt < 6; attempt++) {
     let text = "";
@@ -728,7 +728,7 @@ async function runScenario(s) {
       const history = display.slice(-HISTORY_KEEP);
       const filename = s.filename ?? "main.py";
       const content = buildUserContent({ trigger: t.check ? "check" : "manual", question: t.say, filename, code, previousCode, runContext: sess.run ?? s.run });
-      const { text: reply, runs } = await ask(history, content, code, filename, notesStore, t);
+      const { text: reply, runs } = await ask(history, content, code, filename, notesStore, t, runIsCurrent(sess.run ?? s.run, code));
       previousCode = code;
       const earlier = display.filter((m) => m.role === "assistant").map((m) => m.content);
       beginner ||= SAID_NEW.test(t.say ?? "");

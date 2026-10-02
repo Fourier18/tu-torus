@@ -54,6 +54,14 @@ function clip(text, limit, what) {
   return `${text.slice(0, half)}\n...[${text.length - limit} characters of this ${what} left out here]...\n${text.slice(-half)}`;
 }
 
+// Whether an attached run record is a run of this exact code.
+export function runIsCurrent(runContext, code) {
+  if (!runContext) return false;
+  const ranCode = runContext.match(/## Code as run\n```\n([\s\S]*?)\n```/)?.[1];
+  const same = (s) => s.replace(/\r\n/g, "\n").trimEnd(); // Windows vs Unix line endings aren't an edit
+  return !(ranCode != null && code != null && same(ranCode) !== same(code));
+}
+
 export function buildUserContent({ trigger, question, filename, code, previousCode, runContext }) {
   const parts = [];
   const lead = question || TRIGGER_PROMPTS[trigger];
@@ -75,23 +83,23 @@ export function buildUserContent({ trigger, question, filename, code, previousCo
     // frames before the one that points at the learner's code — noise that
     // buries the actual error line. Keep only the learner's frames.
     runContext = runContext.replace(/Traceback \(most recent call last\):\n[\s\S]*?(?=  File "<exec>")/g, "Traceback (most recent call last):\n");
-    const ranCode = runContext.match(/## Code as run\n```\n([\s\S]*?)\n```/)?.[1];
-    const same = (s) => s.replace(/\r\n/g, "\n").trimEnd(); // Windows vs Unix line endings aren't an edit
-    const stale = ranCode != null && code != null && same(ranCode) !== same(code);
     // A run of older code is left out, not just flagged: a live session had
     // the learner delete their print(a)/print(b) lines, and the tutor — with
     // the old run attached and labelled "earlier version" — still told them
     // to delete print(a) and print(b), reading the old code and output as now.
-    if (stale) parts.push("They ran an earlier version of this code; they've edited it since, so that run is left out — it no longer shows what this code does. Go by the code above only.");
+    if (!runIsCurrent(runContext, code)) parts.push("They ran an earlier version of this code; they've edited it since, so that run is left out — it no longer shows what this code does. Go by the code above only.");
     else parts.push(`Their most recent run, attached automatically by the app (the learner didn't paste it) — the Output section is exactly what appeared on their screen, including what they typed at input() prompts.\n${clip(runContext, RUN_LIMIT, "run record")}`);
   }
   return parts.join("\n\n") || "Can you check my code?";
 }
 
-// Each tool's guidance is added to the instructions only when that tool is
-// actually offered — with the run tool described unconditionally, a test run
-// without it had the tutor claim "I ran it privately to check" when it
-// couldn't have.
+// The run tool's guidance travels with the tool (tutorTools below), and the
+// provider adds it only to requests that actually carry the tool — with the
+// tool described but not offered, the tutor claims "I ran it privately to
+// check" when it couldn't have. Answers made without it get NO_RUN_NOTE.
+const NO_RUN_NOTE = `
+
+You can't run their code for this reply: don't say you ran, tried or tested it — go by the code and any run attached.`;
 const RUN_TOOL_NOTE = `
 
 You have a tool, run_learner_code, that runs their file privately exactly as it is, with inputs you choose; they never see these runs. Use it to check before you claim what the code does or prints — especially with no run attached, or for an input you're about to talk about. Use it too before you say whether something is allowed in the language (a comma, parentheses, a semicolon, indentation) and whenever the learner disputes what you said: the result is the truth, whatever they or you believed. If the run backs you, keep your answer and say it ran; don't switch sides because they sound sure, and don't open with "You're right" or "my mistake" when they aren't. Say you ran it only if you called the tool while writing this reply — results from earlier replies aren't in front of you, so run it again rather than recalling it. Report only the output or error the run actually gave you; never write an error message you didn't get. It runs only their file as it is: never say you ran other code (a version check, a test line) — suggest they add it and press Run instead. A run that gives no error doesn't always mean the line does what they think (a misspelled keyword can be read as something else and silently do nothing) — say what it actually does. Mention a run only when it helps ("I tried 30 and 25 and got \`5.0\`", "I ran it — it works as written").`;
@@ -100,12 +108,13 @@ You have a tool, run_learner_code, that runs their file privately exactly as it 
 // here they're only read, so the tutor starts every message knowing who it's
 // talking to.
 export function buildSystemPrompt(instructions, { tools, notes } = {}) {
-  const names = new Set((tools ?? []).map((t) => t.function.name));
   let prompt = instructions;
   if (notes != null) {
     prompt += `\n\nYour notes about this learner from earlier sessions — use them to pitch your replies; if the conversation in front of you contradicts them, the conversation wins. Don't bring them up unless asked. If they ask what you remember, or whether anything about them is saved, be straight: you keep these short notes on how they're doing, stored on their computer, and they can read, edit or clear them in Settings (beyond that, you don't know how the app stores things):\n${notes || "(none yet)"}`;
   }
-  if (names.has("run_learner_code")) prompt += RUN_TOOL_NOTE;
+  // With the tool, the provider adds its note (or NO_RUN_NOTE, if it ends up
+  // answering without the tool); without it, the tutor can't run anything.
+  if (!tools?.length) prompt += NO_RUN_NOTE;
   return prompt;
 }
 
@@ -120,7 +129,36 @@ export function canRunPrivately(filename) {
   return Boolean(l?.run && !l.setupOnFirstRun && (l.run.engine === "pyodide" || l.run.engine === "json" || l.run.bundledNode));
 }
 
-export function tutorTools({ filename, code }) {
+// A finished answer is checked before it's shown (chat()'s `review`), for
+// claims the tool use doesn't back. From the suites (2026-10-01): "I ran
+// your code" with no run in 27 of 116 held-out conversations; "I changed …
+// and ran it again" (the tool can't change code); "your code will crash
+// with a syntax error" and "that comma isn't allowed" with no run attached
+// and none made — both wrong.
+//   "I ran your code", "I've tested it", "I tried 30"
+const RAN_CLAIM = /\b(?:I (?:just |also |actually )?(?:ran|tested|executed|tried(?! to\b))|I(?:'ve| have) (?:just |also |actually )?(?:run|tested|executed|tried(?! to\b)))\b(?! into\b)/i;
+//   "I changed … to … and ran it", "when I fixed it, it printed"
+const CHANGED_RUN = /\bI (?:changed|modified|edited|fixed|replaced|swapped|added|removed|tweaked|corrected|updated)\b.*\b(?:ran|run|printed|prints|worked|works|gave|gives|got|showed|output)\b/i;
+//   what the code does, or whether something in it is allowed
+const BEHAVIOUR_CLAIM = /\b(?:syntax ?error|will (?:crash|fail|error|print|show|output|run)\b|won't (?:run|work)\b|(?:throws|raises|gives|causes|shows|get|see) an? (?:\w+ )?error|runs? (?:fine|without (?:an? )?errors?|with no errors?|as written)|works? as written|(?:it|this|your (?:code|program|file)) (?:prints|outputs|shows|displays) `|(?:is|are|isn't|aren't)(?: not)? (?:allowed|valid|invalid|required|optional)\b|not allowed\b|(?:don't|do not|doesn't|does not) need\b)/i;
+const CHANGED_RUN_NOTE = "\n\nYour run tool runs only their file as it is: never say you changed their code or ran a changed version — say what the change would do.";
+// Sentences without code blocks or emphasis marks ("I **ran** it" slipped
+// past a check that kept them), and without "if I…" hypotheticals.
+const sentencesOf = (text) => String(text ?? "").replace(/```[\s\S]*?```/g, " ").replace(/[*_]+/g, "").split(/(?<=[.!?])\s+|\n+/).filter((s) => s.trim() && !/\bif I\b/i.test(s));
+
+// `runAttached`: a run of this exact code is in the message.
+export function answerReview({ code, runAttached = false }) {
+  const empty = !String(code ?? "").trim();
+  return (text, { ran }) => {
+    const sentences = sentencesOf(text);
+    if (!ran && sentences.some((s) => RAN_CLAIM.test(s))) return "run";
+    if (sentences.some((s) => CHANGED_RUN.test(s))) return CHANGED_RUN_NOTE;
+    if (!ran && !runAttached && !empty && sentences.some((s) => BEHAVIOUR_CLAIM.test(s))) return "run";
+    return null;
+  };
+}
+
+export function tutorTools({ filename, code, runAttached = false }) {
   if (code == null || !canRunPrivately(filename)) return {};
   const py = filename.toLowerCase().endsWith(".py");
   const tools = [{
@@ -137,6 +175,9 @@ export function tutorTools({ filename, code }) {
   }];
   return {
     tools,
+    toolNote: RUN_TOOL_NOTE,
+    noToolNote: NO_RUN_NOTE,
+    review: answerReview({ code, runAttached }),
     runTool: async (name, args) => {
       if (name !== "run_learner_code") return { error: `No tool named ${name}.` };
       const inputs = Array.isArray(args.inputs) ? args.inputs.map(String).slice(0, 20) : [];
@@ -173,7 +214,7 @@ export async function* askTutor({ trigger, question, filename, code, previousCod
 
   const userContent = buildUserContent({ trigger, question, filename, code, previousCode, runContext });
 
-  const toolset = tutorTools({ filename, code });
+  const toolset = tutorTools({ filename, code, runAttached: runIsCurrent(runContext, code) });
   let reply = "";
   let notice = false;
   for await (const event of chat({

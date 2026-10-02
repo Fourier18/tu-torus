@@ -13,7 +13,7 @@ import { WORKSPACE_DIR, APP_ROOT } from "./paths.js";
 import { LANGUAGES } from "./languages.js";
 import { isAllowedRequest, safeFileName } from "./security.js";
 import { checkForUpdate } from "./updates.js";
-import { createNudgeTrimmer } from "./reply-tidy.js";
+import { createReplyTidier } from "./reply-tidy.js";
 
 const PROJECT_DIR = WORKSPACE_DIR;
 
@@ -128,10 +128,11 @@ app.post("/api/tutor", async (req, res) => {
   res.setHeader("Content-Type", "text/event-stream");
   res.setHeader("Cache-Control", "no-cache");
 
-  // A closing nudge ("Try that.") is dropped from the end of the reply
-  // (reply-tidy.js); the app's own notices go out as they are.
+  // A closing nudge ("Try that.") and a concession opener ("You're right —")
+  // are dropped from the reply (reply-tidy.js); the app's own notices go out
+  // as they are.
   const send = (value) => value && res.write(`data: ${JSON.stringify({ type: "text", value })}\n\n`);
-  const trimmer = createNudgeTrimmer();
+  const trimmer = createReplyTidier();
   try {
     for await (const event of askTutor({ trigger, question, filename, code, previousCode, lastRunPointer, history, projectDir: PROJECT_DIR })) {
       if (event.type === "text") send(event.notice ? trimmer.end() + event.text : trimmer.push(event.text));

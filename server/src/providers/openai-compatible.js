@@ -48,36 +48,72 @@ function refusal(res, bodyText, { model, providerLabel }) {
 // the model only asks) before answering; capped at MAX_TOOL_ROUNDS so it can't
 // spin. These rounds aren't streamed. If the provider or model rejects tools,
 // this falls back to a plain answer so a tool-less model still works.
-export async function* chat({ tools, runTool, ...rawOpts }) {
+//
+// `toolNote` (how to use the tools) goes into the system prompt only on
+// requests that carry the tools; an answer made without them gets
+// `noToolNote` instead. The fallback used to keep the tool's description
+// while dropping the tool, and then the tutor claimed runs it never made:
+// 12 of 12 pushback replies in a test (2026-10-01), against 0 of 12 with
+// the no-tool note. A {type:"fallback"} event marks those answers.
+//
+// `review(text, { ran })` looks at a finished answer before it's shown:
+//   "run"    — it needs a tool run behind it and none happened in this
+//              reply (models claim "I ran your code" with the tool right
+//              there, uncalled — 3 of 12 pushback replies in the same
+//              test): asked again with a tool call required, so a real run
+//              backs it (the model picks the inputs)
+//   a string — it claims something no run can back: asked again once with
+//              that string added to the system prompt
+// Each kind of second chance is given once; if the answer still doesn't
+// pass, it's made without the tool instead.
+export async function* chat({ tools, runTool, toolNote = "", noToolNote = "", review, ...rawOpts }) {
   // An empty turn in history (a reply that never arrived) makes Mistral
   // reject every later request with 400 — seen in a simulated session, where
   // one empty reply turned the rest of the conversation into errors.
   const opts = { ...rawOpts, history: (rawOpts.history ?? []).filter((m) => typeof m.content === "string" && m.content.trim()) };
   if (!tools?.length) return yield* streamChat(opts);
 
-  const { systemPrompt, history = [], userContent, baseUrl, apiKey, model } = opts;
-  const messages = [{ role: "system", content: systemPrompt }, ...history, { role: "user", content: userContent }];
+  const { systemPrompt, history = [], userContent, baseUrl, apiKey, model, providerLabel } = opts;
+  const messages = [{ role: "system", content: systemPrompt + toolNote }, ...history, { role: "user", content: userContent }];
+  const plain = { ...opts, systemPrompt: systemPrompt + noToolNote };
+  let ran = false; // a tool ran during this reply
+  let requireRun = false, required = false, askedAgain = false;
 
   for (let round = 0; ; round++) {
     const lastRound = round >= MAX_TOOL_ROUNDS;
+    const toolChoice = requireRun ? "required" : lastRound ? "none" : "auto";
+    requireRun = false;
     let res;
     let data;
     try {
       res = await fetch(`${baseUrl.replace(/\/$/, "")}/chat/completions`, {
         method: "POST",
         headers: { "Content-Type": "application/json", ...(apiKey ? { Authorization: `Bearer ${apiKey}` } : {}) },
-        body: JSON.stringify({ model, messages, tools, tool_choice: lastRound ? "none" : "auto", temperature: 0.3 }),
+        body: JSON.stringify({ model, messages, tools, tool_choice: toolChoice, temperature: 0.3 }),
         signal: AbortSignal.timeout(responseTimeout()),
       });
-      // A 400/404/422 here is most often "this model doesn't do tools" —
-      // answer without them rather than failing. Auth and rate limits get the
-      // plain path's normal messages too.
-      if (!res.ok) return yield* streamChat(opts);
+      if (!res.ok) {
+        // A 400/404/422 is most often "this model doesn't do tools": answer
+        // without them (a bad key or model name then gets the plain path's
+        // message). Anything else — key, credit, rate limit, an outage — is
+        // reported now: asking again without tools would fail the same way,
+        // or get an answer made without the run tool.
+        if (res.status === 400 || res.status === 404 || res.status === 422) {
+          yield { type: "fallback", reason: String(res.status) };
+          return yield* streamChat(plain);
+        }
+        const bodyText = await res.text().catch(() => "");
+        yield { type: "text", text: refusal(res, bodyText, { model, providerLabel }), notice: true };
+        yield { type: "done", usage: null };
+        return;
+      }
       data = await res.json();
     } catch (err) {
       // No answer in time: say so now rather than waiting all over again.
       if (err?.name === "TimeoutError") { yield { type: "text", text: unreachable(baseUrl, err), notice: true }; yield { type: "done", usage: null }; return; }
-      return yield* streamChat(opts); // unreachable, or a reply that wasn't JSON — the plain path reports or recovers
+      // Unreachable, or a reply that wasn't JSON — the plain path reports or recovers.
+      yield { type: "fallback", reason: err?.name === "SyntaxError" ? "not JSON" : "unreachable" };
+      return yield* streamChat(plain);
     }
 
     const msg = data?.choices?.[0]?.message;
@@ -85,12 +121,24 @@ export async function* chat({ tools, runTool, ...rawOpts }) {
     if (!calls.length || lastRound) {
       // Never finish silently: if the tool rounds end without any text,
       // answer the plain way instead.
-      if (!msg?.content?.trim()) return yield* streamChat(opts);
+      if (!msg?.content?.trim()) { yield { type: "fallback", reason: "empty" }; return yield* streamChat(plain); }
+      const verdict = review?.(msg.content, { ran });
+      if (verdict === "run" && !required && !lastRound) { required = requireRun = true; continue; }
+      if (verdict && verdict !== "run" && !askedAgain && !lastRound) {
+        askedAgain = true;
+        messages[0] = { ...messages[0], content: messages[0].content + verdict };
+        continue;
+      }
+      if (verdict) {
+        yield { type: "fallback", reason: verdict === "run" ? "needed a run" : "asked again" };
+        return yield* streamChat(plain);
+      }
       yield { type: "text", text: msg.content };
       yield { type: "done", usage: null };
       return;
     }
 
+    ran = true;
     messages.push({ role: "assistant", content: msg.content ?? "", tool_calls: calls });
     for (const call of calls) {
       let args = {};

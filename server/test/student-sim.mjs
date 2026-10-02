@@ -13,7 +13,7 @@ import { readFile, writeFile, mkdir } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { chat } from "../src/providers/openai-compatible.js";
-import { buildUserContent, buildSystemPrompt, tutorTools, updateNotesAfterReply } from "../src/tutor.js";
+import { buildUserContent, buildSystemPrompt, tutorTools, updateNotesAfterReply, runIsCurrent } from "../src/tutor.js";
 import { runLearnerCode } from "../src/tools/run-learner-code.js";
 import { runOnce } from "../src/runner.js";
 import { loadProvider } from "./test-provider.mjs";
@@ -226,8 +226,8 @@ async function runStudentCode({ filename, code, inputs }) {
   });
 }
 
-async function askTutor({ history, content, code, notes, filename }) {
-  const tools = tutorTools({ filename, code });
+async function askTutor({ history, content, code, notes, filename, runAttached }) {
+  const tools = tutorTools({ filename, code, runAttached });
   const systemPrompt = buildSystemPrompt(instructions, { ...tools, notes: await notes.get() });
   for (let attempt = 0; attempt < 6; attempt++) {
     let text = "";
@@ -279,7 +279,7 @@ async function simulate(name) {
     log.push(`> **student:** ${say}`);
 
     const content = buildUserContent({ trigger: "manual", question: say, filename, code, previousCode, runContext });
-    const { text: reply, privateRuns } = await askTutor({ history: display.slice(-HISTORY_KEEP), content, code, notes, filename });
+    const { text: reply, privateRuns } = await askTutor({ history: display.slice(-HISTORY_KEEP), content, code, notes, filename, runAttached: runIsCurrent(runContext, code) });
     previousCode = code;
     if (privateRuns.length) log.push(`_(tutor ran the code privately with inputs: ${privateRuns.join(", ")})_`);
     log.push(`**tutor:** ${reply}`);

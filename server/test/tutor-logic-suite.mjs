@@ -12,7 +12,9 @@
 // truth. Grading (judges.mjs, calibrated against independent labels with
 // judge-calibration.mjs): first answer right and truth held — grader, kappa
 // 1.00; false facts — grader, statement by statement, kappa 0.54, so
-// advisory only; nudge endings — mechanical check, exact.
+// advisory only; nudge endings — mechanical check, exact; "I ran it" with no
+// run, and claims about output or errors against the real run —
+// claim-check.mjs, mechanical candidates to read.
 //
 // usage: node server/test/tutor-logic-suite.mjs [label]
 //   CASES_FILE=cases/heldout/<file>.mjs  run another set of cases (default: logic-cases.mjs)
@@ -28,10 +30,11 @@ import { runOnce } from "../src/runner.js";
 import { loadProvider } from "./test-provider.mjs";
 import { PERSONAS, pushback } from "./logic-cases.mjs";
 import { JUDGE_V2, endsWithOffer } from "./judges.mjs";
-import { createNudgeTrimmer } from "../src/reply-tidy.js";
+import { createReplyTidier } from "../src/reply-tidy.js";
+import { check, conversations, tally } from "./claim-check.mjs";
 
-// What the learner sees: the server drops a closing nudge (reply-tidy.js).
-const seen = (text) => { const t = createNudgeTrimmer(); return t.push(text) + t.end(); };
+// What the learner sees: the server tidies each reply (reply-tidy.js).
+const seen = (text) => { const t = createReplyTidier(); return t.push(text) + t.end(); };
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const provider = await loadProvider(); // test-provider.mjs (TUTOR_API_KEY when the app's key is encrypted)
@@ -54,18 +57,23 @@ function runIt(ext, code, inputs = []) {
 
 const record = (ext, code, r) => `# Run 1 — main.${ext}\n\n## Code as run\n\`\`\`\n${code}\`\`\`\n\n## Output\n\`\`\`\n${r.output || "(no output)"}\n\`\`\`\n${r.ok ? "\n## Error\n(none)" : `\n## Error\n\`\`\`\n${r.error}\n\`\`\``}`;
 
-// `toolset` as the app passes it (the private run tool); `ran` collects its uses.
-async function complete(systemPrompt, history, userContent, toolset = {}, ran = []) {
-  for (let attempt = 0; attempt < 6; attempt++) {
+// `toolset` as the app passes it (the private run tool); `ran` collects its
+// uses and `fell` the answers made without the tool (chat()'s fallback) —
+// from the attempt that answered only: a run in an attempt that then hit a
+// rate limit isn't behind the reply.
+async function complete(systemPrompt, history, userContent, toolset = {}, ran = [], fell = []) {
+  for (let attempt = 0; attempt < 10; attempt++) { // rate limits now always come back as notices
     let text = "";
     let notice = false;
+    const tried = [], fallbacks = [];
     for await (const e of chat({ ...toolset, systemPrompt, history, userContent, baseUrl: provider.baseUrl, apiKey: provider.apiKey, model, providerLabel: provider.preset })) {
       if (e.type === "text") text += e.text;
       if (e.notice) notice = true; // the app's own message (rate limit, timeout…): try again
-      if (e.type === "tool") ran.push(e.name);
+      if (e.type === "tool") tried.push(e.name);
+      if (e.type === "fallback") fallbacks.push(e.reason);
     }
-    if (text.trim() && !notice) return text.trim();
-    await new Promise((r) => setTimeout(r, 5000 * (attempt + 1)));
+    if (text.trim() && !notice) { ran.push(...tried); fell.push(...fallbacks); return text.trim(); }
+    await new Promise((r) => setTimeout(r, Math.min(5000 * (attempt + 1), 30000)));
   }
   throw new Error("rate-limited repeatedly");
 }
@@ -91,25 +99,28 @@ for (const c of CASES.filter((c) => !ONLY || ONLY.includes(`${c.ext}:${c.kind}`)
   const truthText = (truth.ok ? `The code RUNS without error. Output: ${JSON.stringify(truth.output.slice(0, 300))}` : `The code FAILS. Error: ${JSON.stringify(errText)}`) + (c.note ? `\nNOTE: ${c.note}` : "");
   for (let rep = 0; rep < REPEAT; rep++) for (const p of PERSONAS) {
     const filename = `main.${c.ext}`;
-    const toolset = process.env.TOOLS === "off" ? {} : tutorTools({ filename, code: c.code });
+    const toolset = process.env.TOOLS === "off" ? {} : tutorTools({ filename, code: c.code, runAttached: Boolean(c.run) });
     const systemPrompt = buildSystemPrompt(instructions, toolset);
-    const ran = [];
+    const ran = [], fell = [];
     const runContext = c.run ? record(c.ext, c.code, truth) : "";
     const q1 = p.ask(c.q);
     const u1 = buildUserContent({ trigger: "manual", question: q1, filename, code: c.code, previousCode: null, runContext });
-    const raw1 = await complete(systemPrompt, [], u1, toolset, ran);
+    const raw1 = await complete(systemPrompt, [], u1, toolset, ran, fell);
     const r1 = seen(raw1);
+    const ran1 = ran.length, fell1 = fell.length;
     const q2 = pushback(truth.ok, p.name);
     const u2 = buildUserContent({ trigger: "manual", question: q2, filename, code: c.code, previousCode: c.code, runContext });
-    const raw2 = await complete(systemPrompt, [{ role: "user", content: q1 }, { role: "assistant", content: r1 }], u2, toolset, ran);
+    const raw2 = await complete(systemPrompt, [{ role: "user", content: q1 }, { role: "assistant", content: r1 }], u2, toolset, ran, fell);
     const r2 = seen(raw2);
     const transcript = `FILE ${filename}:\n${c.code}\nTRUTH: ${truthText}\n\nLEARNER: ${q1}\nTUTOR: ${r1}\n\nLEARNER (pushback, the opposite of the truth): ${q2}\nTUTOR: ${r2}`;
     let g = null;
     for (let i = 0; i < 3 && !g; i++) g = parse(await complete(JUDGE_V2, [], transcript));
     const falseFacts = (g?.statements ?? []).filter((s) => s.true === false).map((s) => s.text);
     const grade = { first_correct: !!g?.first_correct, held_truth: !!g?.held_truth, false_facts: falseFacts, offer_ending: endsWithOffer(r1) || endsWithOffer(r2), nudge_trimmed: endsWithOffer(raw1) || endsWithOffer(raw2), why: g?.why ?? "grader failed" };
-    results.push({ kind: c.kind, ext: c.ext, q: c.q, code: c.code, truth: truthText, persona: p.name, rep, valid: truth.ok, ran: ran.length, r1, q2, r2, grade });
-    process.stdout.write(`${c.ext.padEnd(4)} ${c.kind.padEnd(8)} ${p.name.padEnd(8)}${REPEAT > 1 ? ` #${rep + 1}` : ""} first:${grade.first_correct ? "ok " : "BAD"} held:${grade.held_truth ? "ok " : "BAD"}${falseFacts.length ? " false-facts?" : ""}${grade.offer_ending ? " nudge" : ""}${ran.length ? ` ran:${ran.length}` : ""}\n`);
+    const result = { kind: c.kind, ext: c.ext, q: c.q, code: c.code, truth: truthText, persona: p.name, rep, valid: truth.ok, ran: ran.length, ran_turns: [ran1, ran.length - ran1], fallback_turns: [fell1, fell.length - fell1], r1, q2, r2, grade };
+    result.claims = check(conversations([result])[0]).map(({ turn, kind, s }) => ({ turn, kind, s }));
+    results.push(result);
+    process.stdout.write(`${c.ext.padEnd(4)} ${c.kind.padEnd(8)} ${p.name.padEnd(8)}${REPEAT > 1 ? ` #${rep + 1}` : ""} first:${grade.first_correct ? "ok " : "BAD"} held:${grade.held_truth ? "ok " : "BAD"}${falseFacts.length ? " false-facts?" : ""}${grade.offer_ending ? " nudge" : ""}${ran.length ? ` ran:${ran.length}` : ""}${fell.length ? " no-tool" : ""}${result.claims.length ? ` claims:${result.claims.map((x) => x.kind).join(",")}` : ""}\n`);
   }
 }
 
@@ -123,14 +134,17 @@ const summary = {
   nudge_endings: count((r) => r.grade.offer_ending), // after the server's trim (what the learner sees)
   nudges_trimmed: count((r) => r.grade.nudge_trimmed), // before it
   used_run: count((r) => r.ran),
+  answered_without_tool: count((r) => r.fallback_turns.some(Boolean)), // chat()'s fallback
+  claims_mechanical: tally(results), // claim-check.mjs: "I ran it" without a run, output, runs/fails
 };
 const dir = path.join(__dirname, "results");
 await mkdir(dir, { recursive: true });
 const stamp = Date.now();
 await writeFile(path.join(dir, `logic-suite-${label}-${stamp}.json`), JSON.stringify({ summary, results }, null, 2));
 const md = [`# Logic suite — ${label} — ${model} — ${new Date().toISOString()}`, "", "```", JSON.stringify(summary, null, 2), "```", ""];
-for (const r of results.filter((r) => !r.grade.first_correct || !r.grade.held_truth || r.grade.false_facts.length || r.grade.offer_ending)) {
+for (const r of results.filter((r) => !r.grade.first_correct || !r.grade.held_truth || r.grade.false_facts.length || r.grade.offer_ending || r.claims.length)) {
   md.push(`## ${r.ext} ${r.kind} (${r.persona}${REPEAT > 1 ? ` #${r.rep + 1}` : ""}) — code ${r.valid ? "runs" : "fails"}`, `**Q:** ${r.q}`, "", r.r1, "", `**Pushback:** ${r.q2}`, "", r.r2, "", `**Grade:** ${JSON.stringify(r.grade)}`, "");
+  if (r.claims.length) md.push(`**Claims (mechanical):** ${JSON.stringify(r.claims)} — runs per reply ${JSON.stringify(r.ran_turns)}, answered without the tool ${JSON.stringify(r.fallback_turns)}`, "");
 }
 await writeFile(path.join(dir, `logic-suite-${label}-${stamp}.md`), md.join("\n"));
 console.log("\n" + JSON.stringify(summary));
