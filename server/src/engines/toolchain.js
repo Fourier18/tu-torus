@@ -11,7 +11,7 @@ import { spawn, execFile } from "node:child_process";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import os from "node:os";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { TOOLS_DIR } from "../paths.js";
 
 // The built-in language runners (server/src/runners) — languages.json refers
@@ -59,9 +59,30 @@ function killTree(child) {
   else child.kill("SIGKILL");
 }
 
+// Error output from programs run on the app's own Node (JavaScript,
+// TypeScript, and the runners for the other languages) carried Node's
+// internals: the temporary run folder in every path, eight "node:internal"
+// stack frames, the runner's own frames and a "Node.js v24" line. A
+// beginner (and the tutor reading the run) needs the message, the line and
+// where in their file. One line at a time, so it works on streamed output.
+export function nodeErrorTidier({ dir, name }) {
+  const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const folder = new RegExp(esc(dir + path.sep), "gi");
+  const folderUrl = new RegExp(esc(pathToFileURL(dir).href + "/"), "gi");
+  const mts = name.endsWith(".ts") ? new RegExp(esc(name.replace(/\.ts$/, ".mts")), "g") : null;
+  return (line) => {
+    if (/^\s*at\b.*\bnode:internal\//.test(line)) return null;
+    if (/^\s*at\b.*[\\/]server[\\/]src[\\/]runners[\\/]/.test(line) || /^\s*at\b.*\/server\/src\/runners\//.test(line)) return null;
+    if (/^Node\.js v\d+\.\d+\.\d+\s*$/.test(line)) return null;
+    let out = line.replace(folder, "").replace(folderUrl, "");
+    if (mts) out = out.replace(mts, name);
+    return out.replace(/^(\s*)at (?:Object\.)?<anonymous> \((.+)\)\s*$/, "$1at $2");
+  };
+}
+
 // Runs one stage (compile or exec) to completion, streaming output live and
 // enforcing the timeout/output cap. Returns {ok, timedOut, output, error}.
-function runStage({ command, args, cwd, env, onData, getWrite, onChild, timeoutMs = TIMEOUT_MS }) {
+function runStage({ command, args, cwd, env, onData, getWrite, onChild, timeoutMs = TIMEOUT_MS, tidyErrors }) {
   return new Promise((resolve) => {
     const child = spawn(command, args, { cwd, env });
     onChild?.(child); // so Stop can reach the process that's actually running
@@ -82,12 +103,30 @@ function runStage({ command, args, cwd, env, onData, getWrite, onChild, timeoutM
     const stopClock = () => { clearTimeout(timer); timer = null; };
     startClock();
 
+    // Error output passes through tidyErrors line by line (a partial last
+    // line waits for the rest); doubled blank lines left by dropped ones go.
+    let errCarry = "", lastBlank = false;
+    const tidy = (text, final) => {
+      const lines = (errCarry + text).split("\n");
+      errCarry = final ? "" : lines.pop();
+      const kept = [];
+      for (const raw of lines) {
+        const line = tidyErrors(raw.replace(/\r$/, ""));
+        if (line === null) continue;
+        const blank = !line.trim();
+        if (blank && lastBlank) continue;
+        lastBlank = blank;
+        kept.push(line);
+      }
+      return kept.length ? kept.join("\n") + (final ? "" : "\n") : "";
+    };
+
     const forward = (stream) => (chunk) => {
       outputLen += chunk.length;
       if (outputLen > MAX_OUTPUT) { capped = true; killTree(child); return; }
-      const text = chunk.toString();
+      const text = stream === "stderr" && tidyErrors ? tidy(chunk.toString(), false) : chunk.toString();
       if (stream === "stdout") output += text; else errorText += text;
-      onData({ stream, text });
+      if (text) onData({ stream, text });
       clearTimeout(quiet);
       if (!timer) startClock();
       if (getWrite && stream === "stdout" && !text.endsWith("\n")) quiet = setTimeout(stopClock, 500);
@@ -106,6 +145,7 @@ function runStage({ command, args, cwd, env, onData, getWrite, onChild, timeoutM
 
     child.on("close", (code) => {
       clearTimeout(timer); clearTimeout(quiet);
+      if (tidyErrors && errCarry) { const rest = tidy("", true); if (rest) { errorText += rest; onData({ stream: "stderr", text: rest }); } }
       resolve({ ok: code === 0 && !timedOut && !capped, timedOut, output, error: capped ? "Stopped — the program printed more than 200,000 characters (probably a loop that never ends)." : errorText });
     });
     child.on("error", (err) => { clearTimeout(timer); resolve({ ok: false, timedOut: false, output, error: err.message }); });
@@ -207,6 +247,7 @@ export async function runToolchain({ filename, code, config: rawConfig, onData, 
       onData,
       onChild: (c) => { current = c; },
       getWrite: (write) => { stdinWriter = write; for (const t of typedEarly.splice(0)) write(t); if (inputEnded) current?.stdin.end(); },
+      tidyErrors: rawConfig.bundledNode ? nodeErrorTidier({ dir, name: path.basename(filename) }) : undefined,
     });
 
     await cleanup();
