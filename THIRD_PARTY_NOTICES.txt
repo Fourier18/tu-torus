@@ -1,4 +1,4 @@
-THIRD-PARTY SOFTWARE NOTICES — Tu-Torus 1.7.0
+THIRD-PARTY SOFTWARE NOTICES — Tu-Torus 1.8.0
 
 Tu-Torus includes software from the projects listed below. Each is used under
 its own license, reproduced or referenced here. Tu-Torus's own license is in

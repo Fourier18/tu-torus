@@ -10,3 +10,4 @@ One file per decision that shaped Tu-Torus: the situation, the options considere
 | [4](0004-tutor-checks-by-running-code.md) | The tutor checks claims by running the learner's code privately | Accepted |
 | [5](0005-learner-data-outside-the-install-folder.md) | Keep the learner's files outside the install folder | Accepted |
 | [6](0006-api-key-encrypted-with-the-windows-account.md) | Encrypt the API key with the Windows account | Accepted |
+| [7](0007-answers-checked-against-tool-use.md) | Check each tutor answer against its tool use before showing it | Accepted |

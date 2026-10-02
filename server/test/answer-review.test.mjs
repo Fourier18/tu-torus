@@ -30,11 +30,27 @@ check("\"I changed … and ran it again\" → asked again with a note", typeof v
 v = review("When I changed it to `str(score)`, it printed `Score: 10` with no error.", { ran: true });
 check("\"When I changed it…, it printed\" → asked again with a note", typeof v === "string", v);
 
+// Quotes run output the run didn't give
+const ran = (screen, error = null) => ({ ran: true, results: [{ screen, error }] });
+const reviewRan = (text, screen, error) => answerReview({ code, runAttached: false })(text, ran(screen, error));
+v = reviewRan("`range(1, 6)` is allowed in Python — I just ran it privately and it printed `1 2 3 4 5`.", "1\n2\n3\n4\n");
+check("\"I just ran it and it printed `1 2 3 4 5`\" when the run printed 1–4 → asked again with a note", typeof v === "string" && v.includes("1 2 3 4 5"), v);
+v = reviewRan("I ran it just now. It printed `6`.", "3\n");
+check("output quoted in the sentence after \"I ran it\" is checked too", typeof v === "string", v);
+v = reviewRan("I ran it — it printed `1 2 3 4`, one number per line.", "1\n2\n3\n4\n");
+check("output that matches the run (lines joined) → shown", v === null, v);
+v = reviewRan("I ran your code and got `IndexError: list index out of range`.", "", "Traceback (most recent call last):\n  File \"main.py\", line 2\nIndexError: list index out of range");
+check("an error quoted from the run → shown", v === null, v);
+v = reviewRan("I ran it: it prints `\"5\"` joined to `3`, which shows `53`.", "53\n");
+check("a quoted string with its quotes, from the run → shown", v === null, v);
+
 // Says what the code does with nothing run
 v = review("Your code will crash with a syntax error on the `elif` line.");
 check("\"will crash with a syntax error\", no run attached or made → needs a run", v === "run", v);
 v = review("The comma after `\"Ada\"` is **not allowed** — it's the last item in the object.", { file: '{\n  "name": "Ada",\n  "age": 36\n}\n' });
 check("\"the comma is not allowed\", nothing run → needs a run", v === "run", v);
+v = review("The comma after `\"Ada\"` is **not needed** — the next character is `}`.", { file: '{\n  "name": "Ada",\n  "age": 36\n}\n' });
+check("\"the comma is not needed\", nothing run → needs a run", v === "run", v);
 v = review("Your code will crash with a syntax error on the `elif` line.", { runAttached: true });
 check("the same with their run attached → shown", v === null, v);
 v = review("Your code will crash with a syntax error on the `elif` line.", { ran: true });

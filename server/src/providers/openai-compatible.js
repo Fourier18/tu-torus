@@ -77,6 +77,7 @@ export async function* chat({ tools, runTool, toolNote = "", noToolNote = "", re
   const messages = [{ role: "system", content: systemPrompt + toolNote }, ...history, { role: "user", content: userContent }];
   const plain = { ...opts, systemPrompt: systemPrompt + noToolNote };
   let ran = false; // a tool ran during this reply
+  const results = []; // what those runs returned, for `review`
   let requireRun = false, required = false, askedAgain = false;
 
   for (let round = 0; ; round++) {
@@ -122,7 +123,7 @@ export async function* chat({ tools, runTool, toolNote = "", noToolNote = "", re
       // Never finish silently: if the tool rounds end without any text,
       // answer the plain way instead.
       if (!msg?.content?.trim()) { yield { type: "fallback", reason: "empty" }; return yield* streamChat(plain); }
-      const verdict = review?.(msg.content, { ran });
+      const verdict = review?.(msg.content, { ran, results });
       if (verdict === "run" && !required && !lastRound) { required = requireRun = true; continue; }
       if (verdict && verdict !== "run" && !askedAgain && !lastRound) {
         askedAgain = true;
@@ -145,6 +146,7 @@ export async function* chat({ tools, runTool, toolNote = "", noToolNote = "", re
       try { args = JSON.parse(call.function.arguments || "{}"); } catch { /* malformed args — run with defaults */ }
       yield { type: "tool", name: call.function.name, args };
       const result = await runTool(call.function.name, args);
+      results.push(result);
       messages.push({ role: "tool", tool_call_id: call.id, name: call.function.name, content: JSON.stringify(result) });
     }
   }

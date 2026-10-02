@@ -23,12 +23,13 @@ const RAN = /\b(?:I (?:just |also |actually )?(?:ran|tested|executed|tried(?! to
 const CHANGED = /\bI (?:changed|modified|edited|fixed|replaced|swapped|added|removed|tweaked|corrected|updated)\b/i;
 const RESULT = /\b(?:printed|prints|ran|runs|worked|works|gave|gives|output|got|showed)\b/i;
 const IF_I = /\bif I\b/i;
-const HYPOTHETICAL = /\b(change|changed|changing|replace|replaced|fix|add|added|remove|removed|swap|use|if you|once you|after you|when you|would|should|could|instead|try|then it|so it|to make|make|corrected|fixed|unless|needs?|must)\b/i;
-const PRINTS = /\b(?:it|this|your (?:code|program|file)|the (?:code|program|file|output)|which)\s+(?:prints|printed|outputs|shows|showed|gives|gave|displays)\s+`([^`]+)`/gi;
+const HYPOTHETICAL = /\b(change|changed|changing|replace|replaced|fix|add|added|remove|removed|swap|use|if you|if not|if it|if your|if they|once you|after you|when you|would|should|could|instead|try|then it|so it|to make|make|corrected|fixed|unless|needs?|must)\b/i;
+const PRINTS = /\b(?:it|this|your (?:code|program|file)|the (?:code|program|file|output))\s+(?:prints|printed|outputs|shows|showed|gives|gave|displays)\s+`([^`]+)`/gi;
 const RUNS_OK = /\b(runs? (?:fine|without (?:an? )?error|with no error|as written)|works? as written|no error|without errors?|is valid as written)\b/i;
 const FAILS = /\b(syntax ?error|will (?:crash|fail|error)|throws an? error|raises an? error|gives an? error|causes an? error)\b/i;
-const NOT_FAILS = /\b(?:not|isn't|is not|no|never|without|wasn't|won't be)\s+(?:an?\s+)?(?:\w+\s+)?(?:syntax ?)?error/i;
-const NEG_RUN =/\b(?:doesn't|does not|won't|will not|can't|cannot|wouldn't|would not)\s+(?:even\s+)?run\b/i;
+const NOT_FAILS = /\b(?:not|isn't|is not|no|never|without|wasn't|won't be)\s+(?:an?\s+)?(?:\w+\s+){0,3}(?:syntax ?)?error/i; // "no crash or syntax error"
+// "it won't run" — about the program, not "naming it doesn't run it"
+const NEG_RUN = /\b(?:it|this|your (?:code|program|file)|the (?:code|program|file))\s+(?:doesn't|does not|won't|will not|can't|cannot|wouldn't|would not)\s+(?:even\s+)?run\b(?!\s+(?:it|the function|them)\b)/i;
 const NEG_ANY = /\b(?:doesn't|does not|won't|will not|isn't|is not|can't|cannot|wouldn't|would not|not)\s+(?:\w+\s+)?(?:run|work|valid)/i;
 
 // Code blocks out, and emphasis marks (*doesn't* work) so negations still read.

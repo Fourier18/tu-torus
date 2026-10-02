@@ -102,7 +102,7 @@ const NO_RUN_NOTE = `
 You can't run their code for this reply: don't say you ran, tried or tested it — go by the code and any run attached.`;
 const RUN_TOOL_NOTE = `
 
-You have a tool, run_learner_code, that runs their file privately exactly as it is, with inputs you choose; they never see these runs. Use it to check before you claim what the code does or prints — especially with no run attached, or for an input you're about to talk about. Use it too before you say whether something is allowed in the language (a comma, parentheses, a semicolon, indentation) and whenever the learner disputes what you said: the result is the truth, whatever they or you believed. If the run backs you, keep your answer and say it ran; don't switch sides because they sound sure, and don't open with "You're right" or "my mistake" when they aren't. Say you ran it only if you called the tool while writing this reply — results from earlier replies aren't in front of you, so run it again rather than recalling it. Report only the output or error the run actually gave you; never write an error message you didn't get. It runs only their file as it is: never say you ran other code (a version check, a test line) — suggest they add it and press Run instead. A run that gives no error doesn't always mean the line does what they think (a misspelled keyword can be read as something else and silently do nothing) — say what it actually does. Mention a run only when it helps ("I tried 30 and 25 and got \`5.0\`", "I ran it — it works as written").`;
+You have a tool, run_learner_code, that runs their file privately exactly as it is, with inputs you choose; they never see these runs. Use it to check before you claim what the code does or prints — especially with no run attached, or for an input you're about to talk about. Use it too before you say whether something is allowed in the language (a comma, parentheses, a semicolon, indentation) and whenever the learner disputes what you said: the result is the truth, whatever they or you believed. If the run backs you, keep your answer and say it ran; don't switch sides because they sound sure, and don't open with "You're right" or "my mistake" when they aren't. Say you ran it only if you called the tool while writing this reply — results from earlier replies aren't in front of you, so run it again rather than recalling it. Report only the output or error the run actually gave you; never write an error message you didn't get. It runs only their file as it is: never say you ran other code (a version check, a test line) — suggest they add it and press Run instead. A run that gives no error doesn't always mean the line is right: a misspelled keyword can be read as something else (a call to a method that doesn't exist, say), which fails only if that line is reached — say what it actually does. Mention a run only when it helps ("I tried 30 and 25 and got \`5.0\`", "I ran it — it works as written").`;
 
 // Notes are written between replies by reviseLearnerNotes (learner-notes.js);
 // here they're only read, so the tutor starts every message knowing who it's
@@ -134,25 +134,42 @@ export function canRunPrivately(filename) {
 // your code" with no run in 27 of 116 held-out conversations; "I changed …
 // and ran it again" (the tool can't change code); "your code will crash
 // with a syntax error" and "that comma isn't allowed" with no run attached
-// and none made — both wrong.
+// and none made — both wrong; "I just ran it and it printed `1 2 3 4 5`"
+// after a run that printed 1 to 4.
 //   "I ran your code", "I've tested it", "I tried 30"
 const RAN_CLAIM = /\b(?:I (?:just |also |actually )?(?:ran|tested|executed|tried(?! to\b))|I(?:'ve| have) (?:just |also |actually )?(?:run|tested|executed|tried(?! to\b)))\b(?! into\b)/i;
 //   "I changed … to … and ran it", "when I fixed it, it printed"
 const CHANGED_RUN = /\bI (?:changed|modified|edited|fixed|replaced|swapped|added|removed|tweaked|corrected|updated)\b.*\b(?:ran|run|printed|prints|worked|works|gave|gives|got|showed|output)\b/i;
 //   what the code does, or whether something in it is allowed
-const BEHAVIOUR_CLAIM = /\b(?:syntax ?error|will (?:crash|fail|error|print|show|output|run)\b|won't (?:run|work)\b|(?:throws|raises|gives|causes|shows|get|see) an? (?:\w+ )?error|runs? (?:fine|without (?:an? )?errors?|with no errors?|as written)|works? as written|(?:it|this|your (?:code|program|file)) (?:prints|outputs|shows|displays) `|(?:is|are|isn't|aren't)(?: not)? (?:allowed|valid|invalid|required|optional)\b|not allowed\b|(?:don't|do not|doesn't|does not) need\b)/i;
+const BEHAVIOUR_CLAIM = /\b(?:syntax ?error|will (?:crash|fail|error|print|show|output|run)\b|won't (?:run|work)\b|(?:throws|raises|gives|causes|shows|get|see) an? (?:\w+ )?error|runs? (?:fine|without (?:an? )?errors?|with no errors?|as written)|works? as written|(?:it|this|your (?:code|program|file)) (?:prints|outputs|shows|displays) `|(?:is|are|isn't|aren't)(?: not)? (?:allowed|valid|invalid|required|optional|needed|necessary)\b|not (?:allowed|needed|necessary)\b|(?:don't|do not|doesn't|does not) need\b)/i;
 const CHANGED_RUN_NOTE = "\n\nYour run tool runs only their file as it is: never say you changed their code or ran a changed version — say what the change would do.";
+//   "I ran it — it printed `1 2 3 4 5`" when the run printed something else
+const QUOTED_OUTPUT = /\b(?:printed|prints|outputs?|output is|gave|gives|got|shows?|showed)\s+`([^`]+)`/gi;
+const wrongOutputNote = (quoted) => `\n\nYour reply says a run gave \`${quoted}\`, but none of your runs did. Quote only what a run actually showed; for a change to their code, say what it would do instead of presenting it as a run.`;
+const squash = (s) => String(s ?? "").replace(/\s+/g, " ").trim();
 // Sentences without code blocks or emphasis marks ("I **ran** it" slipped
 // past a check that kept them), and without "if I…" hypotheticals.
 const sentencesOf = (text) => String(text ?? "").replace(/```[\s\S]*?```/g, " ").replace(/[*_]+/g, "").split(/(?<=[.!?])\s+|\n+/).filter((s) => s.trim() && !/\bif I\b/i.test(s));
 
-// `runAttached`: a run of this exact code is in the message.
+// `runAttached`: a run of this exact code is in the message. `results`: what
+// this reply's runs returned ({ screen, error }).
 export function answerReview({ code, runAttached = false }) {
   const empty = !String(code ?? "").trim();
-  return (text, { ran }) => {
+  return (text, { ran, results = [] }) => {
     const sentences = sentencesOf(text);
     if (!ran && sentences.some((s) => RAN_CLAIM.test(s))) return "run";
     if (sentences.some((s) => CHANGED_RUN.test(s))) return CHANGED_RUN_NOTE;
+    if (ran && results.length) {
+      // Output quoted in a sentence saying it ran, or in the one after it.
+      const shown = squash(results.map((r) => `${r?.screen ?? ""} ${r?.error ?? ""}`).join(" "));
+      for (const [i, s] of sentences.entries()) {
+        if (!RAN_CLAIM.test(s)) continue;
+        for (const m of `${s} ${sentences[i + 1] ?? ""}`.matchAll(QUOTED_OUTPUT)) {
+          const quoted = squash(m[1]).replace(/^(["'])(.*)\1$/, "$2");
+          if (quoted && !shown.includes(quoted)) return wrongOutputNote(quoted);
+        }
+      }
+    }
     if (!ran && !runAttached && !empty && sentences.some((s) => BEHAVIOUR_CLAIM.test(s))) return "run";
     return null;
   };
