@@ -660,12 +660,13 @@ async function ask(messages, content, code, filename, notesStore, turn) {
   const systemPrompt = buildSystemPrompt(instructions, { ...tools, notes: store ? await store.get() : undefined });
   for (let attempt = 0; attempt < 6; attempt++) {
     let text = "";
+    let notice = false;
     const runs = [];
     for await (const e of chat({ ...tools, systemPrompt, history: messages, userContent: content, baseUrl: provider.baseUrl, apiKey: provider.apiKey, model, providerLabel: provider.preset })) {
       if (e.type === "text") text += e.text;
       if (e.type === "tool") runs.push(`ran privately with inputs ${JSON.stringify(e.args.inputs ?? [])}`);
     }
-    if (!/^(Rate limit reached|Couldn't reach)/.test(text)) {
+    if (!notice) {
       // Same post-reply step the app runs in the background; awaited here so
       // the next turn sees the updated notes.
       if (store) {

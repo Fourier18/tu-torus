@@ -175,6 +175,7 @@ export async function* askTutor({ trigger, question, filename, code, previousCod
 
   const toolset = tutorTools({ filename, code });
   let reply = "";
+  let notice = false;
   for await (const event of chat({
     ...toolset,
     systemPrompt: buildSystemPrompt(systemPrompt, { ...toolset, notes: await getLearnerNotes() }),
@@ -186,9 +187,13 @@ export async function* askTutor({ trigger, question, filename, code, previousCod
     providerLabel: PROVIDER_LABELS[provider.preset] || provider.preset || "this model",
   })) {
     if (event.type === "text") reply += event.text;
+    if (event.notice) notice = true;
     yield event;
   }
 
+  // The app's own messages (a refusal, a timeout, an empty or cut-off reply)
+  // say nothing about the learner — no notes update for those.
+  if (notice) return;
   // Not awaited: the answer is already on screen; updating the notes happens
   // behind it and never delays the learner.
   updateNotesAfterReply({ trigger, question, reply, history, code, previousCode, provider, store: APP_NOTES })

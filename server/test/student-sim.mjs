@@ -196,12 +196,13 @@ async function askTutor({ history, content, code, notes, filename }) {
   const systemPrompt = buildSystemPrompt(instructions, { ...tools, notes: await notes.get() });
   for (let attempt = 0; attempt < 6; attempt++) {
     let text = "";
+    let notice = false;
     const privateRuns = [];
     for await (const e of chat({ ...tools, systemPrompt, history, userContent: content, baseUrl: provider.baseUrl, apiKey: provider.apiKey, model: tutorModel, providerLabel: provider.preset })) {
       if (e.type === "text") text += e.text;
       if (e.type === "tool") privateRuns.push(JSON.stringify(e.args.inputs ?? []));
     }
-    if (!/^(Rate limit reached|Couldn't reach)/.test(text)) return { text: text.trim(), privateRuns };
+    if (!notice) return { text: text.trim(), privateRuns };
     await new Promise((r) => setTimeout(r, 5000 * (attempt + 1)));
   }
   throw new Error("tutor rate-limited repeatedly");

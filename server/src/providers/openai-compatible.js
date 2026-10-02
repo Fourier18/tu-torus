@@ -12,6 +12,38 @@
 // read files itself. A disclosed tradeoff, not a hidden limitation.
 const MAX_TOOL_ROUNDS = 3;
 
+// How long to wait for a provider: for the reply to start, and between
+// pieces of a streamed reply. A provider that never answered used to leave
+// the tutor "thinking" forever. Read per call so tests can shorten them.
+const responseTimeout = () => Number(process.env.TUTOR_RESPONSE_TIMEOUT_MS) || 90_000;
+const streamStall = () => Number(process.env.TUTOR_STREAM_STALL_MS) || 60_000;
+
+// Why a request never got a reply, in plain words.
+function unreachable(baseUrl, err) {
+  const code = err?.cause?.code ?? err?.code;
+  if (err?.name === "TimeoutError" || err?.name === "AbortError") return `The AI provider didn't answer within ${Math.round(responseTimeout() / 1000)} seconds — try again in a minute.`;
+  if (code === "ECONNREFUSED") return `Couldn't reach ${baseUrl} — nothing answered there. If it's a local server (Ollama, LM Studio), is it running?`;
+  if (code === "ENOTFOUND" || code === "EAI_AGAIN") return `Couldn't reach ${baseUrl} — that address wasn't found. Check the base URL in Settings, and that this computer is online.`;
+  return `Couldn't reach ${baseUrl} — check the base URL in Settings, and that this computer is online.`;
+}
+
+// A provider's refusal, in plain words. Status codes alone aren't reliable
+// across providers (Gemini's OpenAI-compatible layer answers a bad key with a
+// plain 400 and the reason only in the body), so the body is read too.
+function refusal(res, bodyText, { model, providerLabel }) {
+  if (res.status === 429) return "Rate limit reached — try again in a minute.";
+  if (res.status === 401 || res.status === 403 || /api.?key|unauthoriz|authenticat/i.test(bodyText)) return `Invalid API key for ${providerLabel} — check it in Settings.`;
+  if (res.status === 402 || /insufficient|credit|balance|billing|payment required/i.test(bodyText)) return `${providerLabel} says the account needs credit or a plan (${res.status}) — check your account on their website.`;
+  if ((res.status === 404 || res.status === 400 || res.status === 422) && /model/i.test(bodyText)) return `The model "${model}" wasn't found at ${providerLabel} — check the model name in Settings (the provider's model list has the exact names).`;
+  if (res.status >= 500) return `${providerLabel} had a problem answering (${res.status}) — try again in a minute.`;
+  return `Model connection failed (${res.status} ${res.statusText}).`;
+}
+
+// Events: {type:"text", text} — with notice: true when the text is this
+// app's own message (a refusal, a timeout, an empty reply) rather than the
+// model's words — then {type:"done"}. Callers use `notice` to keep such
+// text out of the learner notes and to retry in the test suites.
+//
 // With `tools`, the model may ask the app to run a tool (the app executes it —
 // the model only asks) before answering; capped at MAX_TOOL_ROUNDS so it can't
 // spin. These rounds aren't streamed. If the provider or model rejects tools,
@@ -29,21 +61,26 @@ export async function* chat({ tools, runTool, ...rawOpts }) {
   for (let round = 0; ; round++) {
     const lastRound = round >= MAX_TOOL_ROUNDS;
     let res;
+    let data;
     try {
       res = await fetch(`${baseUrl.replace(/\/$/, "")}/chat/completions`, {
         method: "POST",
         headers: { "Content-Type": "application/json", ...(apiKey ? { Authorization: `Bearer ${apiKey}` } : {}) },
         body: JSON.stringify({ model, messages, tools, tool_choice: lastRound ? "none" : "auto", temperature: 0.3 }),
+        signal: AbortSignal.timeout(responseTimeout()),
       });
-    } catch {
-      return yield* streamChat(opts); // let the plain path report the connection problem its usual way
+      // A 400/404/422 here is most often "this model doesn't do tools" —
+      // answer without them rather than failing. Auth and rate limits get the
+      // plain path's normal messages too.
+      if (!res.ok) return yield* streamChat(opts);
+      data = await res.json();
+    } catch (err) {
+      // No answer in time: say so now rather than waiting all over again.
+      if (err?.name === "TimeoutError") { yield { type: "text", text: unreachable(baseUrl, err), notice: true }; yield { type: "done", usage: null }; return; }
+      return yield* streamChat(opts); // unreachable, or a reply that wasn't JSON — the plain path reports or recovers
     }
-    // A 400/404/422 here is most often "this model doesn't do tools" — answer
-    // without them rather than failing. Auth and rate limits get the plain
-    // path's normal messages too.
-    if (!res.ok) return yield* streamChat(opts);
 
-    const msg = (await res.json()).choices?.[0]?.message;
+    const msg = data?.choices?.[0]?.message;
     const calls = msg?.tool_calls ?? [];
     if (!calls.length || lastRound) {
       // Never finish silently: if the tool rounds end without any text,
@@ -68,6 +105,11 @@ export async function* chat({ tools, runTool, ...rawOpts }) {
 async function* streamChat({ systemPrompt, history = [], userContent, baseUrl, apiKey, model, providerLabel }) {
   const messages = [{ role: "system", content: systemPrompt }, ...history, { role: "user", content: userContent }];
 
+  // One controller for the whole request: it gives up if the reply hasn't
+  // started within responseTimeout(), or if a started reply goes quiet for
+  // streamStall().
+  const abort = new AbortController();
+  let timer = setTimeout(() => abort.abort(Object.assign(new Error("timeout"), { name: "TimeoutError" })), responseTimeout());
   let res;
   try {
     res = await fetch(`${baseUrl.replace(/\/$/, "")}/chat/completions`, {
@@ -81,9 +123,11 @@ async function* streamChat({ systemPrompt, history = [], userContent, baseUrl, a
       // variance also cuts the odds of drifting into a repeated-phrasing
       // loop when its own prior turns are sitting right there in history.
       body: JSON.stringify({ model, stream: true, messages, temperature: 0.3 }),
+      signal: abort.signal,
     });
   } catch (err) {
-    yield { type: "text", text: `Couldn't reach ${baseUrl} — is it running? (${err.message})` };
+    clearTimeout(timer);
+    yield { type: "text", text: unreachable(baseUrl, abort.signal.aborted ? abort.signal.reason : err), notice: true };
     yield { type: "done", usage: null };
     return;
   }
@@ -91,21 +135,11 @@ async function* streamChat({ systemPrompt, history = [], userContent, baseUrl, a
   if (!res.ok || !res.body) {
     // Never fail silently — every one of these lands as a real message in
     // the tutor panel, not a swallowed error. Free-tier limits shift over
-    // time on every provider here, so this deliberately says "try again in
-    // a minute" instead of quoting a specific number that'll go stale.
-    //
-    // Status codes alone aren't reliable across providers here — confirmed
-    // directly: Gemini's OpenAI-compat layer returns a plain 400 for a bad
-    // key, not 401/403, with the real reason only in the body text ("Please
-    // pass a valid API key"). Falling back to a body-text check catches that
-    // case too instead of showing a vague generic message for it.
+    // time on every provider here, so the messages say "try again in a
+    // minute" instead of quoting a specific number that'll go stale.
+    clearTimeout(timer);
     const bodyText = await res.text().catch(() => "");
-    const looksLikeAuthError = /api.?key|unauthoriz|authenticat/i.test(bodyText);
-    let text;
-    if (res.status === 429) text = "Rate limit reached — try again in a minute.";
-    else if (res.status === 401 || res.status === 403 || looksLikeAuthError) text = `Invalid API key for ${providerLabel} — check it in Settings.`;
-    else text = `Model connection failed (${res.status} ${res.statusText}).`;
-    yield { type: "text", text };
+    yield { type: "text", text: refusal(res, bodyText, { model, providerLabel }), notice: true };
     yield { type: "done", usage: null };
     return;
   }
@@ -113,23 +147,36 @@ async function* streamChat({ systemPrompt, history = [], userContent, baseUrl, a
   const reader = res.body.getReader();
   const decoder = new TextDecoder();
   let buf = "";
+  let said = false;
+  const quiet = () => { clearTimeout(timer); timer = setTimeout(() => abort.abort(Object.assign(new Error("stalled"), { name: "TimeoutError" })), streamStall()); };
+  quiet();
 
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    buf += decoder.decode(value, { stream: true });
-    const lines = buf.split("\n");
-    buf = lines.pop(); // last line may be incomplete — keep it for the next chunk
-    for (const line of lines) {
-      if (!line.startsWith("data: ")) continue;
-      const payload = line.slice(6);
-      if (payload === "[DONE]") continue;
-      try {
-        const chunk = JSON.parse(payload);
-        const text = chunk.choices?.[0]?.delta?.content;
-        if (text) yield { type: "text", text };
-      } catch { /* a malformed chunk shouldn't kill the whole stream */ }
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      quiet();
+      buf += decoder.decode(value, { stream: true });
+      const lines = buf.split("\n");
+      buf = lines.pop(); // last line may be incomplete — keep it for the next chunk
+      for (const line of lines) {
+        if (!line.startsWith("data: ")) continue;
+        const payload = line.slice(6);
+        if (payload === "[DONE]") continue;
+        try {
+          const chunk = JSON.parse(payload);
+          const text = chunk.choices?.[0]?.delta?.content;
+          if (text) { said = true; yield { type: "text", text }; }
+        } catch { /* a malformed chunk shouldn't kill the whole stream */ }
+      }
     }
+  } catch {
+    // The reply stopped partway (or never got going after the headers).
+    yield { type: "text", text: said ? "\n\n(The reply stopped partway — the provider went quiet. Try asking again.)" : unreachable(baseUrl, { name: "TimeoutError" }), notice: true };
+    said = true;
+  } finally {
+    clearTimeout(timer);
   }
+  if (!said) yield { type: "text", text: "The model sent back an empty reply — try asking again.", notice: true };
   yield { type: "done", usage: null }; // most OpenAI-compatible servers don't report usage on streamed responses — not something we can fabricate
 }

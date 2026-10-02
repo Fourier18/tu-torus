@@ -109,8 +109,9 @@ function runIt(ext, code, inputs = []) {
 async function complete(systemPrompt, userContent) {
   for (let attempt = 0; attempt < 6; attempt++) {
     let text = "";
-    for await (const e of chat({ systemPrompt, history: [], userContent, baseUrl: provider.baseUrl, apiKey: provider.apiKey, model, providerLabel: provider.preset })) if (e.type === "text") text += e.text;
-    if (text.trim() && !/^(Rate limit reached|Couldn't reach)/.test(text)) return text.trim();
+    let notice = false;
+    for await (const e of chat({ systemPrompt, history: [], userContent, baseUrl: provider.baseUrl, apiKey: provider.apiKey, model, providerLabel: provider.preset })) { if (e.type === "text") text += e.text; if (e.notice) notice = true; }
+    if (text.trim() && !notice) return text.trim();
     await new Promise((r) => setTimeout(r, 5000 * (attempt + 1)));
   }
   throw new Error("rate-limited repeatedly");
