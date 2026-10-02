@@ -22,6 +22,7 @@ export default function App() {
   const [settings, setSettings] = useState({ theme: "light", provider: { preset: "mistral", baseUrl: "", model: "", apiKeySet: false } });
   const [saveFailed, setSaveFailed] = useState(""); // why the last autosave failed ("" = it didn't) — a silent autosave failure is worse than most errors here: the tutor reads from disk, so a save that never happened means it's coaching against code the learner already changed
   const [nameProblem, setNameProblem] = useState(""); // a file name that couldn't be opened, said beside the name box
+  const [update, setUpdate] = useState(null); // { version, url } when a newer release is out
   const saveTimer = useRef(null);
 
   const loadFile = (filename) =>
@@ -43,7 +44,19 @@ export default function App() {
       loadFile(DEFAULT_FILE.name).catch(() => {}), // if the backend is down at launch, fall back to the in-memory default rather than hanging on "Loading…" forever — confirmed this was a real bug by killing the backend before load
       fetch("/api/settings").then((r) => r.json()).then(applySettings).catch(() => {}), // same non-blocking pattern as languagesReady — a settings fetch failure must never trap the app on "Loading…"
     ]).then(() => setReady(true));
+    // A newer release (server/src/updates.js; once a day, only while the
+    // setting is on). Dismissing hides that version's note for good.
+    fetch("/api/update-check").then((r) => r.json()).then((u) => {
+      let dismissed = null;
+      try { dismissed = localStorage.getItem("tu-torus.dismissedUpdate"); } catch { /* storage unavailable — show it */ }
+      if (u.available && u.version !== dismissed) setUpdate(u);
+    }).catch(() => {});
   }, []);
+
+  const dismissUpdate = () => {
+    try { localStorage.setItem("tu-torus.dismissedUpdate", update.version); } catch { /* storage unavailable */ }
+    setUpdate(null);
+  };
 
   if (!ready) return <div className="app-loading">Loading…</div>;
 
@@ -90,6 +103,12 @@ export default function App() {
         {saveFailed && <span className="save-failed" role="alert">not saved — {saveFailed}</span>}
         {nameProblem && !saveFailed && <span className="save-failed" role="alert">{nameProblem}</span>}
         <span style={{ flex: 1 }} />
+        {update && (
+          <span className="update-notice" role="status">
+            Version {update.version} is available — <a href={update.url} target="_blank" rel="noreferrer">download it</a>
+            <button className="update-dismiss" onClick={dismissUpdate} aria-label="Hide this note" title="Hide this note">×</button>
+          </span>
+        )}
         <Settings settings={settings} onChange={applySettings} />
       </header>
       <main className="app-panels">

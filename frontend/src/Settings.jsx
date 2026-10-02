@@ -22,6 +22,7 @@ const TIPS = {
   model: "Which of that service's AI models the tutor uses, spelled exactly as the service lists it.",
   apiKey: "Your password for the AI service. Saved on this computer, encrypted with your Windows account, and sent only to that service.",
   notes: "Short notes the tutor keeps about how you're doing, used to pitch its explanations. You can edit, pin or clear them.",
+  updates: "Once a day, asks GitHub whether a newer Tu-Torus is out, and shows a note at the top if so. GitHub sees the request, as with visiting a web page; none of your code, files or settings go with it.",
 };
 
 // The tutor's own notes about the learner (it keeps them up to date itself).
@@ -77,11 +78,24 @@ function About() {
     fetch("/api/about").then((r) => r.json()).then((d) => setVersion(d.version)).catch(() => {});
   }, []);
   const show = () => fetch("/api/licenses").then((r) => r.text()).then(setLicenses).catch(() => setLicenses("Couldn't reach the app's server to load the licenses."));
+  // What a bug report needs (version, Windows, provider and model — never
+  // the key or any code), copied for pasting into the report.
+  const [copied, setCopied] = useState("");
+  const copyDetails = () => fetch("/api/diagnostics").then((r) => r.json())
+    .then(({ text }) => navigator.clipboard.writeText(text).then(() => setCopied("Copied — paste it into the report."), () => setCopied(text)))
+    .catch(() => setCopied("Couldn't reach the app's server."));
   return (
     <div>
       <div style={{ fontSize: "13px", color: "var(--text-dim)", marginBottom: "6px" }}>About</div>
       <div className="settings-hint">Tu-Torus {version}</div>
-      <button className="settings-secondary" onClick={show}>Licenses</button>
+      <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", marginBottom: "6px" }}>
+        <button className="settings-secondary" onClick={show}>Licenses</button>
+        <button className="settings-secondary" onClick={copyDetails}>Copy details for a bug report</button>
+      </div>
+      {copied && <div className="settings-hint" style={{ whiteSpace: "pre-wrap" }}>{copied}</div>}
+      <div className="settings-hint">
+        Something wrong? <a href="https://github.com/Fourier18/tu-torus/issues/new/choose" target="_blank" rel="noreferrer">Report a problem</a>
+      </div>
       {licenses !== null && (
         <div className="licenses-overlay" role="dialog" aria-modal="true" aria-label="Licenses" onKeyDown={(e) => e.key === "Escape" && setLicenses(null)} onClick={(e) => e.target === e.currentTarget && setLicenses(null)}>
           <div className="licenses-box">
@@ -216,6 +230,11 @@ export default function Settings({ settings, onChange }) {
               <Tip text={TIPS.editorHints}>Editor suggestions</Tip>
               <span style={{ display: "block", fontSize: "12px", color: "var(--text-dim)" }}>Autocomplete, hints and error underlines as you type. Fullest for JavaScript, TypeScript, HTML and CSS.</span>
             </span>
+          </label>
+
+          <label style={{ display: "flex", gap: "8px", alignItems: "flex-start", marginTop: "10px" }}>
+            <input type="checkbox" checked={settings.checkForUpdates !== false} onChange={(e) => setPref("checkForUpdates", e.target.checked)} style={{ width: "auto", marginTop: "3px" }} />
+            <span><Tip text={TIPS.updates}>Check for new versions</Tip></span>
           </label>
 
           <div className="settings-divider" />

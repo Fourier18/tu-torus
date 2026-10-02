@@ -11,7 +11,8 @@
     "electron": "npm run build:frontend && electron .",
     "package": "npm run build:frontend && npm run copy-ts-types && npm run notices && electron-builder",
     "copy-ts-types": "node scripts/copy-ts-types.cjs",
-    "notices": "node scripts/third-party-notices.cjs"
+    "notices": "node scripts/third-party-notices.cjs",
+    "package:signed": "npm run build:frontend && npm run copy-ts-types && npm run notices && electron-builder --config electron-builder.signed.cjs"
   },
   "keywords": [],
   "author": "",

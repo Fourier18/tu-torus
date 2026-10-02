@@ -3,6 +3,7 @@ import { WebSocketServer } from "ws";
 import { createServer } from "node:http";
 import { writeFile, readFile, rename, unlink } from "node:fs/promises";
 import path from "node:path";
+import os from "node:os";
 import { runOnce } from "./runner.js";
 import { writeRunRecord } from "./run-records.js";
 import { askTutor } from "./tutor.js";
@@ -11,6 +12,7 @@ import { getLearnerNotes, setLearnerNotes, getNotesHistory, NOTES_MAX } from "./
 import { WORKSPACE_DIR, APP_ROOT } from "./paths.js";
 import { LANGUAGES } from "./languages.js";
 import { isAllowedRequest, safeFileName } from "./security.js";
+import { checkForUpdate } from "./updates.js";
 
 const PROJECT_DIR = WORKSPACE_DIR;
 
@@ -88,6 +90,23 @@ app.get("/api/licenses", async (_req, res) => {
   } catch {
     res.status(404).type("text/plain").send("The license files aren't in this copy of Tu-Torus. They're at https://github.com/Fourier18/tu-torus (LICENSE and THIRD_PARTY_NOTICES.txt).");
   }
+});
+
+// Whether a newer release is out (updates.js — once a day, only while the
+// setting is on).
+app.get("/api/update-check", async (_req, res) => res.json(await checkForUpdate(APP_VERSION)));
+
+// Settings → About → "Copy details for a bug report": what a bug report
+// needs, and nothing personal (no key, no code, no file names or paths).
+app.get("/api/diagnostics", async (_req, res) => {
+  const s = await getPublicSettings();
+  res.json({ text: [
+    `Tu-Torus ${APP_VERSION}`,
+    `Windows: ${os.version?.() || os.type()} ${os.release()} (${os.arch()})`,
+    `Runtime: Node ${process.versions.node}${process.versions.electron ? `, Electron ${process.versions.electron}` : ""}`,
+    `Provider: ${s.provider.preset || "custom"}, model ${s.provider.model || "(none)"}, API key ${s.provider.apiKeySet ? "saved" : s.provider.apiKeyUnreadable ? "saved but unreadable" : "not saved"}`,
+    `Settings: theme ${s.theme}, editor suggestions ${s.editorHints ? "on" : "off"}, update check ${s.checkForUpdates === false ? "off" : "on"}`,
+  ].join("\n") });
 });
 
 // The page gets the settings without the API key (getPublicSettings: only
