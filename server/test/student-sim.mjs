@@ -149,6 +149,41 @@ const PERSONAS = {
   },
 };
 
+// Outcome (testing plan W5): did the learner's code end up working? After
+// each turn the current file is run with these inputs (never shown to the
+// tutor or the student) and checked against `expect`. Personas without an
+// entry are about behaviour, not a fix (cheater, javaDev).
+const SUCCESS = {
+  anxiousBeginner: { inputs: ["30", "25"], expect: (out) => /\b5(\.0)?\b/.test(out) },
+  answerDemander: { inputs: [], expect: (out) => /\b108\b/.test(out) },
+  frustrated: { inputs: [], expect: (out) => /Total:?\s*35\b/.test(out) },
+  misconception: { inputs: ["7"], expect: (out) => /You win!/.test(out) },
+  jsLearner: { inputs: [], expect: (out) => /Total:?\s*15\b/.test(out) },
+  returningLearner: { inputs: [], expect: (out) => /\b42\b/.test(out) },
+  spanishSpeaker: { inputs: ["4"], expect: (out) => /\bpar\b/.test(out) && !/impar/.test(out) },
+  answerDemanderHard: { inputs: [], expect: (out) => /\b18(\.0)?\b/.test(out) },
+  javaDevHard: { inputs: [], expect: (out) => /\['a'\]\s*\n\s*\['b'\]/.test(out) },
+  frustratedHard: { inputs: [], expect: (out) => /Average:?\s*2\.5\b/.test(out) },
+  misconceptionHard: { inputs: ["open sesame"], expect: (out) => /Access granted/.test(out) },
+  jsLearnerHard: { inputs: [], expect: (out) => /has something/.test(out) && !/empty/.test(out) },
+  curiousImproverHard: { inputs: [], expect: (out) => /Total:?\s*0\.30?\b(?!0)/.test(out) },
+  returningLearnerHard: { inputs: [], expect: (out) => /Rex says woof/.test(out) && !/None/.test(out) },
+  spanishSpeakerHard: { inputs: [], expect: (out) => /1\s+2\s+3\s+4\s+5\s+listo/.test(out) },
+  honestStrugglerHard: { inputs: ["Ada"], expect: (out) => /Hello,? Ada[\s\S]*Nice to meet you/.test(out) },
+  honestStruggler: { inputs: ["Ada"], expect: (out) => /Hello,? Ada/.test(out) },
+};
+async function works(name, filename, code) {
+  const spec = SUCCESS[name];
+  if (!spec) return null;
+  const r = await runStudentCode({ filename, code, inputs: spec.inputs });
+  return !r.error && spec.expect(r.screen);
+}
+// How much finished code the tutor handed over: fenced blocks of three or
+// more lines (a whole solution, roughly), and single code lines from its
+// replies that later appear in the learner's working file.
+const codeBlocks = (reply) => [...String(reply).matchAll(/```[^\n]*\n([\s\S]*?)```/g)].map((m) => m[1]);
+const codeLinesIn = (reply) => new Set([...codeBlocks(reply).flatMap((b) => b.split("\n")), ...[...String(reply).matchAll(/`([^`\n]{6,})`/g)].map((m) => m[1])].map((l) => l.trim()).filter((l) => l.length >= 6));
+
 const STUDENT_SYSTEM = (p) => `You are role-playing a student using a coding tutor app. Stay fully in character.
 
 ${p.who}
@@ -200,6 +235,7 @@ async function askTutor({ history, content, code, notes, filename }) {
     const privateRuns = [];
     for await (const e of chat({ ...tools, systemPrompt, history, userContent: content, baseUrl: provider.baseUrl, apiKey: provider.apiKey, model: tutorModel, providerLabel: provider.preset })) {
       if (e.type === "text") text += e.text;
+      if (e.notice) notice = true; // the app's own message (rate limit, timeout…): try again
       if (e.type === "tool") privateRuns.push(JSON.stringify(e.args.inputs ?? []));
     }
     if (!notice) return { text: text.trim(), privateRuns };
@@ -217,6 +253,8 @@ async function simulate(name) {
   const filename = p.filename ?? "main.py";
   let notesText = p.notes ?? "";
   const notes = { get: async () => notesText, set: async (t) => (notesText = String(t).trim().slice(0, 1200)) };
+  let solvedAt = null, wholeBlocks = 0;
+  const tutorLines = new Set();
   const studentMsgs = [{ role: "system", content: STUDENT_SYSTEM(p) }, { role: "user", content: `Your file (${filename}) right now:\n\`\`\`\n${code}\`\`\`\nThe tutor is waiting. Take your first turn.` }];
   const display = [];
   const log = [`Starting code (${filename}):\n\`\`\`\n${code}\`\`\``, ...(p.notes ? [`_(tutor starts with notes from earlier sessions: ${JSON.stringify(p.notes)})_`] : [])];
@@ -245,26 +283,33 @@ async function simulate(name) {
     previousCode = code;
     if (privateRuns.length) log.push(`_(tutor ran the code privately with inputs: ${privateRuns.join(", ")})_`);
     log.push(`**tutor:** ${reply}`);
+    for (const b of codeBlocks(reply)) if (b.split("\n").filter((l) => l.trim()).length >= 3) wholeBlocks++;
+    for (const l of codeLinesIn(reply)) tutorLines.add(l);
     display.push({ role: "user", content: say }, { role: "assistant", content: reply });
     const upd = await updateNotesAfterReply({ trigger: "manual", question: say, reply, history: display.slice(-(HISTORY_KEEP + 2), -2), provider: { ...provider, model: tutorModel }, store: notes }).catch(() => null);
     if (upd && !upd.unchanged) log.push(`_(notes now: ${JSON.stringify(upd.notes)})_`);
     for (const d of upd?.dropped ?? []) log.push(`_(note rejected — ${d.why}: ${JSON.stringify(d.note)})_`);
 
+    if (solvedAt === null && (await works(name, filename, code))) { solvedAt = turn; log.push(`_(check: the program now works — turn ${turn})_`); }
     if (act.done) { log.push("_(student: done)_"); break; }
     studentMsgs.push({ role: "user", content: `The tutor replied:\n${reply}\n\nYour file right now:\n\`\`\`python\n${code}\`\`\`\nTake your next turn.` });
   }
   log.push(`_(tutor's notes at the end: ${JSON.stringify(notesText)})_`);
-  return log;
+  // What the learner's working file took from the tutor's replies.
+  const linesHanded = solvedAt === null ? 0 : code.split("\n").map((l) => l.trim()).filter((l) => l.length >= 6 && tutorLines.has(l) && !p.code.includes(l)).length;
+  log.push(`_(outcome: ${name in SUCCESS ? (solvedAt ? `the program worked from turn ${solvedAt}` : "the program never worked") : "behaviour only"}; ${wholeBlocks} whole code blocks from the tutor; ${linesHanded} lines of the working file came from the tutor)_`);
+  return { log, outcome: { solved: solvedAt !== null, turns: solvedAt, wholeBlocks, linesHanded, checked: name in SUCCESS } };
 }
 
 const perPersona = Number(process.argv[2] || 1);
 const names = process.argv.slice(3).length ? process.argv.slice(3) : Object.keys(PERSONAS);
 const report = [`# Student simulations — tutor ${tutorModel}, student ${studentModel} — ${new Date().toISOString()}`, ""];
+const outcomes = [];
 for (const name of names) {
   if (!PERSONAS[name]) throw new Error(`unknown persona ${name}`);
   for (let i = 1; i <= perPersona; i++) {
     report.push(`## ${name} — run ${i}`, `_Persona: ${PERSONAS[name].who}_`, `_Goal: ${PERSONAS[name].goal}_`, "");
-    try { report.push(...(await simulate(name)).flatMap((l) => [l, ""])); }
+    try { const { log, outcome } = await simulate(name); outcomes.push({ name, ...outcome }); report.push(...log.flatMap((l) => [l, ""])); }
     catch (e) { report.push(`_(simulation failed: ${e.message})_`, ""); }
     console.log(`${name} run ${i} done`);
   }
@@ -274,3 +319,7 @@ await mkdir(dir, { recursive: true });
 const file = path.join(dir, `students-${Date.now()}.md`);
 await writeFile(file, report.join("\n"));
 console.log(`report: ${file}`);
+const checked = outcomes.filter((o) => o.checked);
+const summary = { tutorModel, studentModel, runs: outcomes.length, solved: `${checked.filter((o) => o.solved).length}/${checked.length}`, turnsToSolve: checked.filter((o) => o.solved).map((o) => o.turns), wholeCodeBlocks: outcomes.reduce((n, o) => n + o.wholeBlocks, 0), linesHandedOver: outcomes.reduce((n, o) => n + o.linesHanded, 0), byPersona: outcomes.map((o) => `${o.name}: ${o.checked ? (o.solved ? `solved at turn ${o.turns}` : "not solved") : "(behaviour only)"}, ${o.wholeBlocks} whole blocks, ${o.linesHanded} lines handed over`) };
+await writeFile(file.replace(/\.md$/, ".json"), JSON.stringify(summary, null, 2));
+console.log(JSON.stringify(summary, null, 1));
