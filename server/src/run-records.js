@@ -44,7 +44,7 @@ export async function writeRunRecord({ filename, code, output, error }) {
     "```",
     capOutput(output || "(no output)"),
     "```",
-    error ? `\n## Error\n\`\`\`\n${error}\n\`\`\`` : "\n## Error\n(none)",
+    error ? `\n## Error\n\`\`\`\n${capOutput(error)}\n\`\`\`` : "\n## Error\n(none)", // a runaway error stream is capped like output
   ].join("\n");
 
   await writeFile(path.join(RUNS_DIR, `${id}.md`), body);

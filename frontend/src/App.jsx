@@ -20,13 +20,14 @@ export default function App() {
   const [lastRun, setLastRun] = useState(null); // { pointer, ok }
   const [ready, setReady] = useState(false); // gates first render until the language table has loaded — isBrowserNative/monacoLanguage must never run against an empty table
   const [settings, setSettings] = useState({ theme: "light", provider: { preset: "mistral", baseUrl: "", model: "", apiKeySet: false } });
-  const [saveFailed, setSaveFailed] = useState(false); // a silent autosave failure is worse than most errors here — the tutor reads from disk, so a save that never happened means it's coaching against code the learner already changed
+  const [saveFailed, setSaveFailed] = useState(""); // why the last autosave failed ("" = it didn't) — a silent autosave failure is worse than most errors here: the tutor reads from disk, so a save that never happened means it's coaching against code the learner already changed
+  const [nameProblem, setNameProblem] = useState(""); // a file name that couldn't be opened, said beside the name box
   const saveTimer = useRef(null);
 
   const loadFile = (filename) =>
     fetch(`/api/file?filename=${encodeURIComponent(filename)}`)
-      .then((r) => r.json())
-      .then(({ code }) => setFile({ name: filename, code: code !== null ? code : "" }));
+      .then((r) => { if (!r.ok) throw new Error("bad name"); return r.json(); })
+      .then(({ code }) => { setFile({ name: filename, code: code !== null ? code : "" }); setNameProblem(""); });
 
   const applySettings = (s) => {
     setSettings(s);
@@ -53,7 +54,7 @@ export default function App() {
     // On failure, snap the visible field back to the file actually loaded —
     // otherwise the filename box and the editor's real content silently
     // disagree, with no sign anything went wrong.
-    loadFile(name).catch(() => setNameInput(file.name));
+    loadFile(name).catch(() => { setNameInput(file.name); setNameProblem(`"${name}" can't be used as a file name here`); });
   };
 
   const onCodeChange = (code) => {
@@ -65,8 +66,8 @@ export default function App() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ filename: file.name, code }),
       })
-        .then((r) => setSaveFailed(!r.ok))
-        .catch(() => setSaveFailed(true));
+        .then(async (r) => setSaveFailed(r.ok ? "" : (await r.json().catch(() => ({}))).error || "the file couldn't be written"))
+        .catch(() => setSaveFailed("the app's server didn't answer"));
     }, 2000); // [DESIGN.md] "Autosaves ~2 seconds after typing stops"
   };
 
@@ -86,7 +87,8 @@ export default function App() {
           title="File name — type another name and press Enter to open or start that file"
         />
         <FileMenu current={file.name} onOpen={(name) => { setNameInput(name); loadFile(name).catch(() => setNameInput(file.name)); }} />
-        {saveFailed && <span className="save-failed">not saved — check connection</span>}
+        {saveFailed && <span className="save-failed" role="alert">not saved — {saveFailed}</span>}
+        {nameProblem && !saveFailed && <span className="save-failed" role="alert">{nameProblem}</span>}
         <span style={{ flex: 1 }} />
         <Settings settings={settings} onChange={applySettings} />
       </header>

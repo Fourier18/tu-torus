@@ -12,6 +12,7 @@ export default function FileMenu({ current, onOpen }) {
   const [creating, setCreating] = useState(false);
   const [ext, setExt] = useState("py");
   const [name, setName] = useState("");
+  const [problem, setProblem] = useState(""); // why Create didn't work, e.g. a name Windows reserves
   const box = useRef(null);
 
   useEffect(() => {
@@ -27,7 +28,7 @@ export default function FileMenu({ current, onOpen }) {
     return () => { document.removeEventListener("mousedown", away); document.removeEventListener("keydown", esc); };
   }, [open]);
 
-  const close = () => { setOpen(false); setCreating(false); setName(""); };
+  const close = () => { setOpen(false); setCreating(false); setName(""); setProblem(""); };
 
   const create = async () => {
     const base = name.trim().replace(/\.[^.]*$/, "") || "untitled";
@@ -35,7 +36,8 @@ export default function FileMenu({ current, onOpen }) {
     // Don't open an existing file under the guise of "new" — pick a free name.
     for (let n = 2; files.some((f) => f.name.toLowerCase() === file.toLowerCase()); n++) file = `${base}${n}.${ext}`;
     const r = await fetch("/api/file", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ filename: file, code: "" }) });
-    if (r.ok) { onOpen(file); close(); }
+    if (r.ok) { onOpen(file); close(); return; }
+    setProblem((await r.json().catch(() => ({}))).error || "that file couldn't be created");
   };
 
   return (
@@ -51,10 +53,11 @@ export default function FileMenu({ current, onOpen }) {
                 {languages.map((l) => <option key={l.ext} value={l.ext}>{l.name} (.{l.ext})</option>)}
               </select>
               <div className="file-menu-name">
-                <input autoFocus value={name} placeholder="name" onChange={(e) => setName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && create()} aria-label="File name" />
+                <input autoFocus value={name} placeholder="name" onChange={(e) => { setName(e.target.value); setProblem(""); }} onKeyDown={(e) => e.key === "Enter" && create()} aria-label="File name" />
                 <span>.{ext}</span>
               </div>
               <button className="file-menu-create-btn" onClick={create}>Create</button>
+              {problem && <div className="file-menu-problem" role="alert">Not created — {problem}.</div>}
             </div>
           )}
           <div className="file-menu-list">

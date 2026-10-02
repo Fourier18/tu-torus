@@ -17,12 +17,22 @@ export function runPython({ code, onData, onExit }) {
     workerData: { code, sab },
   });
 
+  // Same limit as the other languages (toolchain.js): a program that runs
+  // 15 seconds without finishing is stopped, but the clock pauses while
+  // input() waits for the learner and starts over when they answer. Python
+  // had no limit at all — a silent endless loop ran until Stop.
+  const LIMIT_MS = 15000;
+  let timer = null;
+  const startClock = () => { clearTimeout(timer); timer = setTimeout(() => finish({ ok: false, error: "Timed out — stopped after 15 seconds." }), LIMIT_MS); };
+  const stopClock = () => { clearTimeout(timer); timer = null; };
+
   let settled = false;
   let output = ""; // [Bug found by the tutor itself] finish() never accumulated this at all — the browser's live stream worked (a separate path, index.js's own accumulator), but the run record — which needs the full text, not just live chunks — was writing "(no output)" for every single successful Python run. toolchain.js already did this correctly; this engine, built later under time pressure, dropped it.
   let errorText = "";
   const finish = ({ ok, error }) => {
     if (settled) return;
     settled = true;
+    stopClock();
     // Prefer the actually-captured stderr stream (the real, complete
     // traceback text) over the worker's own synthesized error message,
     // which is often just a redundant summary of the same thing — and
@@ -44,7 +54,8 @@ export function runPython({ code, onData, onExit }) {
   };
 
   worker.on("message", (msg) => {
-    if (msg.type === "stdin-used") deliver();
+    if (msg.type === "need-stdin") stopClock(); // waiting for the learner, not running
+    if (msg.type === "stdin-used") { startClock(); deliver(); }
     if (msg.type === "data") {
       // Same cap as the other languages (toolchain.js): an endless printing
       // loop otherwise streamed forever and swamped the output panel.
@@ -57,6 +68,7 @@ export function runPython({ code, onData, onExit }) {
   });
 
   worker.on("error", (err) => finish({ ok: false, error: err.message || String(err) }));
+  startClock();
   worker.on("exit", (code) => { if (code !== 0) finish({ ok: false, error: `Python engine exited unexpectedly (code ${code})` }); });
 
   return {

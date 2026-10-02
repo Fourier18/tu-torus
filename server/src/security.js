@@ -43,10 +43,15 @@ export function isAllowedRequest({ host, origin }) {
 // A plain file name in the workspace: no folders, no "..", and nothing
 // starting with "." (which also keeps .tutor/ — settings, API key, notes —
 // out of reach of the file routes).
+// Windows also reserves device names (CON, NUL, COM1…) whatever the ending —
+// "con.py" can't be a file there — and quietly drops a trailing dot or
+// space, so "main.py." would be saved over main.py.
+const WINDOWS_RESERVED = /^(con|prn|aux|nul|com[0-9¹²³]|lpt[0-9¹²³])(\.|$)/i;
 export function safeFileName(name) {
   if (typeof name !== "string") return null;
   const n = name.trim();
   if (!n || n.length > 100 || n.startsWith(".") || /[\\/:*?"<>|\x00-\x1f]/.test(n)) return null;
+  if (WINDOWS_RESERVED.test(n) || /[. ]$/.test(n)) return null;
   return n;
 }
 

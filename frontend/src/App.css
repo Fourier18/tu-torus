@@ -121,3 +121,4 @@ body { margin: 0; background: var(--bg); color: var(--text); font-family: var(--
 .file-menu-create select, .file-menu-name input { width: 100%; padding: 6px; border: 1px solid var(--border); border-radius: 4px; background: var(--bg); color: var(--text); font-size: 13px; }
 .file-menu-name { display: flex; align-items: center; gap: 4px; font-family: var(--mono); color: var(--text-dim); font-size: 13px; }
 .file-menu-create-btn { align-self: flex-start; background: var(--accent); color: var(--on-accent, #fff); border: none; border-radius: 4px; padding: 5px 12px; font-size: 13px; cursor: pointer; }
+.file-menu-problem { font-size: 12px; color: var(--error); line-height: 1.4; }

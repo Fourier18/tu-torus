@@ -42,13 +42,25 @@ function codeChangeNote(previousCode, code) {
   return `The learner edited the code since your last reply. Anything you said about the old version may no longer apply. Changed lines:\n\`\`\`\n${[...removed, ...added].join("\n")}\n\`\`\``;
 }
 
+// What one message may carry. A very long file, or a run that printed a
+// flood of errors, would otherwise make a request the provider refuses (or
+// bills heavily) — the start and the end are kept, where the interesting
+// parts usually are.
+const CODE_LIMIT = 40_000;
+const RUN_LIMIT = 20_000;
+function clip(text, limit, what) {
+  if (text == null || text.length <= limit) return text;
+  const half = Math.floor(limit / 2);
+  return `${text.slice(0, half)}\n...[${text.length - limit} characters of this ${what} left out here]...\n${text.slice(-half)}`;
+}
+
 export function buildUserContent({ trigger, question, filename, code, previousCode, runContext }) {
   const parts = [];
   const lead = question || TRIGGER_PROMPTS[trigger];
   if (lead) parts.push(lead);
   const note = codeChangeNote(previousCode, code);
   if (note) parts.push(note);
-  if (filename && code != null) parts.push(`Current contents of ${filename}:\n\`\`\`\n${code}\n\`\`\``);
+  if (filename && code != null) parts.push(`Current contents of ${filename}:\n\`\`\`\n${clip(code, CODE_LIMIT, "file")}\n\`\`\``);
   // What this app's runtime for the file can and can't do (languages.json).
   // Without it the tutor wrote QB64 graphics (SCREEN 13 / PSET) for a BASIC
   // that has none, then chased an invisible comma for eight replies.
@@ -71,7 +83,7 @@ export function buildUserContent({ trigger, question, filename, code, previousCo
     // the old run attached and labelled "earlier version" — still told them
     // to delete print(a) and print(b), reading the old code and output as now.
     if (stale) parts.push("They ran an earlier version of this code; they've edited it since, so that run is left out — it no longer shows what this code does. Go by the code above only.");
-    else parts.push(`Their most recent run, attached automatically by the app (the learner didn't paste it) — the Output section is exactly what appeared on their screen, including what they typed at input() prompts.\n${runContext}`);
+    else parts.push(`Their most recent run, attached automatically by the app (the learner didn't paste it) — the Output section is exactly what appeared on their screen, including what they typed at input() prompts.\n${clip(runContext, RUN_LIMIT, "run record")}`);
   }
   return parts.join("\n\n") || "Can you check my code?";
 }

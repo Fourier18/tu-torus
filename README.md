@@ -2,7 +2,7 @@
 
 A live coding tutor: write code, run it, and get coached on what happened. Three panels — an editor, an output panel that shows what your program prints, and a chat panel where the tutor sees your code and your last run and talks you through it. When a question turns on what the code actually does — is this comma allowed, does this print what I think — the tutor runs your file privately to check before it answers.
 
-Nine languages come built in and run the moment you press Run: Python, JavaScript, TypeScript (type-checked), Ruby, PHP, Perl, Lua, BASIC, and HTML/CSS web pages. Programs that ask for input wait for you to type, just like in a terminal. While a program runs, Run becomes Stop (Ctrl+C in the input box does the same). A program that prints endlessly is stopped after 200,000 characters of output, and one that loops silently after 15 seconds; in Python, use Stop.
+Nine languages come built in and run the moment you press Run: Python, JavaScript, TypeScript (type-checked), Ruby, PHP, Perl, Lua, BASIC, and HTML/CSS web pages. Programs that ask for input wait for you to type, just like in a terminal. While a program runs, Run becomes Stop (Ctrl+C in the input box does the same). A program that prints endlessly is stopped after 200,000 characters of output, and one that runs 15 seconds without finishing is stopped too (time spent waiting for you to type isn't counted).
 
 BASIC is QBasic-style, with text output. Pressing Run on a JSON file checks it and shows "Valid JSON." or the first mistake with its line and column.
 

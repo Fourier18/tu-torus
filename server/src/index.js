@@ -1,7 +1,7 @@
 import express from "express";
 import { WebSocketServer } from "ws";
 import { createServer } from "node:http";
-import { writeFile, readFile } from "node:fs/promises";
+import { writeFile, readFile, rename, unlink } from "node:fs/promises";
 import path from "node:path";
 import { runOnce } from "./runner.js";
 import { writeRunRecord } from "./run-records.js";
@@ -26,11 +26,25 @@ app.use(express.json({ limit: "15mb" })); // headroom for an attached canvas scr
 // [DESIGN.md, Panel 1] Autosave target — the tutor has no live keystroke
 // channel; the frontend sends its current in-memory code directly with each
 // tutor call, but this file on disk is what the app reloads on a refresh.
+// Written to a temporary file, then renamed over the real one, so a crash or
+// power cut mid-save leaves the old version or the new one, never half of
+// it. A failed save says why — the page shows it beside the file name.
 app.post("/api/file", async (req, res) => {
   const filename = safeFileName(req.body?.filename);
-  if (!filename || typeof req.body?.code !== "string") return res.status(400).json({ error: "Bad file name" });
-  await writeFile(path.join(PROJECT_DIR, filename), req.body.code);
-  res.json({ ok: true });
+  if (!filename || typeof req.body?.code !== "string") return res.status(400).json({ error: "that file name can't be used" });
+  const target = path.join(PROJECT_DIR, filename);
+  const tmp = path.join(PROJECT_DIR, `.${filename}.${process.pid}.saving`);
+  try {
+    await writeFile(tmp, req.body.code);
+    await rename(tmp, target);
+    res.json({ ok: true });
+  } catch (err) {
+    await unlink(tmp).catch(() => {});
+    const reason = err.code === "ENOSPC" ? "the disk is full"
+      : ["EACCES", "EPERM", "EBUSY"].includes(err.code) ? "Windows wouldn't let the file be written (another program may have it open)"
+        : "the file couldn't be written";
+    res.status(500).json({ error: reason });
+  }
 });
 
 // Load on startup so a page refresh shows what's actually on disk, not a
