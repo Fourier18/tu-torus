@@ -14,9 +14,16 @@ import { pathToFileURL } from "node:url";
 
 const CLANG = {
   version: "22.0.0-git20542-10",
-  url: "https://registry.npmjs.org/@yowasp/clang/-/clang-22.0.0-git20542-10.tgz",
+  // TU_TORUS_CLANG_URL: tests point this somewhere unreachable to check
+  // what a learner sees with no internet.
+  url: process.env.TU_TORUS_CLANG_URL || "https://registry.npmjs.org/@yowasp/clang/-/clang-22.0.0-git20542-10.tgz",
   sha512: "V31/z9GrJECKeACTDUyvg2llbEUiFi3bxtL5HSg7H/6sydSxdI/AoVAD9F5ozrfLjotWl0B9rghR87m+DUM/zg==",
 };
+
+// A download that goes quiet (no data for STALL_MS) is given up on, rather
+// than sitting until the 10-minute compile limit. (Defined before the
+// top-level await below, which starts the download.)
+const STALL_MS = Number(process.env.TU_TORUS_DOWNLOAD_STALL_MS) || 60_000;
 
 const [mode, ...args] = process.argv.slice(2);
 if (mode === "compile") await compile(...args);
@@ -73,7 +80,13 @@ async function ensureClang(toolsDir) {
   let tgz;
   try { tgz = await download(CLANG.url); }
   catch (e) {
-    process.stderr.write(`Couldn't download the C/C++ compiler (${e.message}). Check the internet connection and press Run again — it's only needed this once.\n`);
+    // Network error codes in plain words; anything else as it came.
+    const code = e.code ?? e.cause?.code;
+    const why = ["ENOTFOUND", "EAI_AGAIN"].includes(code) ? "the download site couldn't be reached — this computer may be offline"
+      : ["ECONNREFUSED", "ECONNRESET", "ETIMEDOUT", "UND_ERR_CONNECT_TIMEOUT", "UND_ERR_SOCKET"].includes(code) ? "the connection was refused or dropped"
+        : /^HTTP \d+/.test(e.message) ? `the download site answered with an error (${e.message})`
+          : e.message;
+    process.stderr.write(`Couldn't download the C/C++ compiler (${why}). Check the internet connection and press Run again — it's only needed this once. On a school or office network, a proxy or firewall may be blocking it.\n`);
     process.exit(1);
   }
   const digest = createHash("sha512").update(tgz).digest("base64");
@@ -97,12 +110,27 @@ async function ensureClang(toolsDir) {
 }
 
 async function download(url) {
-  const res = await fetch(url);
+  const abort = new AbortController();
+  const stalled = () => abort.abort(new Error("the download stopped responding"));
+  let stall = setTimeout(stalled, STALL_MS);
+  const gotData = () => { clearTimeout(stall); stall = setTimeout(stalled, STALL_MS); };
+  try {
+    return await fetchAll(url, abort.signal, gotData);
+  } catch (e) {
+    throw abort.signal.aborted ? abort.signal.reason : e.cause ?? e;
+  } finally {
+    clearTimeout(stall);
+  }
+}
+
+async function fetchAll(url, signal, onData) {
+  const res = await fetch(url, { signal });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   const total = Number(res.headers.get("content-length")) || 27_000_000;
   const chunks = [];
   let got = 0, shown = 0;
   for await (const chunk of res.body) {
+    onData();
     chunks.push(chunk);
     got += chunk.length;
     const pct = Math.min(100, Math.floor((got / total) * 100));

@@ -16,7 +16,7 @@ Download `Tu-Torus.Setup.1.6.1.exe` from [the latest release](https://github.com
 
 Windows may show "Windows protected your PC" the first time you run the installer. Choose **More info**, then **Run anyway**.
 
-Your files are kept in `%APPDATA%\tu-torus\workspace` and stay there through updates. The ▾ beside the file name opens them and starts new ones in any language.
+Your files are kept in `%APPDATA%\tu-torus\workspace` and stay there through updates, and if you uninstall. The ▾ beside the file name opens them and starts new ones in any language.
 
 When a newer version is out, a note at the top of the app links to it; installing it keeps your files and settings. Settings → "Check for new versions" turns the note off.
 
