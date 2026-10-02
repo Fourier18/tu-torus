@@ -49,7 +49,6 @@ Free tiers from Mistral and Gemini may use your prompts for training data — a 
 - **Theme**: Light, Dark, Forest Green, Azure Night, Desert Sunset, Arctic Dawn or Plum Midnight. The editor changes with the rest of the app.
 - **Editor suggestions**: autocomplete, hints and error underlines as you type. Off by default. Fullest for JavaScript, TypeScript, HTML and CSS; other languages get suggestions from words already in the file.
 - **What the tutor remembers about you**: short notes the tutor keeps on how you're doing, stored on this computer. You can edit them, clear them, or start a line with `*` to pin it so the tutor won't change it.
-
 - **Check for new versions**: once a day, asks GitHub whether a newer Tu-Torus is out. On by default.
 
 Rest the mouse on a setting's name in Settings for a short explanation.
