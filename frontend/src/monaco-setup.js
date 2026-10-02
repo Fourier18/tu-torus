@@ -32,8 +32,8 @@ export const THEMES = {
   dark: { label: "Dark", monaco: "vs-dark" },
   forest: { label: "Forest Green", base: "vs-dark", bg: "#13201a", fg: "#dfeee4", line: "#182a21", dim: "#5f7d69", accent: "#4caf7a" },
   "azure-night": { label: "Azure Night", base: "vs-dark", bg: "#0d1b2e", fg: "#e3ecf7", line: "#12233a", dim: "#5a7394", accent: "#3d9bff" },
-  "desert-sunset": { label: "Desert Sunset", base: "vs", bg: "#fdf6ec", fg: "#3a2a1c", line: "#f6e7d3", dim: "#b0906f", accent: "#b8501f" },
-  "arctic-dawn": { label: "Arctic Dawn", base: "vs", bg: "#f5f9fc", fg: "#1b2a36", line: "#e9f1f7", dim: "#8ea3b4", accent: "#16788e" },
+  "desert-sunset": { label: "Desert Sunset", base: "vs", bg: "#fdf6ec", fg: "#3a2a1c", line: "#f6e7d3", dim: "#b0906f", accent: "#ab4a1d" },
+  "arctic-dawn": { label: "Arctic Dawn", base: "vs", bg: "#f5f9fc", fg: "#1b2a36", line: "#e9f1f7", dim: "#8ea3b4", accent: "#16768b" },
   "plum-midnight": { label: "Plum Midnight", base: "vs-dark", bg: "#1c1524", fg: "#eee6f5", line: "#231a2e", dim: "#75648a", accent: "#b77ce8" },
 };
 

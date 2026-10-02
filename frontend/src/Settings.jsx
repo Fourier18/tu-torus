@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { THEMES } from "./monaco-setup";
 
 // A setting's name with a short explanation that pops up on hover (or while
@@ -55,12 +55,13 @@ function LearnerNotes() {
         value={notes}
         maxLength={max}
         rows={5}
+        aria-label="What the tutor remembers about you"
         style={{ width: "100%", boxSizing: "border-box", fontSize: "12px", fontFamily: "inherit" }}
         placeholder={status === "loading" ? "Loading…" : "Nothing yet — the tutor adds notes as it gets to know how you're doing."}
         onChange={(e) => { setNotes(e.target.value); setStatus("edited"); }}
       />
       <div style={{ display: "flex", gap: "6px", marginTop: "4px" }}>
-        <button onClick={() => save(notes)} disabled={status !== "edited"}>{status === "edited" ? "Save notes" : "Saved"}</button>
+        <button onClick={() => save(notes)} disabled={status !== "edited"} aria-label={status === "edited" ? "Save notes" : "Notes saved"}>{status === "edited" ? "Save notes" : "Saved"}</button>
         <button onClick={() => { setNotes(""); save(""); }} disabled={!notes}>Clear</button>
       </div>
       <div className="settings-hint">Start a line with <code>*</code> to pin it — the tutor won't change pinned lines.</div>
@@ -142,6 +143,14 @@ function keyHintFor(preset) {
 
 export default function Settings({ settings, onChange }) {
   const [open, setOpen] = useState(false);
+  const toggleRef = useRef(null);
+  // Escape closes the panel and puts keyboard focus back on the gear.
+  useEffect(() => {
+    if (!open) return;
+    const esc = (e) => { if (e.key === "Escape" && !document.querySelector(".licenses-overlay")) { setOpen(false); toggleRef.current?.focus(); } };
+    document.addEventListener("keydown", esc);
+    return () => document.removeEventListener("keydown", esc);
+  }, [open]);
   const [showProviders, setShowProviders] = useState(false);
   const initial = settings.provider || {};
   // The page never holds the saved key (the server sends only whether one is
@@ -214,7 +223,7 @@ export default function Settings({ settings, onChange }) {
 
   return (
     <div className="settings">
-      <button className="settings-toggle" onClick={() => setOpen((o) => !o)} aria-label="Settings">⚙</button>
+      <button className="settings-toggle" ref={toggleRef} onClick={() => setOpen((o) => !o)} aria-label="Settings" aria-expanded={open} title="Settings">⚙</button>
       {open && (
         <div className="settings-panel">
           <label>
@@ -339,7 +348,7 @@ export default function Settings({ settings, onChange }) {
             Your API key is saved on this computer, encrypted with your Windows account, and sent only to the provider you picked.
           </div>
 
-          <button onClick={saveProvider} disabled={saved || !form.baseUrl || !form.model}>
+          <button onClick={saveProvider} disabled={saved || !form.baseUrl || !form.model} aria-label={saved ? "Provider settings saved" : "Save provider settings"}>
             {saved ? "Saved" : "Save"}
           </button>
 

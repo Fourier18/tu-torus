@@ -5,6 +5,7 @@
   --bg: #1a1a1e;
   --panel-bg: #212126;
   --border: #33333a;
+  --control-border: #6d6d75; /* outlines of input boxes and controls: 3:1 or more against --bg and --panel-bg (WCAG 1.4.11) */
   --text: #e8e8ea;
   --text-dim: #97979f;
   --accent: #5b8dee;

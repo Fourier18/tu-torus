@@ -9,6 +9,7 @@
   --bg: #13201a;
   --panel-bg: #182a21;
   --border: #2a4033;
+  --control-border: #5d7867; /* outlines of input boxes and controls: 3:1 or more against --bg and --panel-bg (WCAG 1.4.11) */
   --text: #dfeee4;
   --text-dim: #8fb09b;
   --accent: #4caf7a;
@@ -22,6 +23,7 @@
   --bg: #0d1b2e;
   --panel-bg: #12233a;
   --border: #1f3656;
+  --control-border: #576f8e; /* outlines of input boxes and controls: 3:1 or more against --bg and --panel-bg (WCAG 1.4.11) */
   --text: #e3ecf7;
   --text-dim: #8aa3c2;
   --accent: #3d9bff;
@@ -35,9 +37,10 @@
   --bg: #fdf6ec;
   --panel-bg: #f6e7d3;
   --border: #e6cfae;
+  --control-border: #9a7e61; /* outlines of input boxes and controls: 3:1 or more against --bg and --panel-bg (WCAG 1.4.11) */
   --text: #3a2a1c;
   --text-dim: #735539;
-  --accent: #b8501f;
+  --accent: #ab4a1d; /* was #b8501f: links on --panel-bg were 4.11:1, under 4.5 */
   --on-accent: #ffffff;
   --output-bg: #fffaf3;
   --error: #b3261e;
@@ -48,9 +51,10 @@
   --bg: #f5f9fc;
   --panel-bg: #e9f1f7;
   --border: #d3e1ec;
+  --control-border: #778999; /* outlines of input boxes and controls: 3:1 or more against --bg and --panel-bg (WCAG 1.4.11) */
   --text: #1b2a36;
   --text-dim: #4f6475;
-  --accent: #16788e;
+  --accent: #16768b; /* was #16788e: links on --panel-bg were 4.47:1, under 4.5 */
   --on-accent: #ffffff;
   --output-bg: #fbfdfe;
   --error: #b3261e;
@@ -61,6 +65,7 @@
   --bg: #1c1524;
   --panel-bg: #231a2e;
   --border: #3a2c4a;
+  --control-border: #746385; /* outlines of input boxes and controls: 3:1 or more against --bg and --panel-bg (WCAG 1.4.11) */
   --text: #eee6f5;
   --text-dim: #a592b8;
   --accent: #b77ce8;

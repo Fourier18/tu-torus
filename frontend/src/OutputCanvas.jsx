@@ -108,6 +108,7 @@ export default function OutputCanvas({ file, running, setRunning, onRunRecorded 
         onChange={(e) => setStdin(e.target.value)}
         onKeyDown={(e) => { if (e.key === "Enter") sendStdin(); if (e.key === "c" && e.ctrlKey && running) { e.preventDefault(); stop(); } }}
         placeholder={running ? "Type input and press Enter" : ""}
+        aria-label="Program input"
       />
       <button className="run-btn" onClick={() => (running ? stop() : nativePage ? setPageKey((k) => k + 1) : setRunning(true))} title={running ? "Stop the program (Ctrl+C in the input box)" : undefined}>
         {running ? "Stop" : "Run"}
@@ -118,7 +119,7 @@ export default function OutputCanvas({ file, running, setRunning, onRunRecorded 
   if (nativePage) {
     return (
       <div className="panel output-canvas output-canvas-page">
-        <iframe key={pageKey} title="output" sandbox="allow-scripts" srcDoc={file.code} />
+        <iframe key={pageKey} title="Web page output" sandbox="allow-scripts" srcDoc={file.code} />
         {bar}
       </div>
     );
@@ -126,7 +127,8 @@ export default function OutputCanvas({ file, running, setRunning, onRunRecorded 
 
   return (
     <div className="panel output-canvas">
-      <div className="output-scroll" ref={follow.ref} onScroll={follow.onScroll}>
+      {/* role="log": a screen reader reads new output as it arrives */}
+      <div className="output-scroll" ref={follow.ref} onScroll={follow.onScroll} role="log" aria-label="Program output">
         <pre className="output-text">
           {lines}
           {crashed && <div className="output-error-line">Program stopped with an error</div>}

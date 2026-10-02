@@ -98,6 +98,7 @@ export default function App() {
           onKeyDown={(e) => { if (e.key === "Enter") openFile(); if (e.key === "Escape") { setNameInput(file.name); e.currentTarget.blur(); } }}
           onBlur={() => setNameInput(file.name)}
           title="File name — type another name and press Enter to open or start that file"
+          aria-label="File name"
         />
         <FileMenu current={file.name} onOpen={(name) => { setNameInput(name); loadFile(name).catch(() => setNameInput(file.name)); }} />
         {saveFailed && <span className="save-failed" role="alert">not saved — {saveFailed}</span>}

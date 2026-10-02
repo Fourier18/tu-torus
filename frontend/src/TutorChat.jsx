@@ -74,7 +74,7 @@ export default function TutorChat({ lastRun, filename, code }) {
 
   return (
     <div className="panel tutor-chat">
-      <div className="chat-messages" ref={follow.ref} onScroll={follow.onScroll}>
+      <div className="chat-messages" ref={follow.ref} onScroll={follow.onScroll} role="log" aria-label="Tutor chat">
         {messages.map((m, i) => (
           <div key={i} className={`chat-msg chat-${m.role}`}>{m.text ? (m.role === "tutor" ? formatReply(m.text) : m.text) : (m.status && <em className="chat-status">{m.status}</em>)}</div>
         ))}
@@ -88,6 +88,7 @@ export default function TutorChat({ lastRun, filename, code }) {
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && send({ trigger: "manual", question: input })}
           placeholder="Ask the tutor…"
+          aria-label="Ask the tutor"
           disabled={sending}
         />
       </div>
