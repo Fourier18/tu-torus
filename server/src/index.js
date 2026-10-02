@@ -117,10 +117,10 @@ app.post("/api/settings", async (req, res) => {
   res.json(await setSetting(key, value));
 });
 
-// Fires only on: a typing pause, a run that ended in error, the "check my
-// code" button, or a typed question — never per keystroke. `trigger`
-// distinguishes which of those this call is; `history` is the last few
-// messages only, not the full session.
+// Fires only on a typed question or the "Check my code" button — never on
+// its own (the typing-pause and run-error triggers were removed in the first
+// builds). `trigger` says which; `history` is the last few messages only,
+// not the full session.
 app.post("/api/tutor", async (req, res) => {
   const { trigger, question, lastRunPointer, filename, code, previousCode, history } = req.body;
 
