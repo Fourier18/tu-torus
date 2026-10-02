@@ -13,6 +13,7 @@ import { WORKSPACE_DIR, APP_ROOT } from "./paths.js";
 import { LANGUAGES } from "./languages.js";
 import { isAllowedRequest, safeFileName } from "./security.js";
 import { checkForUpdate } from "./updates.js";
+import { createNudgeTrimmer } from "./reply-tidy.js";
 
 const PROJECT_DIR = WORKSPACE_DIR;
 
@@ -127,11 +128,16 @@ app.post("/api/tutor", async (req, res) => {
   res.setHeader("Content-Type", "text/event-stream");
   res.setHeader("Cache-Control", "no-cache");
 
+  // A closing nudge ("Try that.") is dropped from the end of the reply
+  // (reply-tidy.js); the app's own notices go out as they are.
+  const send = (value) => value && res.write(`data: ${JSON.stringify({ type: "text", value })}\n\n`);
+  const trimmer = createNudgeTrimmer();
   try {
     for await (const event of askTutor({ trigger, question, filename, code, previousCode, lastRunPointer, history, projectDir: PROJECT_DIR })) {
-      if (event.type === "text") res.write(`data: ${JSON.stringify({ type: "text", value: event.text })}\n\n`);
+      if (event.type === "text") send(event.notice ? trimmer.end() + event.text : trimmer.push(event.text));
       if (event.type === "tool" && event.name === "run_learner_code") res.write(`data: ${JSON.stringify({ type: "status", value: "Trying your code…" })}\n\n`);
     }
+    send(trimmer.end());
   } catch (err) {
     console.error("TUTOR ERROR:", err);
     res.write(`data: ${JSON.stringify({ type: "error", value: String(err) })}\n\n`);

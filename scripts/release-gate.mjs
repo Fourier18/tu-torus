@@ -35,6 +35,7 @@ const suites = [
   ["private checks restricted", ["server/test/private-run.test.mjs"]],
   ["settings and key handling", ["server/test/settings.test.mjs"]],
   ["provider errors", ["server/test/provider-errors.test.mjs"]],
+  ["closing nudges trimmed", ["server/test/reply-tidy.test.mjs"]],
   ["Python engine", ["server/test/python-engine.test.mjs"]],
   ["contrast in every theme", ["scripts/check-contrast.mjs"]],
 ];
