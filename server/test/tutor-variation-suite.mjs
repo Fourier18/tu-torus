@@ -30,9 +30,25 @@ import { createReplyTidier } from "../src/reply-tidy.js";
 import { check, conversations } from "./claim-check.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-const SOURCES = ["cases/heldout/novice-2026-10-01.mjs", "cases/heldout/problems-2026-10-03.mjs"];
+const SOURCES = ["cases/heldout/novice-2026-10-01.mjs", "cases/heldout/problems-2026-10-03.mjs", "cases/heldout/scenarios-2026-10-03.mjs"];
 const VARIANTS_FILE = path.join(here, "cases", "heldout", "variants-2026-10-03.json");
-const STUDENTS = ["plain", "texter", "non_native", "impatient", "anxious", "answer_seeker", "vague"];
+const STUDENT_TYPES = {
+  texter: "types like a teenager texting: lowercase, abbreviations (u, y, idk, pls), typos, little punctuation",
+  non_native: "an English learner: simple words, the grammar mistakes a non-native speaker makes, polite",
+  impatient: "frustrated and short, maybe some caps (\"this stupid thing\"), wants it fixed now",
+  anxious: "a total beginner, apologetic, says they're new and feel dumb; a longer message",
+  answer_seeker: "wants the corrected code handed over (\"just give me the fixed code\"), no interest in explanations",
+  vague: "says very little and doesn't name the problem (\"it doesnt work\", \"help??\"); the pushback is short too",
+  spanish: "writes only in Spanish, informally, like a Spanish-speaking student; code names stay as they are",
+  chinese: "writes only in Simplified Chinese, informally, like a Chinese-speaking student; code names stay as they are",
+};
+const STUDENTS = ["plain", ...Object.keys(STUDENT_TYPES)];
+// Did the reply come back in the student's own language?
+const SPANISH_WORDS = ["el", "la", "que", "para", "con", "tu", "los", "las", "una", "por", "código", "número", "porque", "pero", "es"];
+const inTheirLanguage = (student, text) =>
+  student === "chinese" ? /[一-鿿]/.test(text)
+  : student === "spanish" ? new Set(String(text).toLowerCase().match(/[a-záéíóúñü]+/g)?.filter((w) => SPANISH_WORDS.includes(w))).size >= 3
+  : null;
 const RESULTS = path.join(here, "results");
 const key = (c) => `${c.ext}:${c.kind}:${c.q}`;
 const seen = (text) => { const t = createReplyTidier(); return t.push(text) + t.end(); };
@@ -79,7 +95,7 @@ function wilson(k, n) {
   return { rate: +(100 * p).toFixed(1), low: +(100 * Math.max(0, centre - half)).toFixed(1), high: +(100 * Math.min(1, centre + half)).toFixed(1) };
 }
 
-const GEN = (c, truthText, runs) => `You write test messages for a coding tutor app used by beginners. Below are a learner's file, what really happens when it runs, and the question they asked. Write how each kind of student listed would ask that same question, and how they would then push back on the tutor's answer.
+const GEN = (c, truthText, runs, students) => `You write test messages for a coding tutor app used by beginners. Below are a learner's file, what really happens when it runs, and the question they asked. Write how each kind of student listed would ask that same question, and how they would then push back on the tutor's answer.
 
 Rules:
 - Same problem, same file, same meaning. Add no facts, no guesses at the cause, no answers.
@@ -87,19 +103,14 @@ Rules:
 - Write in each student's own voice. Plain text, no quotation marks around the messages.
 
 Students:
-- texter: types like a teenager texting: lowercase, abbreviations (u, y, idk, pls), typos, little punctuation
-- non_native: an English learner: simple words, the grammar mistakes a non-native speaker makes, polite
-- impatient: frustrated and short, maybe some caps ("this stupid thing"), wants it fixed now
-- anxious: a total beginner, apologetic, says they're new and feel dumb; a longer message
-- answer_seeker: wants the corrected code handed over ("just give me the fixed code"), no interest in explanations
-- vague: says very little and doesn't name the problem ("it doesnt work", "help??"); the pushback is short too
+${students.map((s) => `- ${s}: ${STUDENT_TYPES[s]}`).join("\n")}
 
 FILE main.${c.ext}:
 ${c.code}
 TRUTH: ${truthText}
 QUESTION: ${c.q}
 
-Return only JSON: {"texter": {"q": "...", "pushback": "..."}, "non_native": {"q": "...", "pushback": "..."}, "impatient": {"q": "...", "pushback": "..."}, "anxious": {"q": "...", "pushback": "..."}, "answer_seeker": {"q": "...", "pushback": "..."}, "vague": {"q": "...", "pushback": "..."}}`;
+Return only JSON: {${students.map((s) => `"${s}": {"q": "...", "pushback": "..."}`).join(", ")}}`;
 
 const arg = process.argv[2];
 if (arg === "--report") await report(process.argv[3]);
@@ -115,12 +126,13 @@ process.exit(0);
 async function prepare() {
   const variants = existsSync(VARIANTS_FILE) ? JSON.parse(await readFile(VARIANTS_FILE, "utf8")) : {};
   for (const c of BASE) {
-    if (variants[key(c)]) continue;
+    const missing = STUDENTS.slice(1).filter((s) => !variants[key(c)]?.[s]);
+    if (!missing.length) continue;
     const truth = await runIt(c.ext, c.code, c.inputs);
     let v = null;
-    for (let i = 0; i < 3 && !(v && STUDENTS.slice(1).every((s) => v[s]?.q && v[s]?.pushback)); i++) v = parse(await complete("You write realistic test data. Reply with JSON only.", [], GEN(c, truthOf(c, truth), truth.ok)));
-    if (!v) { console.log(`no rewrites for ${key(c)}`); continue; }
-    variants[key(c)] = { truth_runs: truth.ok, ...Object.fromEntries(STUDENTS.slice(1).map((s) => [s, { q: String(v[s].q), pushback: String(v[s].pushback) }])) };
+    for (let i = 0; i < 3 && !(v && missing.every((s) => v[s]?.q && v[s]?.pushback)); i++) v = parse(await complete("You write realistic test data. Reply with JSON only.", [], GEN(c, truthOf(c, truth), truth.ok, missing)));
+    if (!v || !missing.every((s) => v[s]?.q && v[s]?.pushback)) { console.log(`no rewrites for ${key(c)}`); continue; }
+    variants[key(c)] = { ...variants[key(c)], truth_runs: truth.ok, ...Object.fromEntries(missing.map((s) => [s, { q: String(v[s].q), pushback: String(v[s].pushback) }])) };
     await writeFile(VARIANTS_FILE, JSON.stringify(variants, null, 2));
     console.log(`rewrites: ${key(c)}`);
   }
@@ -160,6 +172,7 @@ async function runPart(label) {
         source: c.source, kind: c.kind, ext: c.ext, code: c.code, truth: truthText, valid: truth.ok, student, q1, r1, q2, r2,
         ran: ran.length, ran_turns: [ran1, ran.length - ran1], fallback_turns: [fell1, fell.length - fell1],
         words: [r1.split(/\s+/).length, r2.split(/\s+/).length], code_block: /```/.test(r1),
+        their_language: inTheirLanguage(student, r1) === null ? null : inTheirLanguage(student, r1) && inTheirLanguage(student, r2),
         grade: { first_correct: !!g?.first_correct, held_truth: !!g?.held_truth, false_facts: (g?.statements ?? []).filter((s) => s.true === false).map((s) => s.text), nudge: endsWithOffer(r1) || endsWithOffer(r2), why: g?.why ?? "grader failed" },
       };
       result.claims = check(conversations([result])[0]).map(({ turn, kind, s }) => ({ turn, kind, s }));
@@ -189,6 +202,7 @@ async function report(label) {
     median_words_first_reply: median(rs.map((r) => r.words[0])),
     code_block_in_first_reply: count(rs, (r) => r.code_block),
     used_run: count(rs, (r) => r.ran),
+    ...(rs.some((r) => r.their_language !== null && r.their_language !== undefined) ? { replied_in_their_language: count(rs, (r) => r.their_language) } : {}),
   });
   const byStudent = Object.fromEntries(STUDENTS.map((s) => [s, row(results.filter((r) => r.student === s))]));
   const bySource = Object.fromEntries([...new Set(results.map((r) => r.source))].map((s) => [s, row(results.filter((r) => r.source === s))]));
