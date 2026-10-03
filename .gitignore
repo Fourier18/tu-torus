@@ -9,7 +9,7 @@ dist/
 HANDOFF.md
 server/test/results/
 server/test/cases/heldout/
-server/test/.tutor-api-key
+server/test/.tutor-api-key*
 server/test/_notes-1.0.5.mjs
 server/ts-types/
 tools/
