@@ -1,9 +1,14 @@
 // The provider settings the tutor suites run against, with the key in plain
 // text. They're read from the app's settings file (or SETTINGS=<path>). From
 // 1.7.0 the installed app keeps the key encrypted with the Windows account,
-// readable only by the app itself — then set TUTOR_API_KEY for the suites.
+// readable only by the app itself — then give the suites the key in
+// TUTOR_API_KEY, or as the only line of server/test/.tutor-api-key (ignored
+// by git, never committed).
 import { readFile } from "node:fs/promises";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+const KEY_FILE = path.join(path.dirname(fileURLToPath(import.meta.url)), ".tutor-api-key");
 
 const CANDIDATES = [
   process.env.SETTINGS,
@@ -17,7 +22,8 @@ export async function loadProvider() {
     try { provider = JSON.parse(await readFile(p, "utf-8")).provider; if (provider) break; } catch { /* try the next */ }
   }
   if (!provider) throw new Error(`No settings.json with a provider found in: ${CANDIDATES.join(", ")}`);
-  const apiKey = process.env.TUTOR_API_KEY || provider.apiKey;
+  const fromFile = await readFile(KEY_FILE, "utf-8").then((t) => t.trim()).catch(() => "");
+  const apiKey = process.env.TUTOR_API_KEY || fromFile || provider.apiKey;
   if (!apiKey && provider.apiKeyEncrypted) {
     throw new Error("The app's settings hold the API key encrypted (Tu-Torus 1.7.0 and later). Set TUTOR_API_KEY to run the tutor suites.");
   }
