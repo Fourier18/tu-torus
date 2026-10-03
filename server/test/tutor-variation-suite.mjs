@@ -73,7 +73,7 @@ const truthOf = (c, truth) => {
 
 let provider, model;
 async function complete(systemPrompt, history, userContent, toolset = {}, ran = [], fell = []) {
-  for (let attempt = 0; attempt < 10; attempt++) {
+  for (let attempt = 0; attempt < 15; attempt++) { // several parts share one rate limit
     let text = "", notice = false;
     const tried = [], fallbacks = [];
     for await (const e of chat({ ...toolset, systemPrompt, history, userContent, baseUrl: provider.baseUrl, apiKey: provider.apiKey, model, providerLabel: provider.preset })) {
@@ -144,13 +144,26 @@ async function runPart(label) {
   const variants = JSON.parse(await readFile(VARIANTS_FILE, "utf8"));
   const [part, parts] = (process.env.PART || "1/1").split("/").map(Number);
   const mine = BASE.filter((_, i) => i % parts === part - 1);
-  const results = [];
+  // Saved after every conversation, and picked up again if the part is run
+  // again: a rate limit once ended three parts of six with nothing saved.
+  await mkdir(RESULTS, { recursive: true });
+  const prefix = `variation-${label}-part${part}of${parts}-`;
+  const earlier = (await readdir(RESULTS)).filter((f) => f.startsWith(prefix) && f.endsWith(".json")).sort().at(-1);
+  const file = path.join(RESULTS, earlier ?? `${prefix}${Date.now()}.json`);
+  const results = earlier ? JSON.parse(await readFile(file, "utf8")).results : [];
+  const done = new Set(results.map((r) => `${r.ext}:${r.kind}:${r.source}:${r.student}`));
+  const save = () => writeFile(file, JSON.stringify({ label, model, part, parts, results }, null, 2));
+  if (results.length) console.log(`resuming: ${results.length} conversations already saved`);
+  // Parts started together hit the provider's rate limit together; stagger them.
+  await new Promise((r) => setTimeout(r, (part - 1) * 20000));
   for (const c of mine) {
     const v = variants[key(c)];
     if (!v) { console.log(`skipped (no rewrites): ${key(c)}`); continue; }
+    if (STUDENTS.every((s) => done.has(`${c.ext}:${c.kind}:${c.source}:${s}`))) continue;
     const truth = await runIt(c.ext, c.code, c.inputs);
     const truthText = truthOf(c, truth);
     for (const student of STUDENTS) {
+      if (done.has(`${c.ext}:${c.kind}:${c.source}:${student}`)) continue;
       const filename = `main.${c.ext}`;
       const runContext = c.run ? record(c.ext, c.code, truth) : "";
       const toolset = tutorTools({ filename, code: c.code, runAttached: Boolean(c.run) });
@@ -177,11 +190,11 @@ async function runPart(label) {
       };
       result.claims = check(conversations([result])[0]).map(({ turn, kind, s }) => ({ turn, kind, s }));
       results.push(result);
+      await save();
       console.log(`${c.ext.padEnd(4)} ${c.kind.padEnd(16)} ${student.padEnd(13)} first:${result.grade.first_correct ? "ok " : "BAD"} held:${result.grade.held_truth ? "ok " : "BAD"}${result.grade.false_facts.length ? " false-facts?" : ""}${result.grade.nudge ? " nudge" : ""}${result.ran ? ` ran:${result.ran}` : ""}${fell.length ? " no-tool" : ""}${result.claims.length ? ` claims:${result.claims.map((x) => x.kind).join(",")}` : ""}`);
     }
   }
-  await mkdir(RESULTS, { recursive: true });
-  await writeFile(path.join(RESULTS, `variation-${label}-part${part}of${parts}-${Date.now()}.json`), JSON.stringify({ label, model, part, parts, results }, null, 2));
+  await save();
   console.log(`\n{"label":"${label}","part":"${part}/${parts}","conversations":${results.length}}`);
 }
 
