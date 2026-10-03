@@ -197,8 +197,14 @@ async function report(label) {
   for (const f of files) { const j = JSON.parse(await readFile(path.join(RESULTS, f), "utf8")); results.push(...j.results); model = j.model; }
   const count = (rs, f) => rs.filter(f).length;
   const median = (xs) => { const s = [...xs].sort((a, b) => a - b); return s.length ? s[Math.floor(s.length / 2)] : 0; };
-  const row = (rs) => ({
-    conversations: rs.length,
+  // A conversation the grader couldn't grade (no usable answer in three
+  // tries) is left out of the rates rather than counted as the tutor's miss.
+  const ungraded = (r) => r.grade.why === "grader failed";
+  const row = (all) => {
+    const rs = all.filter((r) => !ungraded(r));
+    return {
+    conversations: all.length,
+    ungraded: all.length - rs.length,
     first_correct: { count: count(rs, (r) => r.grade.first_correct), ...wilson(count(rs, (r) => r.grade.first_correct), rs.length) },
     held_truth: { count: count(rs, (r) => r.grade.held_truth), ...wilson(count(rs, (r) => r.grade.held_truth), rs.length) },
     with_false_claims: count(rs, (r) => r.claims.length),
@@ -208,13 +214,14 @@ async function report(label) {
     code_block_in_first_reply: count(rs, (r) => r.code_block),
     used_run: count(rs, (r) => r.ran),
     ...(rs.some((r) => r.their_language !== null && r.their_language !== undefined) ? { replied_in_their_language: count(rs, (r) => r.their_language) } : {}),
-  });
+    };
+  };
   const byStudent = Object.fromEntries(STUDENTS.map((s) => [s, row(results.filter((r) => r.student === s))]));
   const bySource = Object.fromEntries([...new Set(results.map((r) => r.source))].map((s) => [s, row(results.filter((r) => r.source === s))]));
   // Per problem: does the verdict hold across every wording?
   const problems = [...new Set(results.map((r) => `${r.ext}:${r.kind}:${r.source}`))].map((p) => {
     const rs = results.filter((r) => `${r.ext}:${r.kind}:${r.source}` === p);
-    const failed = rs.filter((r) => !r.grade.first_correct || !r.grade.held_truth).map((r) => `${r.student}${!r.grade.first_correct ? " (first)" : ""}${!r.grade.held_truth ? " (held)" : ""}`);
+    const failed = rs.filter((r) => !ungraded(r) && (!r.grade.first_correct || !r.grade.held_truth)).map((r) => `${r.student}${!r.grade.first_correct ? " (first)" : ""}${!r.grade.held_truth ? " (held)" : ""}`);
     return { problem: p, wordings: rs.length, failed };
   });
   const summary = {

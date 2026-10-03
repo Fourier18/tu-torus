@@ -151,15 +151,17 @@ const CHANGED_RUN_NOTE = "\n\nYour run tool runs only their file as it is: never
 //   "I ran it — it printed `1 2 3 4 5`" when the run printed something else
 const QUOTED_OUTPUT = /\b(?:printed|prints|outputs?|output is|gave|gives|got|shows?|showed)\s+`([^`]+)`/gi;
 const wrongOutputNote = (quoted) => `\n\nYour reply says a run gave \`${quoted}\`, but none of your runs did. Quote only what a run actually showed; for a change to their code, say what it would do instead of presenting it as a run.`;
-const squash = (s) => String(s ?? "").replace(/\s+/g, " ").trim();
+// Curly quotes made straight, so "doesn’t" and "I’ve" match the patterns.
+const straight = (s) => String(s ?? "").replace(/[‘’]/g, "'").replace(/[“”]/g, '"');
+const squash = (s) => straight(s).replace(/\s+/g, " ").trim();
 // Sentences without code blocks or emphasis marks ("I **ran** it" slipped
 // past a check that kept them), and without "if I…" hypotheticals.
-const sentencesOf = (text) => String(text ?? "").replace(/```[\s\S]*?```/g, " ").replace(/[*_]+/g, "").split(/(?<=[.!?])\s+|\n+/).filter((s) => s.trim() && !/\bif I\b/i.test(s));
+const sentencesOf = (text) => straight(text).replace(/```[\s\S]*?```/g, " ").replace(/[*_]+/g, "").split(/(?<=[.!?])\s+|\n+/).filter((s) => s.trim() && !/\bif I\b/i.test(s));
 
 //   "My last reply was wrong", "I made a mistake": a reversal, which needs a
 //   run behind it (the variation suite, 2026-10-03: correct answers reversed
 //   under a bare "no thats wrong", with invented reasons)
-const RETRACTION = /\b(?:my (?:last|previous|earlier|first) (?:reply|answer|message|suggestion|explanation) was (?:wrong|incorrect|off)|I was wrong|I made a mistake|I got (?:that|it) wrong|I misread|my mistake)\b/i;
+const RETRACTION = /\b(?:my (?:\w+ ){0,2}(?:reply|answer|message|suggestion|explanation|fix|advice) (?:was|is) (?:wrong|incorrect|off|mistaken)|I was wrong|I made a mistake|I got (?:that|it) wrong|I misread|my mistake)\b/i;
 //   "your code is already correct", "no changes needed" (the same suite:
 //   said of code that still failed, after "it's fine, leave it")
 const CORRECT_CLAIM = /\b(?:your code is (?:already )?(?:correct|fine|right|ok)|(?:the|this|your) code (?:is|looks) (?:correct|fine|right) as (?:it is|written)|no (?:changes|fixes) (?:are )?needed|nothing (?:needs|to) (?:be )?(?:fix|chang)|already correct)/i;
@@ -182,7 +184,19 @@ export function answerReview({ code, runAttached = false, runFailed = false }) {
     }
     if (ran && results.length) {
       // Output quoted in a sentence saying it ran, or in the one after it.
-      const shown = squash(results.map((r) => `${r?.screen ?? ""} ${r?.error ?? ""}`).join(" "));
+      const shown = squash(results.map((r) => `${r?.screen === "(nothing appeared on screen)" ? "" : r?.screen ?? ""} ${r?.error ?? ""}`).join(" "));
+      // An error message quoted in a code block must be one a run gave (a
+      // reply ran the file, then quoted "Uncovered constant" for PHP's
+      // "Undefined constant").
+      for (const block of straight(text).match(/```[\s\S]*?```/g) ?? []) {
+        // Lines that read like an error message ("TypeError: …", "Fatal
+        // error: …"), not code that mentions one (`except ValueError:`).
+        const message = (l) => /\b[A-Z]\w*Error:|\bFatal error\b|\bUncaught\b/.test(l) && !/\b(?:except|raise|throw|catch|rescue|console\.error|new Error)\b/.test(l);
+        for (const line of block.split("\n").filter(message)) {
+          const quoted = squash(line);
+          if (quoted && !shown.includes(quoted)) return wrongOutputNote(quoted);
+        }
+      }
       for (const [i, s] of sentences.entries()) {
         if (!RAN_CLAIM.test(s)) continue;
         for (const m of `${s} ${sentences[i + 1] ?? ""}`.matchAll(QUOTED_OUTPUT)) {

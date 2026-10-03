@@ -44,6 +44,20 @@ check("an error quoted from the run → shown", v === null, v);
 v = reviewRan("I ran it: it prints `\"5\"` joined to `3`, which shows `53`.", "53\n");
 check("a quoted string with its quotes, from the run → shown", v === null, v);
 
+// Curly apostrophes, the "nothing appeared" placeholder, error blocks, wider reversals
+v = review("I’ve run your exact code and it’s fine.");
+check("\"I’ve run\" with a curly apostrophe, no run → needs a run", v === "run", v);
+v = reviewRan("I ran it privately: with `greet` alone, nothing prints; with `greet()`, it prints `hi`.", "(nothing appeared on screen)");
+check("claimed output `hi` when the run printed nothing (the \"nothing appeared\" placeholder isn't output) → asked again", typeof v === "string" && v.includes("hi"), v);
+v = reviewRan("The error is real — I just ran your exact code again, and it crashes with:\n```\nFatal error: Uncovered constant \"name\" in main.php on line 3\n```", "\nFatal error: Uncaught Error: Undefined constant \"name\" in main.php:3\n");
+check("an error message in a code block that the run didn't give → asked again", typeof v === "string" && v.includes("Uncovered"), v);
+v = reviewRan("I ran it, and it stops with:\n```\nNameError: name 'Print' is not defined\n```", "", "Traceback (most recent call last):\n  File \"main.py\", line 1\nNameError: name 'Print' is not defined. Did you mean: 'print'?");
+check("an error message in a code block that the run gave → shown", v === null, v);
+v = reviewRan("I ran it. One way to handle bad input:\n```python\ntry:\n    age = int(input())\nexcept ValueError:\n    print(\"numbers only\")\n```", "Age: abc\n", "ValueError: invalid literal for int() with base 10: 'abc'");
+check("suggested code mentioning an error (`except ValueError:`) → shown", v === null, v);
+v = review("My suggested fix was wrong for your code. Your code is not broken.");
+check("\"My suggested fix was wrong\" with no run → needs a run", v === "run", v);
+
 // Reverses itself, or calls the code correct (variation suite, 2026-10-03)
 v = review("My last reply was wrong. The code does check every number because the else is inside the loop.");
 check("\"My last reply was wrong\" with no run → needs a run", v === "run", v);

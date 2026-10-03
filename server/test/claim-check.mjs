@@ -33,7 +33,7 @@ const NEG_RUN = /\b(?:it|this|your (?:code|program|file)|the (?:code|program|fil
 const NEG_ANY = /\b(?:doesn't|does not|won't|will not|isn't|is not|can't|cannot|wouldn't|would not|not)\s+(?:\w+\s+)?(?:run|work|valid)/i;
 
 // Code blocks out, and emphasis marks (*doesn't* work) so negations still read.
-const sentences = (t) => String(t ?? "").replace(/```[\s\S]*?```/g, " ").replace(/\*+/g, "").split(/(?<=[.!?])\s+|\n+/).map((s) => s.trim()).filter(Boolean);
+const sentences = (t) => String(t ?? "").replace(/[‘’]/g, "'").replace(/[“”]/g, '"').replace(/```[\s\S]*?```/g, " ").replace(/\*+/g, "").split(/(?<=[.!?])\s+|\n+/).map((s) => s.trim()).filter(Boolean);
 const norm = (s) => s.replace(/\s+/g, " ").trim();
 
 // One shape for both suites: the replies, tool use, and what the run showed.
