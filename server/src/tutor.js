@@ -62,6 +62,11 @@ export function runIsCurrent(runContext, code) {
   return !(ranCode != null && code != null && same(ranCode) !== same(code));
 }
 
+// Whether a run record ends with an error (its Error section isn't "(none)").
+export function runEndedWithError(runContext) {
+  return /## Error\n(?!\(none\))/.test(String(runContext ?? "").replace(/\r\n/g, "\n"));
+}
+
 export function buildUserContent({ trigger, question, filename, code, previousCode, runContext }) {
   const parts = [];
   const lead = question || TRIGGER_PROMPTS[trigger];
@@ -151,14 +156,30 @@ const squash = (s) => String(s ?? "").replace(/\s+/g, " ").trim();
 // past a check that kept them), and without "if I…" hypotheticals.
 const sentencesOf = (text) => String(text ?? "").replace(/```[\s\S]*?```/g, " ").replace(/[*_]+/g, "").split(/(?<=[.!?])\s+|\n+/).filter((s) => s.trim() && !/\bif I\b/i.test(s));
 
-// `runAttached`: a run of this exact code is in the message. `results`: what
-// this reply's runs returned ({ screen, error }).
-export function answerReview({ code, runAttached = false }) {
+//   "My last reply was wrong", "I made a mistake": a reversal, which needs a
+//   run behind it (the variation suite, 2026-10-03: correct answers reversed
+//   under a bare "no thats wrong", with invented reasons)
+const RETRACTION = /\b(?:my (?:last|previous|earlier|first) (?:reply|answer|message|suggestion|explanation) was (?:wrong|incorrect|off)|I was wrong|I made a mistake|I got (?:that|it) wrong|I misread|my mistake)\b/i;
+//   "your code is already correct", "no changes needed" (the same suite:
+//   said of code that still failed, after "it's fine, leave it")
+const CORRECT_CLAIM = /\b(?:your code is (?:already )?(?:correct|fine|right|ok)|(?:the|this|your) code (?:is|looks) (?:correct|fine|right) as (?:it is|written)|no (?:changes|fixes) (?:are )?needed|nothing (?:needs|to) (?:be )?(?:fix|chang)|already correct)/i;
+const STILL_FAILS_NOTE = "\n\nTheir code as it is now still fails — the run shows the error. Don't call it correct or fine; say once, in one short sentence, that it still fails and where, then leave it.";
+
+// `runAttached`: a run of this exact code is in the message; `runFailed`:
+// that run ended with an error. `results`: what this reply's runs returned
+// ({ screen, error }).
+export function answerReview({ code, runAttached = false, runFailed = false }) {
   const empty = !String(code ?? "").trim();
   return (text, { ran, results = [] }) => {
     const sentences = sentencesOf(text);
     if (!ran && sentences.some((s) => RAN_CLAIM.test(s))) return "run";
+    if (!ran && sentences.some((s) => RETRACTION.test(s))) return "run";
     if (sentences.some((s) => CHANGED_RUN.test(s))) return CHANGED_RUN_NOTE;
+    if (sentences.some((s) => CORRECT_CLAIM.test(s))) {
+      const failed = runFailed || results.some((r) => r?.error);
+      if (failed) return STILL_FAILS_NOTE;
+      if (!ran && !runAttached && !empty) return "run";
+    }
     if (ran && results.length) {
       // Output quoted in a sentence saying it ran, or in the one after it.
       const shown = squash(results.map((r) => `${r?.screen ?? ""} ${r?.error ?? ""}`).join(" "));
@@ -175,7 +196,7 @@ export function answerReview({ code, runAttached = false }) {
   };
 }
 
-export function tutorTools({ filename, code, runAttached = false }) {
+export function tutorTools({ filename, code, runAttached = false, runFailed = false }) {
   if (code == null || !canRunPrivately(filename)) return {};
   const py = filename.toLowerCase().endsWith(".py");
   const tools = [{
@@ -194,7 +215,7 @@ export function tutorTools({ filename, code, runAttached = false }) {
     tools,
     toolNote: RUN_TOOL_NOTE,
     noToolNote: NO_RUN_NOTE,
-    review: answerReview({ code, runAttached }),
+    review: answerReview({ code, runAttached, runFailed }),
     runTool: async (name, args) => {
       if (name !== "run_learner_code") return { error: `No tool named ${name}.` };
       const inputs = Array.isArray(args.inputs) ? args.inputs.map(String).slice(0, 20) : [];
@@ -231,7 +252,8 @@ export async function* askTutor({ trigger, question, filename, code, previousCod
 
   const userContent = buildUserContent({ trigger, question, filename, code, previousCode, runContext });
 
-  const toolset = tutorTools({ filename, code, runAttached: runIsCurrent(runContext, code) });
+  const current = runIsCurrent(runContext, code);
+  const toolset = tutorTools({ filename, code, runAttached: current, runFailed: current && runEndedWithError(runContext) });
   let reply = "";
   let notice = false;
   for await (const event of chat({

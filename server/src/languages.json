@@ -1,5 +1,5 @@
 {
-  "py": { "name": "Python", "monaco": "python", "run": { "engine": "pyodide" }, "tutorNote": "Python runs inside the app (Pyodide): input() works; there is no window for graphics (no turtle, tkinter or pygame)." },
+  "py": { "name": "Python", "monaco": "python", "run": { "engine": "pyodide" }, "tutorNote": "Python runs inside the app (Pyodide): input() works; there is no window for graphics (no turtle, tkinter or pygame). Python allows a comma after the last item in lists, tuples, dicts and calls (unlike JSON)." },
   "js": { "name": "JavaScript", "monaco": "javascript", "run": { "engine": "toolchain", "bundledNode": true, "command": "node", "args": ["--require", "{runners}/prompt.cjs", "{file}"]}, "tutorNote": "JavaScript here runs on Node, not in a browser: console.log prints to the output panel; prompt(\"question\") shows the question and returns the line typed in the input box, and alert() prints its message. No document, window or other page APIs — for those, use an .html file."},
   "html": { "name": "a web page", "monaco": "html", "browserNative": true},
   "htm": { "monaco": "html", "browserNative": true},

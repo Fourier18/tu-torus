@@ -75,7 +75,7 @@ function runIt(ext, code) {
 // `ran`/`fell` as in the logic suite: tool runs and answers made without
 // the tool, from the attempt that answered only.
 async function complete(systemPrompt, history, userContent, toolset = {}, ran = [], fell = []) {
-  for (let attempt = 0; attempt < 10; attempt++) { // rate limits now always come back as notices
+  for (let attempt = 0; attempt < 15; attempt++) { // rate limits come back as notices; suites share one limit
     let text = "", notice = false;
     const tried = [], fallbacks = [];
     for await (const e of chat({ ...toolset, systemPrompt, history, userContent, baseUrl: provider.baseUrl, apiKey: provider.apiKey, model, providerLabel: provider.preset })) {

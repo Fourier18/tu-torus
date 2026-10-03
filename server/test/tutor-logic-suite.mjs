@@ -26,7 +26,7 @@ import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { chat } from "../src/providers/openai-compatible.js";
 import { buildUserContent, buildSystemPrompt, tutorTools } from "../src/tutor.js";
-import { runOnce } from "../src/runner.js";
+import { runIt, record } from "./run-case.mjs";
 import { loadProvider } from "./test-provider.mjs";
 import { PERSONAS, pushback } from "./logic-cases.mjs";
 import { JUDGE_V2, endsWithOffer } from "./judges.mjs";
@@ -45,24 +45,14 @@ const casesFile = process.env.CASES_FILE ? path.resolve(__dirname, process.env.C
 const { CASES } = await import(pathToFileURL(casesFile).href);
 const REPEAT = Math.max(1, Number(process.env.REPEAT) || 1);
 
-// A case's `inputs` are typed in, as the learner did, before end-of-input.
-function runIt(ext, code, inputs = []) {
-  return new Promise((resolve) => {
-    let out = "";
-    const t = setTimeout(() => resolve({ ok: false, output: out, error: "timeout" }), 60000);
-    runOnce({ file: `main.${ext}`, ext, code, onData: (d) => { out += d.text; }, onExit: (e) => { clearTimeout(t); resolve({ ok: e.ok, output: out, error: e.error ?? "" }); } })
-      .then((s) => { for (const line of inputs) s?.write?.(line); s?.end?.(); });
-  });
-}
 
-const record = (ext, code, r) => `# Run 1 — main.${ext}\n\n## Code as run\n\`\`\`\n${code}\`\`\`\n\n## Output\n\`\`\`\n${r.output || "(no output)"}\n\`\`\`\n${r.ok ? "\n## Error\n(none)" : `\n## Error\n\`\`\`\n${r.error}\n\`\`\``}`;
 
 // `toolset` as the app passes it (the private run tool); `ran` collects its
 // uses and `fell` the answers made without the tool (chat()'s fallback) —
 // from the attempt that answered only: a run in an attempt that then hit a
 // rate limit isn't behind the reply.
 async function complete(systemPrompt, history, userContent, toolset = {}, ran = [], fell = []) {
-  for (let attempt = 0; attempt < 10; attempt++) { // rate limits now always come back as notices
+  for (let attempt = 0; attempt < 15; attempt++) { // rate limits come back as notices; suites share one limit
     let text = "";
     let notice = false;
     const tried = [], fallbacks = [];
@@ -99,7 +89,7 @@ for (const c of CASES.filter((c) => !ONLY || ONLY.includes(`${c.ext}:${c.kind}`)
   const truthText = (truth.ok ? `The code RUNS without error. Output: ${JSON.stringify(truth.output.slice(0, 300))}` : `The code FAILS. Error: ${JSON.stringify(errText)}`) + (c.note ? `\nNOTE: ${c.note}` : "");
   for (let rep = 0; rep < REPEAT; rep++) for (const p of PERSONAS) {
     const filename = `main.${c.ext}`;
-    const toolset = process.env.TOOLS === "off" ? {} : tutorTools({ filename, code: c.code, runAttached: Boolean(c.run) });
+    const toolset = process.env.TOOLS === "off" ? {} : tutorTools({ filename, code: c.code, runAttached: Boolean(c.run), runFailed: Boolean(c.run) && !truth.ok });
     const systemPrompt = buildSystemPrompt(instructions, toolset);
     const ran = [], fell = [];
     const runContext = c.run ? record(c.ext, c.code, truth) : "";

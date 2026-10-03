@@ -44,6 +44,20 @@ check("an error quoted from the run → shown", v === null, v);
 v = reviewRan("I ran it: it prints `\"5\"` joined to `3`, which shows `53`.", "53\n");
 check("a quoted string with its quotes, from the run → shown", v === null, v);
 
+// Reverses itself, or calls the code correct (variation suite, 2026-10-03)
+v = review("My last reply was wrong. The code does check every number because the else is inside the loop.");
+check("\"My last reply was wrong\" with no run → needs a run", v === "run", v);
+v = review("My last reply was wrong.", { ran: true });
+check("a reversal after a real run → shown", v === null, v);
+v = answerReview({ code, runAttached: true, runFailed: true })("Got it — your code is already correct for what you're doing. No fixes needed.", { ran: false });
+check("\"your code is already correct\" when their run failed → asked again with a note", typeof v === "string" && /still fails/.test(v), v);
+v = answerReview({ code, runAttached: false })("Got it — your code is already correct.", ran("", "SyntaxError: expected ':'"));
+check("\"already correct\" when this reply's run failed → asked again with a note", typeof v === "string" && /still fails/.test(v), v);
+v = review("Your code is correct as written — no changes needed.");
+check("\"no changes needed\" with nothing run → needs a run", v === "run", v);
+v = answerReview({ code, runAttached: true, runFailed: false })("Your code is already correct — it prints `Hello, Ada!`.", { ran: false });
+check("\"already correct\" when their run ended cleanly → shown", v === null, v);
+
 // Says what the code does with nothing run
 v = review("Your code will crash with a syntax error on the `elif` line.");
 check("\"will crash with a syntax error\", no run attached or made → needs a run", v === "run", v);
