@@ -16,6 +16,7 @@
 // usage: node server/test/tutor-variation-suite.mjs --prepare           make the rewrites
 //        PART=1/4 node server/test/tutor-variation-suite.mjs <label>    run one part
 //        node server/test/tutor-variation-suite.mjs --report <label>    merge the parts
+//        ONLY=js:correct-sort,py:not-called                             only those problems
 import { readFile, writeFile, mkdir, readdir } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import path from "node:path";
@@ -135,7 +136,8 @@ async function runPart(label) {
   const instructions = await readFile(path.join(here, "..", "src", "tutor-instructions.md"), "utf-8");
   const variants = JSON.parse(await readFile(VARIANTS_FILE, "utf8"));
   const [part, parts] = (process.env.PART || "1/1").split("/").map(Number);
-  const mine = BASE.filter((_, i) => i % parts === part - 1);
+  const only = process.env.ONLY?.split(","); // ONLY=js:correct-sort,py:not-called
+  const mine = BASE.filter((c) => !only || only.includes(`${c.ext}:${c.kind}`)).filter((_, i) => i % parts === part - 1);
   // Saved after every conversation, and picked up again if the part is run
   // again: a rate limit once ended three parts of six with nothing saved.
   await mkdir(RESULTS, { recursive: true });

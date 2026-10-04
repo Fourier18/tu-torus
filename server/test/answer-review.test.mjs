@@ -85,6 +85,8 @@ v = review("Your code will crash with a syntax error on the `elif` line.", { ran
 check("the same after a real run → shown", v === null, v);
 v = review("Here's one way: `\"abc\"[::-1]` will print `cba`.", { file: "" });
 check("a claim about an example, with an empty file → shown", v === null, v);
+v = review("Your code will *not* sort the numbers correctly as written.", { file: "const nums = [3, 1, 2];\nnums.sort();\nconsole.log(nums);\n" });
+check("\"your code will not sort correctly\", nothing run → needs a run", v === "run", v);
 v = review("Ruby's keyword is `elsif`. Change `elif` to `elsif`.");
 check("no claim about what the code does → shown", v === null, v);
 
