@@ -26,7 +26,10 @@ Option 3, plus a fix to the fallback.
   - It says it ran the code, but no run happened in this reply → asked again with a tool call required, so a real run backs it. The model picks the inputs.
   - It says what the code does or whether something is allowed, with no run attached and none made → the same.
   - It claims a run of changed code → asked again once, with a reminder that the tool runs only their file.
-  - It says a run printed something none of this reply's runs printed (it ran `range(1, 5)` and reported `range(1, 6)`'s output) → asked again once, with a note naming the mismatch.
+  - It says a run printed something none of this reply's runs printed (it ran `range(1, 5)` and reported `range(1, 6)`'s output), or quotes an error message in a code block that no run gave → asked again once, with a note naming the mismatch.
+  - From 1.8.1, after a test of nine kinds of student:
+    - A reversal ("My last reply was wrong…") with no run in that reply → asked again with a run required. Correct answers were being reversed under a bare "no, that's wrong", with invented reasons.
+    - "Your code is already correct" or "no changes needed" → asked again with a run required if nothing was run. If the code's run failed, it's asked again with a note to say once that it still fails. "It's fine, leave it" had been getting "Got it!" for code that still failed.
   - If the second try still fails, the answer is made without the tool. Then it can't claim a run at all.
 
 On 25 held-out pushback turns, the unguarded tutor claimed a run that didn't happen 6 times; the guarded one never did, and Mistral accepted the required run every time.
