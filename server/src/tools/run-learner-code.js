@@ -34,7 +34,10 @@ export async function runLearnerFile({ filename, code, inputs = [] }) {
       done = true;
       clearTimeout(timer);
       const cap = (s) => (s.length > OUTPUT_CAP ? `${s.slice(0, OUTPUT_CAP)}\n...[output cut]` : s);
-      resolve({ screen: cap(screen) || "(nothing appeared on screen)", error: error ? cap(String(error)) : null, outcome: outcome(error) });
+      // Ruby reads stdin through WASI, where the read-time echo
+      // (stdin-sync.cjs) can't reach, so its typed answers are missing.
+      const unechoed = ext === "rb" && inputs.length ? " The typed answers aren't shown on this check's screen; on the learner's screen each appears on its own line where the program read it." : "";
+      resolve({ screen: cap(screen) || "(nothing appeared on screen)", error: error ? cap(String(error)) : null, outcome: outcome(error) + unechoed });
     };
     // The runner pauses its own clock while a program waits for input, so a
     // private run needs a hard limit of its own.

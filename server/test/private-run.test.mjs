@@ -30,7 +30,7 @@ check("no child processes, workers or addons granted", !args.some((a) => /^--all
 const preloads = args.filter((a, i) => args[i - 1] === "--require").map((a) => path.basename(a));
 check("network off and compatibility preload loaded", preloads.join(",") === "no-network.cjs,restricted-compat.cjs", preloads.join(","));
 const env = restrictedEnv(dir);
-check("environment cut to what Node needs", Object.keys(env).every((k) => ["ELECTRON_RUN_AS_NODE", "TEMP", "TMP", "SystemRoot", "SYSTEMROOT", "windir"].includes(k)), Object.keys(env).join(","));
+check("environment cut to what Node needs", Object.keys(env).every((k) => ["ELECTRON_RUN_AS_NODE", "TEMP", "TMP", "SystemRoot", "SYSTEMROOT", "windir", "TU_TORUS_ECHO_INPUT"].includes(k)), Object.keys(env).join(","));
 
 // Ordinary checks still work.
 const run = async (filename, code, inputs = []) => {
@@ -60,6 +60,26 @@ for (const [filename, code, inputs, ok] of cases) {
   const r = await run(filename, code, inputs);
   check(`private check: ${filename} ${JSON.stringify(code.split("\n")[0]).slice(0, 40)}`, r && ok(r), JSON.stringify(r));
 }
+// Typed answers appear where the program reads them, as on the learner's own
+// screen — not all above the first prompt, where they used to land
+// (2026-10-08: the tutor compared that screen with the learner's and argued
+// about where blank lines fell). Ruby reads stdin through WASI, which the
+// echo can't reach, so its answers aren't shown and the result says so.
+const placed = [
+  ["main.py", 'print("Q:")\nprint()\nn = input()\nprint()\nprint("got", n)\nm = input("Name? ")\nprint("Hi " + m)\n', (s) => s === "Q:\n\n-2\n\ngot -2\nName? Ada\nHi Ada\n"],
+  ["main.js", 'console.log("Q:");\nconsole.log();\nconst n = prompt();\nconsole.log();\nconsole.log("got", n);\nconst m = prompt("Name? ");\nconsole.log("Hi " + m);\n', (s) => /^Q:\n\n-2\n\ngot -2\nName\? +Ada\nHi Ada\n$/.test(s)],
+  ["main.lua", 'print("Q:")\nprint()\nlocal n = io.read()\nprint()\nprint("got", n)\nio.write("Name? ")\nlocal m = io.read()\nprint("Hi " .. m)\n', (s) => s === "Q:\n\n-2\n\ngot\t-2\nName? Ada\nHi Ada\n"],
+  ["main.php", '<?php\necho "Q:\\n";\n$n = trim(fgets(STDIN));\necho "got $n\\n";\n', (s) => s === "Q:\n-2\ngot -2\n"],
+  ["main.pl", 'print "Q:\\n";\nmy $n = <STDIN>;\nchomp $n;\nprint "got $n\\n";\n', (s) => s === "Q:\n-2\ngot -2\n"],
+  ["main.bas", '10 PRINT "Q:"\n20 INPUT N\n30 PRINT "GOT"; N\n', (s) => s.indexOf("-2") > s.indexOf("Q:") && s.indexOf("-2") < s.indexOf("GOT")],
+];
+for (const [filename, code, ok] of placed) {
+  const r = await run(filename, code, ["-2", "Ada"]);
+  check(`typed answers where they're read: ${filename}`, r && ok(r.screen), JSON.stringify(r?.screen));
+}
+const rb = await run("main.rb", 'puts "Q:"\nn = gets.chomp\nputs "got #{n}"\n', ["-2"]);
+check("Ruby: typed answers not shown, and the result says so", rb && !rb.screen.startsWith("-2") && /typed answers/i.test(rb.outcome ?? ""), JSON.stringify(rb));
+
 // Out of answers: the program reads end-of-input right away instead of the
 // check waiting out its time limit.
 const eof = await run("main.py", 'a = input("A? ")\nb = input("B? ")\nprint(a, b)\n', ["1"]);

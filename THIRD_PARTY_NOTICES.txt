@@ -10147,11 +10147,17 @@ each work's license. The tutor's teaching principles (server/knowledge/
 doctrine.md) are written for Tu-Torus and draw on the works listed after them.
 
 ------------------------------------------------------------------------------
-Works the tutor's teaching principles draw on (not included in Tu-Torus)
+Python 3.14 documentation (Tutorial, Library Reference, Language Reference) — PSF License Agreement Version 2 (code examples also Zero-Clause BSD)
 ------------------------------------------------------------------------------
 
 Python documentation: Copyright © 2001 Python Software Foundation; All Rights Reserved. Used under the PSF License Agreement Version 2 (full text in Part 1 of these notices).
-  License: PSF License Agreement Version 2 (code examples also Zero-Clause BSD)
+License: https://docs.python.org/3/license.html
+Changes: Excerpted per entry into python-3.14/reference.json by scripts/build-python-reference.mjs, from python-3.14-docs-text.zip (docs.python.org, archive last modified 2026-09-28). Wording unchanged; version-history notes, auditing-event notes, implementation details, grammar rules and footnote markers left out; long entries cut at a paragraph boundary. (The PSF License asks for this summary of changes.)
+Included: python-3.14/reference.json
+
+------------------------------------------------------------------------------
+Works the tutor's teaching principles draw on (not included in Tu-Torus)
+------------------------------------------------------------------------------
 
 Brown, N. C. C., & Wilson, G. (2018). Ten quick tips for teaching programming. PLOS Computational Biology 14(4): e1006023. https://doi.org/10.1371/journal.pcbi.1006023. Licensed under CC BY 4.0.
   License: CC BY 4.0

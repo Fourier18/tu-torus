@@ -1,0 +1,1028 @@
+{
+ "about": "Excerpts of the official Python 3.14 documentation, keyed by built-in name, exception, constant or statement keyword. Built by scripts/build-python-reference.mjs; see server/knowledge/sources.json (python-docs-3.14).",
+ "notice": "Python documentation: Copyright © 2001 Python Software Foundation; All Rights Reserved. Used under the PSF License Agreement Version 2. Changes: excerpted per entry; wording unchanged; version-history notes, auditing-event notes, implementation details, grammar rules and footnote markers left out; long entries cut at a paragraph boundary.",
+ "python": "3.14",
+ "built_from": "python-3.14-docs-text.zip from https://docs.python.org/3.14/archives/ (archive last modified 2026-09-28)",
+ "entries": {
+  "__import__": [
+   {
+    "where": "Library Reference, Built-in Functions: __import__()",
+    "text": "__import__(name, globals=None, locals=None, fromlist=(), level=0)\n\nNote:\n\n  This is an advanced function that is not needed in everyday\n  Python programming, unlike \"importlib.import_module()\".\n\nThis function is invoked by the \"import\" statement.  It can be\nreplaced (by importing the \"builtins\" module and assigning to\n\"builtins.__import__\") in order to change semantics of the \"import\"\nstatement, but doing so is **strongly** discouraged as it is\nusually simpler to use import hooks (see **PEP 302**) to attain the\nsame goals and does not cause issues with code which assumes the\ndefault import implementation is in use.  Direct use of\n\"__import__()\" is also discouraged in favor of\n\"importlib.import_module()\".\n\nThe function imports the module *name*, potentially using the given\n*globals* and *locals* to determine how to interpret the name in a\npackage context. The *fromlist* gives the names of objects or\nsubmodules that should be imported from the module given by *name*.\nThe standard implementation does not use its *locals* argument at\nall and uses its *globals* only to determine the package context of\nthe \"import\" statement.\n\n*level* specifies whether to use absolute or relative imports. \"0\"\n(the default) means only perform absolute imports.  Positive values\nfor *level* indicate the number of parent directories to search\nrelative to the directory of the module calling \"__import__()\" (see\n**PEP 328** for the details).\n\n(… continues in the Python documentation: Built-in Functions, __import__())"
+   }
+  ],
+  "=": [
+   {
+    "where": "Language Reference 7.2, Assignment statements",
+    "text": "Assignment statements are used to (re)bind names to values and to\nmodify attributes or items of mutable objects:\n\n(See section Primaries for the syntax definitions for *attributeref*\nand *subscription*.)\n\nAn assignment statement evaluates the expression list (remember that\nthis can be a single expression or a comma-separated list, the latter\nyielding a tuple) and assigns the single resulting object to each of\nthe target lists, from left to right.\n\nAssignment is defined recursively depending on the form of the target\n(list). When a target is part of a mutable object (an attribute\nreference or subscription), the mutable object must ultimately perform\nthe assignment and decide about its validity, and may raise an\nexception if the assignment is unacceptable.  The rules observed by\nvarious types and the exceptions raised are given with the definition\nof the object types (see section The standard type hierarchy).\n\nAssignment of an object to a target list, optionally enclosed in\nparentheses or square brackets, is recursively defined as follows.\n\n* If the target list is a single target with no trailing comma,\n  optionally in parentheses, the object is assigned to that target.\n\n* Else:\n\n(… continues in the Python documentation: Language Reference 7.2, Assignment statements)"
+   }
+  ],
+  "abs": [
+   {
+    "where": "Library Reference, Built-in Functions: abs()",
+    "text": "abs(number, /)\n\nReturn the absolute value of a number.  The argument may be an\ninteger, a floating-point number, or an object implementing\n\"__abs__()\". If the argument is a complex number, its magnitude is\nreturned."
+   }
+  ],
+  "aiter": [
+   {
+    "where": "Library Reference, Built-in Functions: aiter()",
+    "text": "aiter(async_iterable, /)\n\nReturn an *asynchronous iterator* for an *asynchronous iterable*.\nEquivalent to calling \"x.__aiter__()\".\n\nNote: Unlike \"iter()\", \"aiter()\" has no 2-argument variant."
+   }
+  ],
+  "all": [
+   {
+    "where": "Library Reference, Built-in Functions: all()",
+    "text": "all(iterable, /)\n\nReturn \"True\" if all elements of the *iterable* are true (or if the\niterable is empty).  Equivalent to:\n\n   def all(iterable):\n       for element in iterable:\n           if not element:\n               return False\n       return True"
+   }
+  ],
+  "any": [
+   {
+    "where": "Library Reference, Built-in Functions: any()",
+    "text": "any(iterable, /)\n\nReturn \"True\" if any element of the *iterable* is true.  If the\niterable is empty, return \"False\".  Equivalent to:\n\n   def any(iterable):\n       for element in iterable:\n           if element:\n               return True\n       return False"
+   }
+  ],
+  "ArithmeticError": [
+   {
+    "where": "Library Reference, Built-in Exceptions: ArithmeticError",
+    "text": "exception ArithmeticError\n\nThe base class for those built-in exceptions that are raised for\nvarious arithmetic errors: \"OverflowError\", \"ZeroDivisionError\",\n\"FloatingPointError\"."
+   }
+  ],
+  "ascii": [
+   {
+    "where": "Library Reference, Built-in Functions: ascii()",
+    "text": "ascii(object, /)\n\nAs \"repr()\", return a string containing a printable representation\nof an object, but escape the non-ASCII characters in the string\nreturned by \"repr()\" using \"\\x\", \"\\u\", or \"\\U\" escapes.  This\ngenerates a string similar to that returned by \"repr()\" in Python\n2."
+   }
+  ],
+  "assert": [
+   {
+    "where": "Language Reference 7.3, The \"assert\" statement",
+    "text": "Assert statements are a convenient way to insert debugging assertions\ninto a program:\n\nThe simple form, \"assert expression\", is equivalent to\n\n   if __debug__:\n       if not expression: raise AssertionError\n\nThe extended form, \"assert expression1, expression2\", is equivalent to\n\n   if __debug__:\n       if not expression1: raise AssertionError(expression2)\n\nThese equivalences assume that \"__debug__\" and \"AssertionError\" refer\nto the built-in variables with those names.  In the current\nimplementation, the built-in variable \"__debug__\" is \"True\" under\nnormal circumstances, \"False\" when optimization is requested (command\nline option \"-O\").  The current code generator emits no code for an\n\"assert\" statement when optimization is requested at compile time.\nNote that it is unnecessary to include the source code for the\nexpression that failed in the error message; it will be displayed as\npart of the stack trace.\n\nAssignments to \"__debug__\" are illegal.  The value for the built-in\nvariable is determined when the interpreter starts."
+   }
+  ],
+  "AssertionError": [
+   {
+    "where": "Library Reference, Built-in Exceptions: AssertionError",
+    "text": "exception AssertionError\n\nRaised when an \"assert\" statement fails."
+   }
+  ],
+  "AttributeError": [
+   {
+    "where": "Library Reference, Built-in Exceptions: AttributeError",
+    "text": "exception AttributeError\n\nRaised when an attribute reference (see Attribute references) or\nassignment fails.  (When an object does not support attribute\nreferences or attribute assignments at all, \"TypeError\" is raised.)\n\nThe optional *name* and *obj* keyword-only arguments set the\ncorresponding attributes:\n\nname\n\n   The name of the attribute that was attempted to be accessed.\n\nobj\n\n   The object that was accessed for the named attribute."
+   }
+  ],
+  "BaseException": [
+   {
+    "where": "Library Reference, Built-in Exceptions: BaseException",
+    "text": "exception BaseException\n\nThe base class for all built-in exceptions.  It is not meant to be\ndirectly inherited by user-defined classes (for that, use\n\"Exception\").  If \"str()\" is called on an instance of this class,\nthe representation of the argument(s) to the instance are returned,\nor the empty string when there were no arguments.\n\nargs\n\n   The tuple of arguments given to the exception constructor.  Some\n   built-in exceptions (like \"OSError\") expect a certain number of\n   arguments and assign a special meaning to the elements of this\n   tuple, while others are usually called only with a single string\n   giving an error message.\n\nwith_traceback(tb)\n\n   This method sets *tb* as the new traceback for the exception and\n   returns the exception object.  It was more commonly used before\n   the exception chaining features of **PEP 3134** became\n   available.  The following example shows how we can convert an\n   instance of \"SomeException\" into an instance of \"OtherException\"\n   while preserving the traceback.  Once raised, the current frame\n   is pushed onto the traceback of the \"OtherException\", as would\n   have happened to the traceback of the original \"SomeException\"\n   had we allowed it to propagate to the caller.\n\n__traceback__\n\n   A writable field that holds the traceback object associated with\n   this exception. See also: The raise statement.\n\nadd_note(note)\n\n   Add the string \"note\" to the exception's notes which appear in\n   the standard traceback after the exception string. A \"TypeError\"\n   is raised if \"note\" is not a string.\n\n__notes__\n\n(… continues in the Python documentation: Built-in Exceptions, BaseException)"
+   }
+  ],
+  "BaseExceptionGroup": [
+   {
+    "where": "Library Reference, Built-in Exceptions: BaseExceptionGroup",
+    "text": "exception BaseExceptionGroup(msg, excs)\n\nBoth of these exception types wrap the exceptions in the sequence\n\"excs\". The \"msg\" parameter must be a string. The difference\nbetween the two classes is that \"BaseExceptionGroup\" extends\n\"BaseException\" and it can wrap any exception, while\n\"ExceptionGroup\" extends \"Exception\" and it can only wrap\nsubclasses of \"Exception\". This design is so that \"except\nException\" catches an \"ExceptionGroup\" but not\n\"BaseExceptionGroup\".\n\nThe \"BaseExceptionGroup\" constructor returns an \"ExceptionGroup\"\nrather than a \"BaseExceptionGroup\" if all contained exceptions are\n\"Exception\" instances, so it can be used to make the selection\nautomatic. The \"ExceptionGroup\" constructor, on the other hand,\nraises a \"TypeError\" if any contained exception is not an\n\"Exception\" subclass.\n\nException groups are generic over the type of their contained\nexceptions.\n\n**CPython implementation detail:** The \"excs\" parameter may be any\nsequence, but lists and tuples are specifically processed more\nefficiently here. For optimal performance, pass a tuple as \"excs\".\n\nmessage\n\n   The \"msg\" argument to the constructor. This is a read-only\n   attribute.\n\nexceptions\n\n   A tuple of the exceptions in the \"excs\" sequence given to the\n   constructor. This is a read-only attribute.\n\nsubgroup(condition)\n\n   Returns an exception group that contains only the exceptions\n   from the current group that match *condition*, or \"None\" if the\n   result is empty.\n\n(… continues in the Python documentation: Built-in Exceptions, BaseExceptionGroup)"
+   }
+  ],
+  "bin": [
+   {
+    "where": "Library Reference, Built-in Functions: bin()",
+    "text": "bin(integer, /)\n\nConvert an integer number to a binary string prefixed with \"0b\".\nThe result is a valid Python expression. If *integer* is not a\nPython \"int\" object, it has to define an \"__index__()\" method that\nreturns an integer. Some examples:\n\n>>> bin(3)\n'0b11'\n>>> bin(-10)\n'-0b1010'\n\nIf the prefix \"0b\" is desired or not, you can use either of the\nfollowing ways.\n\n>>> format(14, '#b'), format(14, 'b')\n('0b1110', '1110')\n>>> f'{14:#b}', f'{14:b}'\n('0b1110', '1110')\n\nSee also \"enum.bin()\" to represent negative values as twos-\ncomplement.\n\nSee also \"format()\" for more information."
+   }
+  ],
+  "BlockingIOError": [
+   {
+    "where": "Library Reference, Built-in Exceptions: BlockingIOError",
+    "text": "exception BlockingIOError\n\nRaised when an operation would block on an object (e.g. socket) set\nfor non-blocking operation. Corresponds to \"errno\" \"EAGAIN\",\n\"EALREADY\", \"EWOULDBLOCK\" and \"EINPROGRESS\".\n\nIn addition to those of \"OSError\", \"BlockingIOError\" can have one\nmore attribute:\n\ncharacters_written\n\n   An integer containing the number of **bytes** written to the\n   stream before it blocked. This attribute is available when using\n   the buffered I/O classes from the \"io\" module."
+   }
+  ],
+  "bool": [
+   {
+    "where": "Library Reference, Built-in Functions: bool()",
+    "text": "class bool(object=False, /)\n\nReturn a Boolean value, i.e. one of \"True\" or \"False\".  The\nargument is converted using the standard truth testing procedure.\nIf the argument is false or omitted, this returns \"False\";\notherwise, it returns \"True\".  The \"bool\" class is a subclass of\n\"int\" (see Numeric Types --- int, float, complex). It cannot be\nsubclassed further.  Its only instances are \"False\" and \"True\" (see\nBoolean Type - bool)."
+   }
+  ],
+  "break": [
+   {
+    "where": "Tutorial 4.4, \"break\" and \"continue\" Statements",
+    "text": "The \"break\" statement breaks out of the innermost enclosing \"for\" or\n\"while\" loop:\n\n   >>> for n in range(2, 10):\n   ...     for x in range(2, n):\n   ...         if n % x == 0:\n   ...             print(f\"{n} equals {x} * {n//x}\")\n   ...             break\n   ...\n   4 equals 2 * 2\n   6 equals 2 * 3\n   8 equals 2 * 4\n   9 equals 3 * 3\n\nThe \"continue\" statement continues with the next iteration of the\nloop:\n\n   >>> for num in range(2, 10):\n   ...     if num % 2 == 0:\n   ...         print(f\"Found an even number {num}\")\n   ...         continue\n   ...     print(f\"Found an odd number {num}\")\n   ...\n   Found an even number 2\n   Found an odd number 3\n   Found an even number 4\n   Found an odd number 5\n   Found an even number 6\n   Found an odd number 7\n   Found an even number 8\n   Found an odd number 9"
+   },
+   {
+    "where": "Language Reference 7.9, The \"break\" statement",
+    "text": "break_stmt: \"break\"\n\n\"break\" may only occur syntactically nested in a \"for\" or \"while\"\nloop, but not nested in a function or class definition within that\nloop.\n\nIt terminates the nearest enclosing loop, skipping the optional \"else\"\nclause if the loop has one.\n\nIf a \"for\" loop is terminated by \"break\", the loop control target\nkeeps its current value.\n\nWhen \"break\" passes control out of a \"try\" statement with a \"finally\"\nclause, that \"finally\" clause is executed before really leaving the\nloop."
+   }
+  ],
+  "breakpoint": [
+   {
+    "where": "Library Reference, Built-in Functions: breakpoint()",
+    "text": "breakpoint(*args, **kws)\n\nThis function drops you into the debugger at the call site.\nSpecifically, it calls \"sys.breakpointhook()\", passing \"args\" and\n\"kws\" straight through.  By default, \"sys.breakpointhook()\" calls\n\"pdb.set_trace()\" expecting no arguments.  In this case, it is\npurely a convenience function so you don't have to explicitly\nimport \"pdb\" or type as much code to enter the debugger.  However,\n\"sys.breakpointhook()\" can be set to some other function and\n\"breakpoint()\" will automatically call that, allowing you to drop\ninto the debugger of choice. If \"sys.breakpointhook()\" is not\naccessible, this function will raise \"RuntimeError\".\n\nBy default, the behavior of \"breakpoint()\" can be changed with the\n\"PYTHONBREAKPOINT\" environment variable. See \"sys.breakpointhook()\"\nfor usage details.\n\nNote that this is not guaranteed if \"sys.breakpointhook()\" has been\nreplaced."
+   }
+  ],
+  "BrokenPipeError": [
+   {
+    "where": "Library Reference, Built-in Exceptions: BrokenPipeError",
+    "text": "exception BrokenPipeError\n\nA subclass of \"ConnectionError\", raised when trying to write on a\npipe while the other end has been closed, or trying to write on a\nsocket which has been shutdown for writing. Corresponds to \"errno\"\n\"EPIPE\" and \"ESHUTDOWN\"."
+   }
+  ],
+  "BufferError": [
+   {
+    "where": "Library Reference, Built-in Exceptions: BufferError",
+    "text": "exception BufferError\n\nRaised when a buffer related operation cannot be performed."
+   }
+  ],
+  "bytearray": [
+   {
+    "where": "Library Reference, Built-in Functions: bytearray()",
+    "text": "class bytearray(source=b'')\nclass bytearray(source, encoding, errors='strict')\n\nReturn a new array of bytes.  The \"bytearray\" class is a mutable\nsequence of integers in the range 0 <= x < 256.  It has most of the\nusual methods of mutable sequences, described in Mutable Sequence\nTypes, as well as most methods that the \"bytes\" type has, see Bytes\nand Bytearray Operations.\n\nThe optional *source* parameter can be used to initialize the array\nin a few different ways:\n\n* If it is a *string*, you must also give the *encoding* (and\n  optionally, *errors*) parameters; \"bytearray()\" then converts the\n  string to bytes using \"str.encode()\".\n\n* If it is an *integer*, the array will have that size and will be\n  initialized with null bytes.\n\n* If it is an object conforming to the buffer interface, a read-\n  only buffer of the object will be used to initialize the bytes\n  array.\n\n* If it is an *iterable*, it must be an iterable of integers in the\n  range \"0 <= x < 256\", which are used as the initial contents of\n  the array.\n\nWithout an argument, an array of size 0 is created.\n\nSee also Binary Sequence Types --- bytes, bytearray, memoryview and\nBytearray Objects."
+   }
+  ],
+  "bytes": [
+   {
+    "where": "Library Reference, Built-in Functions: bytes()",
+    "text": "class bytes(source=b'')\nclass bytes(source, encoding, errors='strict')\n\nReturn a new \"bytes\" object which is an immutable sequence of\nintegers in the range \"0 <= x < 256\".  \"bytes\" is an immutable\nversion of \"bytearray\" -- it has the same non-mutating methods and\nthe same indexing and slicing behavior.\n\nAccordingly, constructor arguments are interpreted as for\n\"bytearray()\".\n\nBytes objects can also be created with literals, see String and\nBytes literals.\n\nSee also Binary Sequence Types --- bytes, bytearray, memoryview,\nBytes Objects, and Bytes and Bytearray Operations."
+   }
+  ],
+  "BytesWarning": [
+   {
+    "where": "Library Reference, Built-in Exceptions: BytesWarning",
+    "text": "exception BytesWarning\n\nBase class for warnings related to \"bytes\" and \"bytearray\"."
+   }
+  ],
+  "callable": [
+   {
+    "where": "Library Reference, Built-in Functions: callable()",
+    "text": "callable(object, /)\n\nReturn \"True\" if the *object* argument appears callable, \"False\" if\nnot.  If this returns \"True\", it is still possible that a call\nfails, but if it is \"False\", calling *object* will never succeed.\nNote that classes are callable (calling a class returns a new\ninstance); instances are callable if their class has a \"__call__()\"\nmethod."
+   }
+  ],
+  "ChildProcessError": [
+   {
+    "where": "Library Reference, Built-in Exceptions: ChildProcessError",
+    "text": "exception ChildProcessError\n\nRaised when an operation on a child process failed. Corresponds to\n\"errno\" \"ECHILD\"."
+   }
+  ],
+  "chr": [
+   {
+    "where": "Library Reference, Built-in Functions: chr()",
+    "text": "chr(codepoint, /)\n\nReturn the string representing a character with the specified\nUnicode code point. For example, \"chr(97)\" returns the string\n\"'a'\", while \"chr(8364)\" returns the string \"'€'\". This is the\ninverse of \"ord()\".\n\nThe valid range for the argument is from 0 through 1,114,111\n(0x10FFFF in base 16).  \"ValueError\" will be raised if it is\noutside that range."
+   }
+  ],
+  "class": [
+   {
+    "where": "Language Reference 8.8, Class definitions",
+    "text": "A class definition defines a class object (see section The standard\ntype hierarchy):\n\nA class definition is an executable statement.  The inheritance list\nusually gives a list of base classes (see Metaclasses for more\nadvanced uses), so each item in the list should evaluate to a class\nobject which allows subclassing.  Classes without an inheritance list\ninherit, by default, from the base class \"object\"; hence,\n\n   class Foo:\n       pass\n\nis equivalent to\n\n   class Foo(object):\n       pass\n\nThe class's suite is then executed in a new execution frame (see\nNaming and binding), using a newly created local namespace and the\noriginal global namespace. (Usually, the suite contains mostly\nfunction definitions.)  When the class's suite finishes execution, its\nexecution frame is discarded but its local namespace is saved. A\nclass object is then created using the inheritance list for the base\nclasses and the saved local namespace for the attribute dictionary.\nThe class name is bound to this class object in the original local\nnamespace.\n\nThe order in which attributes are defined in the class body is\npreserved in the new class's \"__dict__\".  Note that this is reliable\nonly right after the class is created and only for classes that were\ndefined using the definition syntax.\n\nClass creation can be customized heavily using metaclasses.\n\nClasses can also be decorated: just like when decorating functions,\n\n   @f1(arg)\n   @f2\n   class Foo: pass\n\nis roughly equivalent to\n\n   class Foo: pass\n   Foo = f1(arg)(f2(Foo))\n\n(… continues in the Python documentation: Language Reference 8.8, Class definitions)"
+   }
+  ],
+  "classes": [
+   {
+    "where": "Library Reference, Built-in Exceptions: classes",
+    "text": "exception classes derived from that class (but not exception classes"
+   }
+  ],
+  "compile": [
+   {
+    "where": "Library Reference, Built-in Functions: compile()",
+    "text": "compile(source, filename, mode, flags=0, dont_inherit=False, optimize=-1)\n\nCompile the *source* into a code or AST object.  Code objects can\nbe executed by \"exec()\" or \"eval()\".  *source* can either be a\nnormal string, a byte string, or an AST object.  Refer to the \"ast\"\nmodule documentation for information on how to work with AST\nobjects.\n\nThe *filename* argument should give the file from which the code\nwas read; pass some recognizable value if it wasn't read from a\nfile (\"'<string>'\" is commonly used).\n\nThe *mode* argument specifies what kind of code must be compiled;\nit can be \"'exec'\" if *source* consists of a sequence of\nstatements, \"'eval'\" if it consists of a single expression, or\n\"'single'\" if it consists of a single interactive statement (in the\nlatter case, expression statements that evaluate to something other\nthan \"None\" will be printed).\n\nThe optional arguments *flags* and *dont_inherit* control which\ncompiler options should be activated and which future features\nshould be allowed. If neither is present (or both are zero) the\ncode is compiled with the same flags that affect the code that is\ncalling \"compile()\". If the *flags* argument is given and\n*dont_inherit* is not (or is zero) then the compiler options and\nthe future statements specified by the *flags* argument are used in\naddition to those that would be used anyway. If *dont_inherit* is a\nnon-zero integer then the *flags* argument is it -- the flags\n(future features and compiler options) in the surrounding code are\nignored.\n\n(… continues in the Python documentation: Built-in Functions, compile())"
+   }
+  ],
+  "complex": [
+   {
+    "where": "Library Reference, Built-in Functions: complex()",
+    "text": "class complex(number=0, /)\nclass complex(string, /)\nclass complex(real=0, imag=0)\n\nConvert a single string or number to a complex number, or create a\ncomplex number from real and imaginary parts.\n\nExamples:\n\n   >>> complex('+1.23')\n   (1.23+0j)\n   >>> complex('-4.5j')\n   -4.5j\n   >>> complex('-1.23+4.5j')\n   (-1.23+4.5j)\n   >>> complex('\\t( -1.23+4.5J )\\n')\n   (-1.23+4.5j)\n   >>> complex('-Infinity+NaNj')\n   (-inf+nanj)\n   >>> complex(1.23)\n   (1.23+0j)\n   >>> complex(imag=-4.5)\n   -4.5j\n   >>> complex(-1.23, 4.5)\n   (-1.23+4.5j)\n\nIf the argument is a string, it must contain either a real part (in\nthe same format as for \"float()\") or an imaginary part (in the same\nformat but with a \"'j'\" or \"'J'\" suffix), or both real and\nimaginary parts (the sign of the imaginary part is mandatory in\nthis case). The string can optionally be surrounded by whitespaces\nand the round parentheses \"'('\" and \"')'\", which are ignored. The\nstring must not contain whitespace between \"'+'\", \"'-'\", the \"'j'\"\nor \"'J'\" suffix, and the decimal number. For example,\n\"complex('1+2j')\" is fine, but \"complex('1 + 2j')\" raises\n\"ValueError\". More precisely, the input must conform to the\n\"complexvalue\" production rule in the following grammar, after\nparentheses and leading and trailing whitespace characters are\nremoved:\n\n(… continues in the Python documentation: Built-in Functions, complex())"
+   }
+  ],
+  "ConnectionAbortedError": [
+   {
+    "where": "Library Reference, Built-in Exceptions: ConnectionAbortedError",
+    "text": "exception ConnectionAbortedError\n\nA subclass of \"ConnectionError\", raised when a connection attempt\nis aborted by the peer. Corresponds to \"errno\" \"ECONNABORTED\"."
+   }
+  ],
+  "ConnectionError": [
+   {
+    "where": "Library Reference, Built-in Exceptions: ConnectionError",
+    "text": "exception ConnectionError\n\nA base class for connection-related issues.\n\nSubclasses are \"BrokenPipeError\", \"ConnectionAbortedError\",\n\"ConnectionRefusedError\" and \"ConnectionResetError\"."
+   }
+  ],
+  "ConnectionRefusedError": [
+   {
+    "where": "Library Reference, Built-in Exceptions: ConnectionRefusedError",
+    "text": "exception ConnectionRefusedError\n\nA subclass of \"ConnectionError\", raised when a connection attempt\nis refused by the peer. Corresponds to \"errno\" \"ECONNREFUSED\"."
+   }
+  ],
+  "ConnectionResetError": [
+   {
+    "where": "Library Reference, Built-in Exceptions: ConnectionResetError",
+    "text": "exception ConnectionResetError\n\nA subclass of \"ConnectionError\", raised when a connection is reset\nby the peer. Corresponds to \"errno\" \"ECONNRESET\"."
+   }
+  ],
+  "continue": [
+   {
+    "where": "Tutorial 4.4, \"break\" and \"continue\" Statements",
+    "text": "The \"break\" statement breaks out of the innermost enclosing \"for\" or\n\"while\" loop:\n\n   >>> for n in range(2, 10):\n   ...     for x in range(2, n):\n   ...         if n % x == 0:\n   ...             print(f\"{n} equals {x} * {n//x}\")\n   ...             break\n   ...\n   4 equals 2 * 2\n   6 equals 2 * 3\n   8 equals 2 * 4\n   9 equals 3 * 3\n\nThe \"continue\" statement continues with the next iteration of the\nloop:\n\n   >>> for num in range(2, 10):\n   ...     if num % 2 == 0:\n   ...         print(f\"Found an even number {num}\")\n   ...         continue\n   ...     print(f\"Found an odd number {num}\")\n   ...\n   Found an even number 2\n   Found an odd number 3\n   Found an even number 4\n   Found an odd number 5\n   Found an even number 6\n   Found an odd number 7\n   Found an even number 8\n   Found an odd number 9"
+   },
+   {
+    "where": "Language Reference 7.10, The \"continue\" statement",
+    "text": "continue_stmt: \"continue\"\n\n\"continue\" may only occur syntactically nested in a \"for\" or \"while\"\nloop, but not nested in a function or class definition within that\nloop.  It continues with the next cycle of the nearest enclosing loop.\n\nWhen \"continue\" passes control out of a \"try\" statement with a\n\"finally\" clause, that \"finally\" clause is executed before really\nstarting the next loop cycle."
+   }
+  ],
+  "def": [
+   {
+    "where": "Tutorial 4.8, Defining Functions",
+    "text": "We can create a function that writes the Fibonacci series to an\narbitrary boundary:\n\n   >>> def fib(n):    # write Fibonacci series less than n\n   ...     \"\"\"Print a Fibonacci series less than n.\"\"\"\n   ...     a, b = 0, 1\n   ...     while a < n:\n   ...         print(a, end=' ')\n   ...         a, b = b, a+b\n   ...     print()\n   ...\n   >>> # Now call the function we just defined:\n   >>> fib(2000)\n   0 1 1 2 3 5 8 13 21 34 55 89 144 233 377 610 987 1597\n\nThe keyword \"def\" introduces a function *definition*.  It must be\nfollowed by the function name and the parenthesized list of formal\nparameters. The statements that form the body of the function start at\nthe next line, and must be indented.\n\nThe first statement of the function body can optionally be a string\nliteral; this string literal is the function's documentation string,\nor *docstring*. (More about docstrings can be found in the section\nDocumentation Strings.) There are tools which use docstrings to\nautomatically produce online or printed documentation, or to let the\nuser interactively browse through code; it's good practice to include\ndocstrings in code that you write, so make a habit of it.\n\n(… continues in the Python documentation: Tutorial 4.8, Defining Functions)"
+   },
+   {
+    "where": "Language Reference 8.7, Function definitions",
+    "text": "A function definition defines a user-defined function object (see\nsection The standard type hierarchy):\n\nA function definition is an executable statement.  Its execution binds\nthe function name in the current local namespace to a function object\n(a wrapper around the executable code for the function).  This\nfunction object contains a reference to the current global namespace\nas the global namespace to be used when the function is called.\n\nThe function definition does not execute the function body; this gets\nexecuted only when the function is called.\n\nA function definition may be wrapped by one or more *decorator*\nexpressions. Decorator expressions are evaluated when the function is\ndefined, in the scope that contains the function definition.  The\nresult must be a callable, which is invoked with the function object\nas the only argument. The returned value is bound to the function name\ninstead of the function object.  Multiple decorators are applied in\nnested fashion. For example, the following code\n\n   @f1(arg)\n   @f2\n   def func(): pass\n\nis roughly equivalent to\n\n   def func(): pass\n   func = f1(arg)(f2(func))\n\nexcept that the original function is not temporarily bound to the name\n\"func\".\n\nA list of type parameters may be given in square brackets between the\nfunction's name and the opening parenthesis for its parameter list.\nThis indicates to static type checkers that the function is generic.\nAt runtime, the type parameters can be retrieved from the function's\n\"__type_params__\" attribute. See Generic functions for more.\n\n(… continues in the Python documentation: Language Reference 8.7, Function definitions)"
+   }
+  ],
+  "del": [
+   {
+    "where": "Language Reference 7.5, The \"del\" statement",
+    "text": "del_stmt: \"del\" target_list\n\nDeletion is recursively defined very similar to the way assignment is\ndefined. Rather than spelling it out in full details, here are some\nhints.\n\nDeletion of a target list recursively deletes each target, from left\nto right.\n\nDeletion of a name removes the binding of that name from the local or\nglobal namespace, depending on whether the name occurs in a \"global\"\nstatement in the same code block.  Trying to delete an unbound name\nraises a \"NameError\" exception.\n\nDeletion of attribute references and subscriptions is passed to the\nprimary object involved; deletion of a slicing is in general\nequivalent to assignment of an empty slice of the right type (but even\nthis is determined by the sliced object)."
+   }
+  ],
+  "delattr": [
+   {
+    "where": "Library Reference, Built-in Functions: delattr()",
+    "text": "delattr(object, name, /)\n\nThis is a relative of \"setattr()\".  The arguments are an object and\na string.  The string must be the name of one of the object's\nattributes.  The function deletes the named attribute, provided the\nobject allows it.  For example, \"delattr(x, 'foobar')\" is\nequivalent to \"del x.foobar\". *name* need not be a Python\nidentifier (see \"setattr()\")."
+   }
+  ],
+  "DeprecationWarning": [
+   {
+    "where": "Library Reference, Built-in Exceptions: DeprecationWarning",
+    "text": "exception DeprecationWarning\n\nBase class for warnings about deprecated features when those\nwarnings are intended for other Python developers.\n\nIgnored by the default warning filters, except in the \"__main__\"\nmodule (**PEP 565**). Enabling the Python Development Mode shows\nthis warning.\n\nThe deprecation policy is described in **PEP 387**."
+   }
+  ],
+  "dict": [
+   {
+    "where": "Library Reference, Built-in Functions: dict()",
+    "text": "class dict(**kwargs)\nclass dict(mapping, /, **kwargs)\nclass dict(iterable, /, **kwargs)\n\nCreate a new dictionary.  The \"dict\" object is the dictionary\nclass. See also Mapping Types --- dict for documentation about this\nclass.\n\nFor other containers see the built-in \"list\", \"set\", and \"tuple\"\nclasses, as well as the \"collections\" module."
+   }
+  ],
+  "dir": [
+   {
+    "where": "Library Reference, Built-in Functions: dir()",
+    "text": "dir()\ndir(object, /)\n\nWithout arguments, return the list of names in the current local\nscope.  With an argument, attempt to return a list of valid\nattributes for that object.\n\nIf the object has a method named \"__dir__()\", this method will be\ncalled and must return the list of attributes. This allows objects\nthat implement a custom \"__getattr__()\" or \"__getattribute__()\"\nfunction to customize the way \"dir()\" reports their attributes.\n\nIf the object does not provide \"__dir__()\", the function tries its\nbest to gather information from the object's \"__dict__\" attribute,\nif defined, and from its type object.  The resulting list is not\nnecessarily complete and may be inaccurate when the object has a\ncustom \"__getattr__()\".\n\nThe default \"dir()\" mechanism behaves differently with different\ntypes of objects, as it attempts to produce the most relevant,\nrather than complete, information:\n\n* If the object is a module object, the list contains the names of\n  the module's attributes.\n\n* If the object is a type or class object, the list contains the\n  names of its attributes, and recursively of the attributes of its\n  bases.\n\n* Otherwise, the list contains the object's attributes' names, the\n  names of its class's attributes, and recursively of the\n  attributes of its class's base classes.\n\nThe resulting list is sorted alphabetically.  For example:\n\n(… continues in the Python documentation: Built-in Functions, dir())"
+   }
+  ],
+  "divmod": [
+   {
+    "where": "Library Reference, Built-in Functions: divmod()",
+    "text": "divmod(a, b, /)\n\nTake two (non-complex) numbers as arguments and return a pair of\nnumbers consisting of their quotient and remainder when using\ninteger division.  With mixed operand types, the rules for binary\narithmetic operators apply.  For integers, the result is the same\nas \"(a // b, a % b)\". For floating-point numbers the result is \"(q,\na % b)\", where *q* is usually \"math.floor(a / b)\" but may be 1 less\nthan that.  In any case \"q * b + a % b\" is very close to *a*, if \"a\n% b\" is non-zero it has the same sign as *b*, and \"0 <= abs(a % b)\n< abs(b)\"."
+   }
+  ],
+  "EncodingWarning": [
+   {
+    "where": "Library Reference, Built-in Exceptions: EncodingWarning",
+    "text": "exception EncodingWarning\n\nBase class for warnings related to encodings.\n\nSee Opt-in EncodingWarning for details."
+   }
+  ],
+  "enumerate": [
+   {
+    "where": "Library Reference, Built-in Functions: enumerate()",
+    "text": "enumerate(iterable, start=0)\n\nReturn an enumerate object. *iterable* must be a sequence, an\n*iterator*, or some other object which supports iteration. The\n\"__next__()\" method of the iterator returned by \"enumerate()\"\nreturns a tuple containing a count (from *start* which defaults to\n0) and the values obtained from iterating over *iterable*.\n\n>>> seasons = ['Spring', 'Summer', 'Fall', 'Winter']\n>>> list(enumerate(seasons))\n[(0, 'Spring'), (1, 'Summer'), (2, 'Fall'), (3, 'Winter')]\n>>> list(enumerate(seasons, start=1))\n[(1, 'Spring'), (2, 'Summer'), (3, 'Fall'), (4, 'Winter')]\n\nEquivalent to:\n\n   def enumerate(iterable, start=0):\n       n = start\n       for elem in iterable:\n           yield n, elem\n           n += 1"
+   }
+  ],
+  "EnvironmentError": [
+   {
+    "where": "Library Reference, Built-in Exceptions: EnvironmentError",
+    "text": "exception EnvironmentError"
+   }
+  ],
+  "EOFError": [
+   {
+    "where": "Library Reference, Built-in Exceptions: EOFError",
+    "text": "exception EOFError\n\nRaised when the \"input()\" function hits an end-of-file condition\n(EOF) without reading any data. (Note: the \"io.TextIOBase.read()\"\nand \"io.IOBase.readline()\" methods return an empty string when they\nhit EOF.)"
+   }
+  ],
+  "eval": [
+   {
+    "where": "Library Reference, Built-in Functions: eval()",
+    "text": "eval(source, /, globals=None, locals=None)\n\nParameters:\n   * **source** (\"str\" | code object) -- A Python expression.\n\n   * **globals** (\"dict\" | \"None\") -- The global namespace\n     (default: \"None\").\n\n   * **locals** (*mapping* | \"None\") -- The local namespace\n     (default: \"None\").\n\nReturns:\n   The result of the evaluated expression.\n\nRaises:\n   Syntax errors are reported as exceptions.\n\nWarning:\n\n  This function executes arbitrary code. Calling it with untrusted\n  user-supplied input will lead to security vulnerabilities.\n\nThe *source* argument is parsed and evaluated as a Python\nexpression (technically speaking, an expression list) using the\n*globals* and *locals* mappings as global and local namespace. If\nthe *globals* dictionary is present and does not contain a value\nfor the key \"__builtins__\", a reference to the dictionary of the\nbuilt-in module \"builtins\" is inserted under that key before\n*source* is parsed. Overriding \"__builtins__\" can be used to\nrestrict or change the available names, but this is **not** a\nsecurity mechanism: the executed code can still access all\nbuiltins. If the *locals* mapping is omitted it defaults to the\n*globals* dictionary.  If both mappings are omitted, the source is\nexecuted with the *globals* and *locals* in the environment where\n\"eval()\" is called.  Note, *eval()* will only have access to the\n*nested scopes* (non-locals) in the enclosing environment if they\nare already referenced in the scope that is calling \"eval()\" (e.g.\nvia a \"nonlocal\" statement).\n\nExample:\n\n>>> x = 1\n>>> eval('x+1')\n2\n\n>>> eval(\"1, 2\")\n(1, 2)\n\n(… continues in the Python documentation: Built-in Functions, eval())"
+   }
+  ],
+  "Exception": [
+   {
+    "where": "Library Reference, Built-in Exceptions: Exception",
+    "text": "exception Exception\n\nAll built-in, non-system-exiting exceptions are derived from this\nclass.  All user-defined exceptions should also be derived from\nthis class."
+   }
+  ],
+  "ExceptionGroup": [
+   {
+    "where": "Library Reference, Built-in Exceptions: ExceptionGroup",
+    "text": "exception ExceptionGroup(msg, excs)"
+   }
+  ],
+  "exec": [
+   {
+    "where": "Library Reference, Built-in Functions: exec()",
+    "text": "exec(source, /, globals=None, locals=None, *, closure=None)\n\nWarning:\n\n  This function executes arbitrary code. Calling it with untrusted\n  user-supplied input will lead to security vulnerabilities.\n\nThis function supports dynamic execution of Python code. *source*\nmust be either a string or a code object.  If it is a string, the\nstring is parsed as a suite of Python statements which is then\nexecuted (unless a syntax error occurs). If it is a code\nobject, it is simply executed.  In all cases, the code that's\nexecuted is expected to be valid as file input (see the section\nFile input in the Reference Manual). Be aware that the \"nonlocal\",\n\"yield\",  and \"return\" statements may not be used outside of\nfunction definitions even within the context of code passed to the\n\"exec()\" function. The return value is \"None\".\n\nIn all cases, if the optional parts are omitted, the code is\nexecuted in the current scope.  If only *globals* is provided, it\nmust be a dictionary (and not a subclass of dictionary), which will\nbe used for both the global and the local variables.  If *globals*\nand *locals* are given, they are used for the global and local\nvariables, respectively.  If provided, *locals* can be any mapping\nobject.  Remember that at the module level, globals and locals are\nthe same dictionary.\n\nNote:\n\n(… continues in the Python documentation: Built-in Functions, exec())"
+   }
+  ],
+  "False": [
+   {
+    "where": "Library Reference, Built-in Constants: False",
+    "text": "False\n\nThe false value of the \"bool\" type. Assignments to \"False\" are\nillegal and raise a \"SyntaxError\"."
+   }
+  ],
+  "FileExistsError": [
+   {
+    "where": "Library Reference, Built-in Exceptions: FileExistsError",
+    "text": "exception FileExistsError\n\nRaised when trying to create a file or directory which already\nexists. Corresponds to \"errno\" \"EEXIST\"."
+   }
+  ],
+  "FileNotFoundError": [
+   {
+    "where": "Library Reference, Built-in Exceptions: FileNotFoundError",
+    "text": "exception FileNotFoundError\n\nRaised when a file or directory is requested but doesn't exist.\nCorresponds to \"errno\" \"ENOENT\"."
+   }
+  ],
+  "filter": [
+   {
+    "where": "Library Reference, Built-in Functions: filter()",
+    "text": "filter(function, iterable, /)\n\nConstruct an iterator from those elements of *iterable* for which\n*function* is true.  *iterable* may be either a sequence, a\ncontainer which supports iteration, or an iterator.  If *function*\nis \"None\", the identity function is assumed, that is, all elements\nof *iterable* that are false are removed.\n\nNote that \"filter(function, iterable)\" is equivalent to the\ngenerator expression \"(item for item in iterable if\nfunction(item))\" if function is not \"None\" and \"(item for item in\niterable if item)\" if function is \"None\".\n\nSee \"itertools.filterfalse()\" for the complementary function that\nreturns elements of *iterable* for which *function* is false."
+   }
+  ],
+  "float": [
+   {
+    "where": "Library Reference, Built-in Functions: float()",
+    "text": "class float(number=0.0, /)\nclass float(string, /)\n\nReturn a floating-point number constructed from a number or a\nstring.\n\nExamples:\n\n   >>> float('+1.23')\n   1.23\n   >>> float('   -12345\\n')\n   -12345.0\n   >>> float('1e-003')\n   0.001\n   >>> float('+1E6')\n   1000000.0\n   >>> float('-Infinity')\n   -inf\n\nIf the argument is a string, it should contain a decimal number,\noptionally preceded by a sign, and optionally embedded in\nwhitespace.  The optional sign may be \"'+'\" or \"'-'\"; a \"'+'\" sign\nhas no effect on the value produced.  The argument may also be a\nstring representing a NaN (not-a-number), or positive or negative\ninfinity. More precisely, the input must conform to the\n\"floatvalue\" production rule in the following grammar, after\nleading and trailing whitespace characters are removed:\n\nCase is not significant, so, for example, \"inf\", \"Inf\", \"INFINITY\",\nand \"iNfINity\" are all acceptable spellings for positive infinity.\n\nOtherwise, if the argument is an integer or a floating-point\nnumber, a floating-point number with the same value (within\nPython's floating-point precision) is returned.  If the argument is\noutside the range of a Python float, an \"OverflowError\" will be\nraised.\n\nFor a general Python object \"x\", \"float(x)\" delegates to\n\"x.__float__()\".  If \"__float__()\" is not defined then it falls\nback to \"__index__()\".\n\nSee also \"float.from_number()\" which only accepts a numeric\nargument.\n\nIf no argument is given, \"0.0\" is returned.\n\nThe float type is described in Numeric Types --- int, float,\ncomplex."
+   }
+  ],
+  "FloatingPointError": [
+   {
+    "where": "Library Reference, Built-in Exceptions: FloatingPointError",
+    "text": "exception FloatingPointError\n\nNot currently used."
+   }
+  ],
+  "for": [
+   {
+    "where": "Tutorial 4.2, \"for\" Statements",
+    "text": "The \"for\" statement in Python differs a bit from what you may be used\nto in C or Pascal.  Rather than always iterating over an arithmetic\nprogression of numbers (like in Pascal), or giving the user the\nability to define both the iteration step and halting condition (as\nC), Python's \"for\" statement iterates over the items of any sequence\n(a list or a string), in the order that they appear in the sequence.\nFor example (no pun intended):\n\n   >>> # Measure some strings:\n   >>> words = ['cat', 'window', 'defenestrate']\n   >>> for w in words:\n   ...     print(w, len(w))\n   ...\n   cat 3\n   window 6\n   defenestrate 12\n\nCode that modifies a collection while iterating over that same\ncollection can be tricky to get right.  Instead, it is usually more\nstraight-forward to loop over a copy of the collection or to create a\nnew collection:\n\n   # Create a sample collection\n   users = {'Hans': 'active', 'Éléonore': 'inactive', '景太郎': 'active'}\n\n   # Strategy:  Iterate over a copy\n   for user, status in users.copy().items():\n       if status == 'inactive':\n           del users[user]\n\n   # Strategy:  Create a new collection\n   active_users = {}\n   for user, status in users.items():\n       if status == 'active':\n           active_users[user] = status"
+   },
+   {
+    "where": "Language Reference 8.3, The \"for\" statement",
+    "text": "The \"for\" statement is used to iterate over the elements of a sequence\n(such as a string, tuple or list) or other iterable object:\n\nThe \"starred_expression_list\" expression is evaluated once; it should\nyield an *iterable* object. An *iterator* is created for that\niterable. The first item provided by the iterator is then assigned to\nthe target list using the standard rules for assignments (see\nAssignment statements), and the suite is executed. This repeats for\neach item provided by the iterator. When the iterator is *exhausted*,\nthe suite in the \"else\" clause, if present, is executed, and the loop\nterminates.\n\nA \"break\" statement executed in the first suite terminates the loop\nwithout executing the \"else\" clause's suite.  A \"continue\" statement\nexecuted in the first suite skips the rest of the suite and continues\nwith the next item, or with the \"else\" clause if there is no next\nitem.\n\nThe for-loop makes assignments to the variables in the target list.\nThis overwrites all previous assignments to those variables including\nthose made in the suite of the for-loop:\n\n   for i in range(10):\n       print(i)\n       i = 5             # this will not affect the for-loop\n                         # because i will be overwritten with the next\n                         # index in the range\n\n(… continues in the Python documentation: Language Reference 8.3, The \"for\" statement)"
+   }
+  ],
+  "format": [
+   {
+    "where": "Library Reference, Built-in Functions: format()",
+    "text": "format(value, format_spec='', /)\n\nConvert a *value* to a \"formatted\" representation, as controlled by\n*format_spec*.  The interpretation of *format_spec* will depend on\nthe type of the *value* argument; however, there is a standard\nformatting syntax that is used by most built-in types: Format\nspecification mini-language.\n\nThe default *format_spec* is an empty string which usually gives\nthe same effect as calling \"str(value)\".\n\nA call to \"format(value, format_spec)\" is translated to\n\"type(value).__format__(value, format_spec)\" which bypasses the\ninstance dictionary when searching for the value's \"__format__()\"\nmethod. A \"TypeError\" exception is raised if the method search\nreaches \"object\" and the *format_spec* is non-empty, or if either\nthe *format_spec* or the return value are not strings."
+   }
+  ],
+  "frozenset": [
+   {
+    "where": "Library Reference, Built-in Functions: frozenset()",
+    "text": "class frozenset(iterable=(), /)\n\nReturn a new \"frozenset\" object, optionally with elements taken\nfrom *iterable*.  \"frozenset\" is a built-in class.  See also Set\nTypes --- set, frozenset for documentation about this class.\n\nFor other containers see the built-in \"set\", \"list\", \"tuple\", and\n\"dict\" classes, as well as the \"collections\" module."
+   }
+  ],
+  "FutureWarning": [
+   {
+    "where": "Library Reference, Built-in Exceptions: FutureWarning",
+    "text": "exception FutureWarning\n\nBase class for warnings about deprecated features when those\nwarnings are intended for end users of applications that are\nwritten in Python."
+   }
+  ],
+  "GeneratorExit": [
+   {
+    "where": "Library Reference, Built-in Exceptions: GeneratorExit",
+    "text": "exception GeneratorExit\n\nRaised when a *generator* or *coroutine* is closed; see\n\"generator.close()\" and \"coroutine.close()\".  It directly inherits\nfrom \"BaseException\" instead of \"Exception\" since it is technically\nnot an error."
+   }
+  ],
+  "getattr": [
+   {
+    "where": "Library Reference, Built-in Functions: getattr()",
+    "text": "getattr(object, name, /)\ngetattr(object, name, default, /)\n\nReturn the value of the named attribute of *object*.  *name* must\nbe a string. If the string is the name of one of the object's\nattributes, the result is the value of that attribute.  For\nexample, \"getattr(x, 'foobar')\" is equivalent to \"x.foobar\".  If\nthe named attribute does not exist, *default* is returned if\nprovided, otherwise \"AttributeError\" is raised. *name* need not be\na Python identifier (see \"setattr()\").\n\nNote:\n\n  Since private name mangling happens at compilation time, one must\n  manually mangle a private attribute's (attributes with two\n  leading underscores) name in order to retrieve it with\n  \"getattr()\"."
+   }
+  ],
+  "global": [
+   {
+    "where": "Language Reference 7.12, The \"global\" statement",
+    "text": "global_stmt: \"global\" identifier (\",\" identifier)*\n\nThe \"global\" statement causes the listed identifiers to be interpreted\nas globals. It would be impossible to assign to a global variable\nwithout \"global\", although free variables may refer to globals without\nbeing declared global.\n\nThe \"global\" statement applies to the entire current scope (module,\nfunction body or class definition). A \"SyntaxError\" is raised if a\nvariable is used or assigned to prior to its global declaration in the\nscope.\n\nAt the module level, all variables are global, so a \"global\" statement\nhas no effect. However, variables must still not be used or assigned\nto prior to their \"global\" declaration. This requirement is relaxed in\nthe interactive prompt (*REPL*).\n\n**Programmer's note:** \"global\" is a directive to the parser.  It\napplies only to code parsed at the same time as the \"global\"\nstatement. In particular, a \"global\" statement contained in a string\nor code object supplied to the built-in \"exec()\" function does not\naffect the code block *containing* the function call, and code\ncontained in such a string is unaffected by \"global\" statements in the\ncode containing the function call.  The same applies to the \"eval()\"\nand \"compile()\" functions."
+   }
+  ],
+  "globals": [
+   {
+    "where": "Library Reference, Built-in Functions: globals()",
+    "text": "globals()\n\nReturn the dictionary implementing the current module namespace.\nFor code within functions, this is set when the function is defined\nand remains the same regardless of where the function is called."
+   }
+  ],
+  "handler": [
+   {
+    "where": "Library Reference, Built-in Exceptions: handler",
+    "text": "exception handler or to report an error condition \"just like\" the"
+   }
+  ],
+  "hasattr": [
+   {
+    "where": "Library Reference, Built-in Functions: hasattr()",
+    "text": "hasattr(object, name, /)\n\nThe arguments are an object and a string.  The result is \"True\" if\nthe string is the name of one of the object's attributes, \"False\"\nif not. (This is implemented by calling \"getattr(object, name)\" and\nseeing whether it raises an \"AttributeError\" or not.)"
+   }
+  ],
+  "hash": [
+   {
+    "where": "Library Reference, Built-in Functions: hash()",
+    "text": "hash(object, /)\n\nReturn the hash value of the object (if it has one).  Hash values\nare integers.  They are used to quickly compare dictionary keys\nduring a dictionary lookup.  Numeric values that compare equal have\nthe same hash value (even if they are of different types, as is the\ncase for 1 and 1.0).\n\nNote:\n\n  For objects with custom \"__hash__()\" methods, note that \"hash()\"\n  truncates the return value based on the bit width of the host\n  machine."
+   }
+  ],
+  "help": [
+   {
+    "where": "Library Reference, Built-in Functions: help()",
+    "text": "help()\nhelp(request)\n\nInvoke the built-in help system.  (This function is intended for\ninteractive use.)  If no argument is given, the interactive help\nsystem starts on the interpreter console.  If the argument is a\nstring, then the string is looked up as the name of a module,\nfunction, class, method, keyword, or documentation topic, and a\nhelp page is printed on the console.  If the argument is any other\nkind of object, a help page on the object is generated.\n\nNote that if a slash(/) appears in the parameter list of a function\nwhen invoking \"help()\", it means that the parameters prior to the\nslash are positional-only. For more info, see the FAQ entry on\npositional-only parameters.\n\nThis function is added to the built-in namespace by the \"site\"\nmodule."
+   }
+  ],
+  "hex": [
+   {
+    "where": "Library Reference, Built-in Functions: hex()",
+    "text": "hex(integer, /)\n\nConvert an integer number to a lowercase hexadecimal string\nprefixed with \"0x\". If *integer* is not a Python \"int\" object, it\nhas to define an \"__index__()\" method that returns an integer. Some\nexamples:\n\n>>> hex(255)\n'0xff'\n>>> hex(-42)\n'-0x2a'\n\nIf you want to convert an integer number to an uppercase or lower\nhexadecimal string with prefix or not, you can use either of the\nfollowing ways:\n\n>>> '%#x' % 255, '%x' % 255, '%X' % 255\n('0xff', 'ff', 'FF')\n>>> format(255, '#x'), format(255, 'x'), format(255, 'X')\n('0xff', 'ff', 'FF')\n>>> f'{255:#x}', f'{255:x}', f'{255:X}'\n('0xff', 'ff', 'FF')\n\nSee also \"format()\" for more information.\n\nSee also \"int()\" for converting a hexadecimal string to an integer\nusing a base of 16.\n\nNote:\n\n  To obtain a hexadecimal string representation for a float, use\n  the \"float.hex()\" method."
+   }
+  ],
+  "id": [
+   {
+    "where": "Library Reference, Built-in Functions: id()",
+    "text": "id(object, /)\n\nReturn the \"identity\" of an object.  This is an integer which is\nguaranteed to be unique and constant for this object during its\nlifetime. Two objects with non-overlapping lifetimes may have the\nsame \"id()\" value.\n\n**CPython implementation detail:** This is the address of the\nobject in memory."
+   }
+  ],
+  "if": [
+   {
+    "where": "Tutorial 4.1, \"if\" Statements",
+    "text": "Perhaps the most well-known statement type is the \"if\" statement.  For\nexample:\n\n   >>> x = int(input(\"Please enter an integer: \"))\n   Please enter an integer: 42\n   >>> if x < 0:\n   ...     x = 0\n   ...     print('Negative changed to zero')\n   ... elif x == 0:\n   ...     print('Zero')\n   ... elif x == 1:\n   ...     print('Single')\n   ... else:\n   ...     print('More')\n   ...\n   More\n\nThere can be zero or more \"elif\" parts, and the \"else\" part is\noptional.  The keyword '\"elif\"' is short for 'else if', and is useful\nto avoid excessive indentation.  An  \"if\" ... \"elif\" ... \"elif\" ...\nsequence is a substitute for the \"switch\" or \"case\" statements found\nin other languages.\n\nIf you're comparing the same value to several constants, or checking\nfor specific types or attributes, you may also find the \"match\"\nstatement useful. For more details see match Statements."
+   },
+   {
+    "where": "Language Reference 8.1, The \"if\" statement",
+    "text": "The \"if\" statement is used for conditional execution:\n\nIt selects exactly one of the suites by evaluating the expressions one\nby one until one is found to be true (see section Boolean operations\nfor the definition of true and false); then that suite is executed\n(and no other part of the \"if\" statement is executed or evaluated).\nIf all expressions are false, the suite of the \"else\" clause, if\npresent, is executed."
+   }
+  ],
+  "import": [
+   {
+    "where": "Language Reference 7.11, The \"import\" statement",
+    "text": "import_stmt:     \"import\" module [\"as\" identifier] (\",\" module [\"as\" identifier])*\n                    | \"from\" relative_module \"import\" identifier [\"as\" identifier]\n                    (\",\" identifier [\"as\" identifier])*\n                    | \"from\" relative_module \"import\" \"(\" identifier [\"as\" identifier]\n                    (\",\" identifier [\"as\" identifier])* [\",\"] \")\"\n                    | \"from\" relative_module \"import\" \"*\"\n   module:          (identifier \".\")* identifier\n   relative_module: \".\"* module | \".\"+\n\nThe basic import statement (no \"from\" clause) is executed in two\nsteps:\n\n1. find a module, loading and initializing it if necessary\n\n2. define a name or names in the current namespace for the scope where\n   the \"import\" statement occurs, just as an assignment statement\n   would (including \"global\" and \"nonlocal\" semantics).\n\nWhen the statement contains multiple clauses (separated by commas) the\ntwo steps are carried out separately for each clause, just as though\nthe clauses had been separated out into individual import statements.\n\nThe details of the first step, finding and loading modules, are\ndescribed in greater detail in the section on the import system, which\nalso describes the various types of packages and modules that can be\nimported, as well as all the hooks that can be used to customize the\nimport system. Note that failures in this step may indicate either\nthat the module could not be located, *or* that an error occurred\nwhile initializing the module, which includes execution of the\nmodule's code.\n\n(… continues in the Python documentation: Language Reference 7.11, The \"import\" statement)"
+   }
+  ],
+  "ImportError": [
+   {
+    "where": "Library Reference, Built-in Exceptions: ImportError",
+    "text": "exception ImportError\n\nRaised when the \"import\" statement has troubles trying to load a\nmodule.  Also raised when the \"from list\" in \"from ... import\" has\na name that cannot be found.\n\nThe optional *name* and *path* keyword-only arguments set the\ncorresponding attributes:\n\nname\n\n   The name of the module that was attempted to be imported.\n\npath\n\n   The path to any file which triggered the exception."
+   }
+  ],
+  "ImportWarning": [
+   {
+    "where": "Library Reference, Built-in Exceptions: ImportWarning",
+    "text": "exception ImportWarning\n\nBase class for warnings about probable mistakes in module imports.\n\nIgnored by the default warning filters. Enabling the Python\nDevelopment Mode shows this warning."
+   }
+  ],
+  "IndentationError": [
+   {
+    "where": "Library Reference, Built-in Exceptions: IndentationError",
+    "text": "exception IndentationError\n\nBase class for syntax errors related to incorrect indentation.\nThis is a subclass of \"SyntaxError\"."
+   }
+  ],
+  "IndexError": [
+   {
+    "where": "Library Reference, Built-in Exceptions: IndexError",
+    "text": "exception IndexError\n\nRaised when a sequence subscript is out of range.  (Slice indices\nare silently truncated to fall in the allowed range; if an index is\nnot an integer, \"TypeError\" is raised.)"
+   }
+  ],
+  "input": [
+   {
+    "where": "Library Reference, Built-in Functions: input()",
+    "text": "input()\ninput(prompt, /)\n\nIf the *prompt* argument is present, it is written to standard\noutput without a trailing newline.  The function then reads a line\nfrom input, converts it to a string (stripping a trailing newline),\nand returns that.  When EOF is read, \"EOFError\" is raised.\nExample:\n\n   >>> s = input('--> ')\n   --> Monty Python's Flying Circus\n   >>> s\n   \"Monty Python's Flying Circus\"\n\nIf the \"readline\" module was loaded, then \"input()\" will use it to\nprovide elaborate line editing and history features."
+   }
+  ],
+  "int": [
+   {
+    "where": "Library Reference, Built-in Functions: int()",
+    "text": "class int(number=0, /)\nclass int(string, /, base=10)\n\nReturn an integer object constructed from a number or a string, or\nreturn \"0\" if no arguments are given.\n\nExamples:\n\n   >>> int(123.45)\n   123\n   >>> int('123')\n   123\n   >>> int('   -12_345\\n')\n   -12345\n   >>> int('FACE', 16)\n   64206\n   >>> int('0xface', 0)\n   64206\n   >>> int('01110011', base=2)\n   115\n\nIf the argument defines \"__int__()\", \"int(x)\" returns\n\"x.__int__()\".  If the argument defines \"__index__()\", it returns\n\"x.__index__()\". For floating-point numbers, this truncates towards\nzero.\n\nIf the argument is not a number or if *base* is given, then it must\nbe a string, \"bytes\", or \"bytearray\" instance representing an\ninteger in radix *base*.  Optionally, the string can be preceded by\n\"+\" or \"-\" (with no space in between), have leading zeros, be\nsurrounded by whitespace, and have single underscores interspersed\nbetween digits.\n\nA base-n integer string contains digits, each representing a value\nfrom 0 to n-1. The values 0--9 can be represented by any Unicode\ndecimal digit. The values 10--35 can be represented by \"a\" to \"z\"\n(or \"A\" to \"Z\"). The default *base* is 10. The allowed bases are 0\nand 2--36. Base-2, -8, and -16 strings can be optionally prefixed\nwith \"0b\"/\"0B\", \"0o\"/\"0O\", or \"0x\"/\"0X\", as with integer literals\nin code.  For base 0, the string is interpreted in a similar way to\nan integer literal in code, in that the actual base is 2, 8, 10, or\n16 as determined by the prefix. Base 0 also disallows leading\nzeros: \"int('010', 0)\" is not legal, while \"int('010')\" and\n\"int('010', 8)\" are.\n\n(… continues in the Python documentation: Built-in Functions, int())"
+   }
+  ],
+  "InterruptedError": [
+   {
+    "where": "Library Reference, Built-in Exceptions: InterruptedError",
+    "text": "exception InterruptedError\n\nRaised when a system call is interrupted by an incoming signal.\nCorresponds to \"errno\" \"EINTR\"."
+   }
+  ],
+  "IOError": [
+   {
+    "where": "Library Reference, Built-in Exceptions: IOError",
+    "text": "exception IOError"
+   }
+  ],
+  "IsADirectoryError": [
+   {
+    "where": "Library Reference, Built-in Exceptions: IsADirectoryError",
+    "text": "exception IsADirectoryError\n\nRaised when a file operation (such as \"os.remove()\") is requested\non a directory. Corresponds to \"errno\" \"EISDIR\"."
+   }
+  ],
+  "isinstance": [
+   {
+    "where": "Library Reference, Built-in Functions: isinstance()",
+    "text": "isinstance(object, classinfo, /)\n\nReturn \"True\" if the *object* argument is an instance of the\n*classinfo* argument, or of a (direct, indirect, or *virtual*)\nsubclass thereof.  If *object* is not an object of the given type,\nthe function always returns \"False\". If *classinfo* is a tuple of\ntype objects (or recursively, other such tuples) or a Union Type of\nmultiple types, return \"True\" if *object* is an instance of any of\nthe types. If *classinfo* is not a type or tuple of types and such\ntuples, a \"TypeError\" exception is raised. \"TypeError\" may not be\nraised for an invalid type if an earlier check succeeds."
+   }
+  ],
+  "issubclass": [
+   {
+    "where": "Library Reference, Built-in Functions: issubclass()",
+    "text": "issubclass(class, classinfo, /)\n\nReturn \"True\" if *class* is a subclass (direct, indirect, or\n*virtual*) of *classinfo*.  A class is considered a subclass of\nitself. *classinfo* may be a tuple of class objects (or\nrecursively, other such tuples) or a Union Type, in which case\nreturn \"True\" if *class* is a subclass of any entry in *classinfo*.\nIn any other case, a \"TypeError\" exception is raised."
+   }
+  ],
+  "iter": [
+   {
+    "where": "Library Reference, Built-in Functions: iter()",
+    "text": "iter(iterable, /)\niter(callable, sentinel, /)\n\nReturn an *iterator* object.  The first argument is interpreted\nvery differently depending on the presence of the second argument.\nWithout a second argument, the single argument must be a collection\nobject which supports the *iterable* protocol (the \"__iter__()\"\nmethod), or it must support the sequence protocol (the\n\"__getitem__()\" method with integer arguments starting at \"0\").  If\nit does not support either of those protocols, \"TypeError\" is\nraised. If the second argument, *sentinel*, is given, then the\nfirst argument must be a callable object.  The iterator created in\nthis case will call *callable* with no arguments for each call to\nits \"__next__()\" method; if the value returned is equal to\n*sentinel*, \"StopIteration\" will be raised, otherwise the value\nwill be returned.\n\nSee also Iterator Types.\n\nOne useful application of the second form of \"iter()\" is to build a\nblock-reader. For example, reading fixed-width blocks from a binary\ndatabase file until the end of file is reached:\n\n   from functools import partial\n   with open('mydata.db', 'rb') as f:\n       for block in iter(partial(f.read, 64), b''):\n           process_block(block)"
+   }
+  ],
+  "KeyboardInterrupt": [
+   {
+    "where": "Library Reference, Built-in Exceptions: KeyboardInterrupt",
+    "text": "exception KeyboardInterrupt\n\nRaised when the user hits the interrupt key (normally \"Control\"-\"C\"\nor \"Delete\").  During execution, a check for interrupts is made\nregularly. The exception inherits from \"BaseException\" so as to not\nbe accidentally caught by code that catches \"Exception\" and thus\nprevent the interpreter from exiting.\n\nNote:\n\n  Catching a \"KeyboardInterrupt\" requires special consideration.\n  Because it can be raised at unpredictable points, it may, in some\n  circumstances, leave the running program in an inconsistent\n  state. It is generally best to allow \"KeyboardInterrupt\" to end\n  the program as quickly as possible or avoid raising it entirely.\n  (See Note on Signal Handlers and Exceptions.)"
+   }
+  ],
+  "KeyError": [
+   {
+    "where": "Library Reference, Built-in Exceptions: KeyError",
+    "text": "exception KeyError\n\nRaised when a mapping (dictionary) key is not found in the set of\nexisting keys."
+   }
+  ],
+  "len": [
+   {
+    "where": "Library Reference, Built-in Functions: len()",
+    "text": "len(object, /)\n\nReturn the length (the number of items) of an object.  The argument\nmay be a sequence (such as a string, bytes, tuple, list, or range)\nor a collection (such as a dictionary, set, or frozen set).\n\n**CPython implementation detail:** \"len\" raises \"OverflowError\" on\nlengths larger than \"sys.maxsize\", such as \"range(2 ** 100)\"."
+   }
+  ],
+  "list": [
+   {
+    "where": "Library Reference, Built-in Functions: list()",
+    "text": "class list(iterable=(), /)\n\nRather than being a function, \"list\" is actually a mutable sequence\ntype, as documented in Lists and Sequence Types --- list, tuple,\nrange."
+   }
+  ],
+  "locals": [
+   {
+    "where": "Library Reference, Built-in Functions: locals()",
+    "text": "locals()\n\nReturn a mapping object representing the current local symbol\ntable, with variable names as the keys, and their currently bound\nreferences as the values.\n\nAt module scope, as well as when using \"exec()\" or \"eval()\" with a\nsingle namespace, this function returns the same namespace as\n\"globals()\".\n\nAt class scope, it returns the namespace that will be passed to the\nmetaclass constructor.\n\nWhen using \"exec()\" or \"eval()\" with separate local and global\narguments, it returns the local namespace passed in to the function\ncall.\n\nIn all of the above cases, each call to \"locals()\" in a given frame\nof execution will return the *same* mapping object. Changes made\nthrough the mapping object returned from \"locals()\" will be visible\nas assigned, reassigned, or deleted local variables, and assigning,\nreassigning, or deleting local variables will immediately affect\nthe contents of the returned mapping object.\n\nIn an *optimized scope* (including functions, generators, and\ncoroutines), each call to \"locals()\" instead returns a fresh\ndictionary containing the current bindings of the function's local\nvariables and any nonlocal cell references. In this case, name\nbinding changes made via the returned dict are *not* written back\nto the corresponding local variables or nonlocal cell references,\nand assigning, reassigning, or deleting local variables and\nnonlocal cell references does *not* affect the contents of\npreviously returned dictionaries.\n\n(… continues in the Python documentation: Built-in Functions, locals())"
+   }
+  ],
+  "LookupError": [
+   {
+    "where": "Library Reference, Built-in Exceptions: LookupError",
+    "text": "exception LookupError\n\nThe base class for the exceptions that are raised when a key or\nindex used on a mapping or sequence is invalid: \"IndexError\",\n\"KeyError\".  This can be raised directly by \"codecs.lookup()\"."
+   }
+  ],
+  "map": [
+   {
+    "where": "Library Reference, Built-in Functions: map()",
+    "text": "map(function, iterable, /, *iterables, strict=False)\n\nReturn an iterator that applies *function* to every item of\n*iterable*, yielding the results.  If additional *iterables*\narguments are passed, *function* must take that many arguments and\nis applied to the items from all iterables in parallel.  With\nmultiple iterables, the iterator stops when the shortest iterable\nis *exhausted*.  If *strict* is \"True\" and one of the iterables is\nexhausted before the others, a \"ValueError\" is raised. For cases\nwhere the function inputs are already arranged into argument\ntuples, see \"itertools.starmap()\"."
+   }
+  ],
+  "match": [
+   {
+    "where": "Tutorial 4.7, \"match\" Statements",
+    "text": "A \"match\" statement takes an expression and compares its value to\nsuccessive patterns given as one or more case blocks.  This is\nsuperficially similar to a switch statement in C, Java or JavaScript\n(and many other languages), but it's more similar to pattern matching\nin languages like Rust or Haskell. Only the first pattern that matches\ngets executed and it can also extract components (sequence elements or\nobject attributes) from the value into variables. If no case matches,\nnone of the branches is executed.\n\nThe simplest form compares a subject value against one or more\nliterals:\n\n   def http_error(status):\n       match status:\n           case 400:\n               return \"Bad request\"\n           case 404:\n               return \"Not found\"\n           case 418:\n               return \"I'm a teapot\"\n           case _:\n               return \"Something's wrong with the internet\"\n\nNote the last block: the \"variable name\" \"_\" acts as a *wildcard* and\nnever fails to match.\n\nYou can combine several literals in a single pattern using \"|\" (\"or\"):\n\n   case 401 | 403 | 404:\n       return \"Not allowed\"\n\nPatterns can look like unpacking assignments, and can be used to bind\nvariables:\n\n   # point is an (x, y) tuple\n   match point:\n       case (0, 0):\n           print(\"Origin\")\n       case (0, y):\n           print(f\"Y={y}\")\n       case (x, 0):\n           print(f\"X={x}\")\n       case (x, y):\n           print(f\"X={x}, Y={y}\")\n       case _:\n           raise ValueError(\"Not a point\")\n\n(… continues in the Python documentation: Tutorial 4.7, \"match\" Statements)"
+   },
+   {
+    "where": "Language Reference 8.6, The \"match\" statement",
+    "text": "The match statement is used for pattern matching.  Syntax:\n\nNote:\n\n  This section uses single quotes to denote soft keywords.\n\nPattern matching takes a pattern as input (following \"case\") and a\nsubject value (following \"match\").  The pattern (which may contain\nsubpatterns) is matched against the subject value.  The outcomes are:\n\n* A match success or failure (also termed a pattern success or\n  failure).\n\n* Possible binding of matched values to a name.  The prerequisites for\n  this are further discussed below.\n\nThe \"match\" and \"case\" keywords are soft keywords.\n\n  * **PEP 634** -- Structural Pattern Matching: Specification\n\n  * **PEP 636** -- Structural Pattern Matching: Tutorial\n\n8.6.1. Overview\n---------------\n\nHere's an overview of the logical flow of a match statement:\n\n1. The subject expression \"subject_expr\" is evaluated and a resulting\n   subject value obtained. If the subject expression contains a comma,\n   a tuple is constructed using the standard rules.\n\n2. Each pattern in a \"case_block\" is attempted to match with the\n   subject value. The specific rules for success or failure are\n   described below. The match attempt can also bind some or all of the\n   standalone names within the pattern. The precise pattern binding\n   rules vary per pattern type and are specified below.  **Name\n   bindings made during a successful pattern match outlive the\n   executed block and can be used after the match statement**.\n\n   Note:\n\n(… continues in the Python documentation: Language Reference 8.6, The \"match\" statement)"
+   }
+  ],
+  "max": [
+   {
+    "where": "Library Reference, Built-in Functions: max()",
+    "text": "max(iterable, /, *, key=None)\nmax(iterable, /, *, default, key=None)\nmax(arg1, arg2, /, *args, key=None)\n\nReturn the largest item in an iterable or the largest of two or\nmore arguments.\n\nIf one positional argument is provided, it should be an *iterable*.\nThe largest item in the iterable is returned.  If two or more\npositional arguments are provided, the largest of the positional\narguments is returned.\n\nThere are two optional keyword-only arguments. The *key* argument\nspecifies a one-argument ordering function like that used for\n\"list.sort()\". The *default* argument specifies an object to return\nif the provided iterable is empty. If the iterable is empty and\n*default* is not provided, a \"ValueError\" is raised.\n\nIf multiple items are maximal, the function returns the first one\nencountered.  This is consistent with other sort-stability\npreserving tools such as \"sorted(iterable, key=keyfunc,\nreverse=True)[0]\" and \"heapq.nlargest(1, iterable, key=keyfunc)\"."
+   }
+  ],
+  "MemoryError": [
+   {
+    "where": "Library Reference, Built-in Exceptions: MemoryError",
+    "text": "exception MemoryError\n\nRaised when an operation runs out of memory but the situation may\nstill be rescued (by deleting some objects).  The associated value\nis a string indicating what kind of (internal) operation ran out of\nmemory. Note that because of the underlying memory management\narchitecture (C's \"malloc()\" function), the interpreter may not\nalways be able to completely recover from this situation; it\nnevertheless raises an exception so that a stack traceback can be\nprinted, in case a run-away program was the cause."
+   }
+  ],
+  "memoryview": [
+   {
+    "where": "Library Reference, Built-in Functions: memoryview()",
+    "text": "class memoryview(object)\n\nReturn a \"memory view\" object created from the given argument.  See\nMemory Views for more information."
+   }
+  ],
+  "min": [
+   {
+    "where": "Library Reference, Built-in Functions: min()",
+    "text": "min(iterable, /, *, key=None)\nmin(iterable, /, *, default, key=None)\nmin(arg1, arg2, /, *args, key=None)\n\nReturn the smallest item in an iterable or the smallest of two or\nmore arguments.\n\nIf one positional argument is provided, it should be an *iterable*.\nThe smallest item in the iterable is returned.  If two or more\npositional arguments are provided, the smallest of the positional\narguments is returned.\n\nThere are two optional keyword-only arguments. The *key* argument\nspecifies a one-argument ordering function like that used for\n\"list.sort()\". The *default* argument specifies an object to return\nif the provided iterable is empty. If the iterable is empty and\n*default* is not provided, a \"ValueError\" is raised.\n\nIf multiple items are minimal, the function returns the first one\nencountered.  This is consistent with other sort-stability\npreserving tools such as \"sorted(iterable, key=keyfunc)[0]\" and\n\"heapq.nsmallest(1, iterable, key=keyfunc)\"."
+   }
+  ],
+  "ModuleNotFoundError": [
+   {
+    "where": "Library Reference, Built-in Exceptions: ModuleNotFoundError",
+    "text": "exception ModuleNotFoundError\n\nA subclass of \"ImportError\" which is raised by \"import\" when a\nmodule could not be located.  It is also raised when \"None\" is\nfound in \"sys.modules\"."
+   }
+  ],
+  "NameError": [
+   {
+    "where": "Library Reference, Built-in Exceptions: NameError",
+    "text": "exception NameError\n\nRaised when a local or global name is not found.  This applies only\nto unqualified names.  The associated value is an error message\nthat includes the name that could not be found.\n\nThe optional *name* keyword-only argument sets the attribute:\n\nname\n\n   The name of the variable that was attempted to be accessed."
+   }
+  ],
+  "next": [
+   {
+    "where": "Library Reference, Built-in Functions: next()",
+    "text": "next(iterator, /)\nnext(iterator, default, /)\n\nRetrieve the next item from the *iterator* by calling its\n\"__next__()\" method.  If *default* is given, it is returned if the\niterator is *exhausted*, otherwise \"StopIteration\" is raised."
+   }
+  ],
+  "None": [
+   {
+    "where": "Library Reference, Built-in Constants: None",
+    "text": "None\n\nAn object frequently used to represent the absence of a value, as\nwhen default arguments are not passed to a function. Assignments to\n\"None\" are illegal and raise a \"SyntaxError\". \"None\" is the sole\ninstance of the \"NoneType\" type."
+   }
+  ],
+  "nonlocal": [
+   {
+    "where": "Language Reference 7.13, The \"nonlocal\" statement",
+    "text": "nonlocal_stmt: \"nonlocal\" identifier (\",\" identifier)*\n\nWhen the definition of a function or class is nested (enclosed) within\nthe definitions of other functions, its nonlocal scopes are the local\nscopes of the enclosing functions. The \"nonlocal\" statement causes the\nlisted identifiers to refer to names previously bound in nonlocal\nscopes. It allows encapsulated code to rebind such nonlocal\nidentifiers.  If a name is bound in more than one nonlocal scope, the\nnearest binding is used. If a name is not bound in any nonlocal scope,\nor if there is no nonlocal scope, a \"SyntaxError\" is raised.\n\nThe \"nonlocal\" statement applies to the entire scope of a function or\nclass body. A \"SyntaxError\" is raised if a variable is used or\nassigned to prior to its nonlocal declaration in the scope.\n\n  **PEP 3104** - Access to Names in Outer Scopes\n     The specification for the \"nonlocal\" statement.\n\n**Programmer's note:** \"nonlocal\" is a directive to the parser and\napplies only to code parsed along with it.  See the note for the\n\"global\" statement."
+   }
+  ],
+  "NotADirectoryError": [
+   {
+    "where": "Library Reference, Built-in Exceptions: NotADirectoryError",
+    "text": "exception NotADirectoryError\n\nRaised when a directory operation (such as \"os.listdir()\") is\nrequested on something which is not a directory.  On most POSIX\nplatforms, it may also be raised if an operation attempts to open\nor traverse a non-directory file as if it were a directory.\nCorresponds to \"errno\" \"ENOTDIR\"."
+   }
+  ],
+  "NotImplementedError": [
+   {
+    "where": "Library Reference, Built-in Exceptions: NotImplementedError",
+    "text": "exception NotImplementedError\n\nThis exception is derived from \"RuntimeError\".  In user defined\nbase classes, abstract methods should raise this exception when\nthey require derived classes to override the method, or while the\nclass is being developed to indicate that the real implementation\nstill needs to be added.\n\nNote:\n\n  It should not be used to indicate that an operator or method is\n  not meant to be supported at all -- in that case either leave the\n  operator / method undefined or, if a subclass, set it to \"None\".\n\nCaution:\n\n  \"NotImplementedError\" and \"NotImplemented\" are not\n  interchangeable. This exception should only be used as described\n  above; see \"NotImplemented\" for details on correct usage of the\n  built-in constant."
+   }
+  ],
+  "oct": [
+   {
+    "where": "Library Reference, Built-in Functions: oct()",
+    "text": "oct(integer, /)\n\nConvert an integer number to an octal string prefixed with \"0o\".\nThe result is a valid Python expression. If *integer* is not a\nPython \"int\" object, it has to define an \"__index__()\" method that\nreturns an integer. For example:\n\n>>> oct(8)\n'0o10'\n>>> oct(-56)\n'-0o70'\n\nIf you want to convert an integer number to an octal string either\nwith the prefix \"0o\" or not, you can use either of the following\nways.\n\n>>> '%#o' % 10, '%o' % 10\n('0o12', '12')\n>>> format(10, '#o'), format(10, 'o')\n('0o12', '12')\n>>> f'{10:#o}', f'{10:o}'\n('0o12', '12')\n\nSee also \"format()\" for more information."
+   }
+  ],
+  "open": [
+   {
+    "where": "Library Reference, Built-in Functions: open()",
+    "text": "open(file, mode='r', buffering=-1, encoding=None, errors=None, newline=None, closefd=True, opener=None)\n\nOpen *file* and return a corresponding *file object*.  If the file\ncannot be opened, an \"OSError\" is raised. See Reading and Writing\nFiles for more examples of how to use this function.\n\n*file* is a *path-like object* giving the pathname (absolute or\nrelative to the current working directory) of the file to be opened\nor an integer file descriptor of the file to be wrapped.  (If a\nfile descriptor is given, it is closed when the returned I/O object\nis closed unless *closefd* is set to \"False\".)\n\n*mode* is an optional string that specifies the mode in which the\nfile is opened.  It defaults to \"'r'\" which means open for reading\nin text mode. Other common values are \"'w'\" for writing (truncating\nthe file if it already exists), \"'x'\" for exclusive creation, and\n\"'a'\" for appending (which on *some* Unix systems, means that *all*\nwrites append to the end of the file regardless of the current seek\nposition).  In text mode, if *encoding* is not specified the\nencoding used is platform-dependent: \"locale.getencoding()\" is\ncalled to get the current locale encoding. (For reading and writing\nraw bytes use binary mode and leave *encoding* unspecified.)  The\navailable modes are:\n\n(… continues in the Python documentation: Built-in Functions, open())"
+   }
+  ],
+  "ord": [
+   {
+    "where": "Library Reference, Built-in Functions: ord()",
+    "text": "ord(character, /)\n\nReturn the ordinal value of a character.\n\nIf the argument is a one-character string, return the Unicode code\npoint of that character.  For example, \"ord('a')\" returns the\ninteger \"97\" and \"ord('€')\" (Euro sign) returns \"8364\".  This is\nthe inverse of \"chr()\".\n\nIf the argument is a \"bytes\" or \"bytearray\" object of length 1,\nreturn its single byte value. For example, \"ord(b'a')\" returns the\ninteger \"97\"."
+   }
+  ],
+  "OSError": [
+   {
+    "where": "Library Reference, Built-in Exceptions: OSError",
+    "text": "exception OSError([arg])\nexception OSError(errno, strerror[, filename[, winerror[, filename2]]])\n\nThis exception is raised when a system function returns a system-\nrelated error, including I/O failures such as \"file not found\" or\n\"disk full\" (not for illegal argument types or other incidental\nerrors).\n\nThe second form of the constructor sets the corresponding\nattributes, described below.  The attributes default to \"None\" if\nnot specified.  For backwards compatibility, if three arguments are\npassed, the \"args\" attribute contains only a 2-tuple of the first\ntwo constructor arguments.\n\nThe constructor often actually returns a subclass of \"OSError\", as\ndescribed in OS exceptions below.  The particular subclass depends\non the final \"errno\" value.  This behaviour only occurs when\nconstructing \"OSError\" directly or via an alias, and is not\ninherited when subclassing.\n\nerrno\n\n   A numeric error code from the C variable \"errno\".\n\nwinerror\n\n   Under Windows, this gives you the native Windows error code.\n   The \"errno\" attribute is then an approximate translation, in\n   POSIX terms, of that native error code.\n\n   Under Windows, if the *winerror* constructor argument is an\n   integer, the \"errno\" attribute is determined from the Windows\n   error code, and the *errno* argument is ignored.  On other\n   platforms, the *winerror* argument is ignored, and the\n   \"winerror\" attribute does not exist.\n\nstrerror\n\n   The corresponding error message, as provided by the operating\n   system.  It is formatted by the C functions \"perror()\" under\n   POSIX, and \"FormatMessage()\" under Windows.\n\n(… continues in the Python documentation: Built-in Exceptions, OSError)"
+   }
+  ],
+  "OverflowError": [
+   {
+    "where": "Library Reference, Built-in Exceptions: OverflowError",
+    "text": "exception OverflowError\n\nRaised when the result of an arithmetic operation is too large to\nbe represented.  This cannot occur for integers (which would rather\nraise \"MemoryError\" than give up).  However, for historical\nreasons, OverflowError is sometimes raised for integers that are\noutside a required range.   Because of the lack of standardization\nof floating-point exception handling in C, most floating-point\noperations are not checked."
+   }
+  ],
+  "pass": [
+   {
+    "where": "Tutorial 4.6, \"pass\" Statements",
+    "text": "The \"pass\" statement does nothing. It can be used when a statement is\nrequired syntactically but the program requires no action. For\nexample:\n\n   >>> while True:\n   ...     pass  # Busy-wait for keyboard interrupt (Ctrl+C)\n   ...\n\nThis is commonly used for creating minimal classes:\n\n   >>> class MyEmptyClass:\n   ...     pass\n   ...\n\nAnother place \"pass\" can be used is as a place-holder for a function\nor conditional body when you are working on new code, allowing you to\nkeep thinking at a more abstract level.  The \"pass\" is silently\nignored:\n\n   >>> def initlog(*args):\n   ...     pass   # Remember to implement this!\n   ...\n\nFor this last case, many people use the ellipsis literal \"...\" instead\nof \"pass\". This use has no special meaning to Python, and is not part\nof the language definition (you could use any constant expression\nhere), but \"...\" is used conventionally as a placeholder body as well.\nSee The Ellipsis Object."
+   },
+   {
+    "where": "Language Reference 7.4, The \"pass\" statement",
+    "text": "pass_stmt: \"pass\"\n\n\"pass\" is a null operation --- when it is executed, nothing happens.\nIt is useful as a placeholder when a statement is required\nsyntactically, but no code needs to be executed, for example:\n\n   def f(arg): pass    # a function that does nothing (yet)\n\n   class C: pass       # a class with no methods (yet)"
+   }
+  ],
+  "PendingDeprecationWarning": [
+   {
+    "where": "Library Reference, Built-in Exceptions: PendingDeprecationWarning",
+    "text": "exception PendingDeprecationWarning\n\nBase class for warnings about features which are obsolete and\nexpected to be deprecated in the future, but are not deprecated at\nthe moment.\n\nThis class is rarely used as emitting a warning about a possible\nupcoming deprecation is unusual, and \"DeprecationWarning\" is\npreferred for already active deprecations.\n\nIgnored by the default warning filters. Enabling the Python\nDevelopment Mode shows this warning.\n\nThe deprecation policy is described in **PEP 387**."
+   }
+  ],
+  "PermissionError": [
+   {
+    "where": "Library Reference, Built-in Exceptions: PermissionError",
+    "text": "exception PermissionError\n\nRaised when trying to run an operation without the adequate access\nrights - for example filesystem permissions. Corresponds to \"errno\"\n\"EACCES\", \"EPERM\", and \"ENOTCAPABLE\"."
+   }
+  ],
+  "pow": [
+   {
+    "where": "Library Reference, Built-in Functions: pow()",
+    "text": "pow(base, exp, mod=None)\n\nReturn *base* to the power *exp*; if *mod* is present, return\n*base* to the power *exp*, modulo *mod* (computed more efficiently\nthan \"pow(base, exp) % mod\"). The two-argument form \"pow(base,\nexp)\" is equivalent to using the power operator: \"base**exp\".\n\nWhen arguments are builtin numeric types with mixed operand types,\nthe coercion rules for binary arithmetic operators apply.  For\n\"int\" operands, the result has the same type as the operands (after\ncoercion) unless the second argument is negative; in that case, all\narguments are converted to float and a float result is delivered.\nFor example, \"pow(10, 2)\" returns \"100\", but \"pow(10, -2)\" returns\n\"0.01\".  For a negative base of type \"int\" or \"float\" and a non-\nintegral exponent, a complex result is delivered.  For example,\n\"pow(-9, 0.5)\" returns a value close to \"3j\". Whereas, for a\nnegative base of type \"int\" or \"float\" with an integral exponent, a\nfloat result is delivered. For example, \"pow(-9, 2.0)\" returns\n\"81.0\".\n\nFor \"int\" operands *base* and *exp*, if *mod* is present, *mod*\nmust also be of integer type and *mod* must be nonzero. If *mod* is\npresent and *exp* is negative, *base* must be relatively prime to\n*mod*. In that case, \"pow(inv_base, -exp, mod)\" is returned, where\n*inv_base* is an inverse to *base* modulo *mod*.\n\nHere's an example of computing an inverse for \"38\" modulo \"97\":\n\n   >>> pow(38, -1, mod=97)\n   23\n   >>> 23 * 38 % 97 == 1\n   True"
+   }
+  ],
+  "print": [
+   {
+    "where": "Library Reference, Built-in Functions: print()",
+    "text": "print(*objects, sep=' ', end='\\n', file=None, flush=False)\n\nPrint *objects* to the text stream *file*, separated by *sep* and\nfollowed by *end*.  *sep*, *end*, *file*, and *flush*, if present,\nmust be given as keyword arguments.\n\nAll non-keyword arguments are converted to strings like \"str()\"\ndoes and written to the stream, separated by *sep* and followed by\n*end*.  Both *sep* and *end* must be strings; they can also be\n\"None\", which means to use the default values.  If no *objects* are\ngiven, \"print()\" will just write *end*.\n\nThe *file* argument must be an object with a \"write(string)\"\nmethod; if it is not present or \"None\", \"sys.stdout\" will be used.\nSince printed arguments are converted to text strings, \"print()\"\ncannot be used with binary mode file objects.  For these, use\n\"file.write(...)\" instead.\n\nOutput buffering is usually determined by *file*. However, if\n*flush* is true, the stream is forcibly flushed."
+   }
+  ],
+  "ProcessLookupError": [
+   {
+    "where": "Library Reference, Built-in Exceptions: ProcessLookupError",
+    "text": "exception ProcessLookupError\n\nRaised when a given process doesn't exist. Corresponds to \"errno\"\n\"ESRCH\"."
+   }
+  ],
+  "property": [
+   {
+    "where": "Library Reference, Built-in Functions: property()",
+    "text": "class property(fget=None, fset=None, fdel=None, doc=None)\n\nReturn a property attribute.\n\n*fget* is a function for getting an attribute value.  *fset* is a\nfunction for setting an attribute value. *fdel* is a function for\ndeleting an attribute value.  And *doc* creates a docstring for the\nattribute.\n\nA typical use is to define a managed attribute \"x\":\n\n   class C:\n       def __init__(self):\n           self._x = None\n\n       def getx(self):\n           return self._x\n\n       def setx(self, value):\n           self._x = value\n\n       def delx(self):\n           del self._x\n\n       x = property(getx, setx, delx, \"I'm the 'x' property.\")\n\nIf *c* is an instance of *C*, \"c.x\" will invoke the getter, \"c.x =\nvalue\" will invoke the setter, and \"del c.x\" the deleter.\n\nIf given, *doc* will be the docstring of the property attribute.\nOtherwise, the property will copy *fget*'s docstring (if it\nexists).  This makes it possible to create read-only properties\neasily using \"@property\" as a *decorator*:\n\n   class Parrot:\n       def __init__(self):\n           self._voltage = 100000\n\n       @property\n       def voltage(self):\n           \"\"\"Get the current voltage.\"\"\"\n           return self._voltage\n\nThe \"@property\" decorator turns the \"voltage()\" method into a\n\"getter\" for a read-only attribute with the same name, and it sets\nthe docstring for *voltage* to \"Get the current voltage.\"\n\n@getter\n\n@setter\n\n@deleter\n\n(… continues in the Python documentation: Built-in Functions, property())"
+   }
+  ],
+  "PythonFinalizationError": [
+   {
+    "where": "Library Reference, Built-in Exceptions: PythonFinalizationError",
+    "text": "exception PythonFinalizationError\n\nThis exception is derived from \"RuntimeError\".  It is raised when\nan operation is blocked during interpreter shutdown also known as\n*Python finalization*.\n\nExamples of operations which can be blocked with a\n\"PythonFinalizationError\" during the Python finalization:\n\n* Creating a new Python thread.\n\n* \"Joining\" a running daemon thread.\n\n* \"os.fork()\".\n\nSee also the \"sys.is_finalizing()\" function."
+   }
+  ],
+  "raise": [
+   {
+    "where": "Language Reference 7.8, The \"raise\" statement",
+    "text": "raise_stmt: \"raise\" [expression [\"from\" expression]]\n\nIf no expressions are present, \"raise\" re-raises the exception that is\ncurrently being handled, which is also known as the *active\nexception*. If there isn't currently an active exception, a\n\"RuntimeError\" exception is raised indicating that this is an error.\n\nOtherwise, \"raise\" evaluates the first expression as the exception\nobject.  It must be either a subclass or an instance of\n\"BaseException\". If it is a class, the exception instance will be\nobtained when needed by instantiating the class with no arguments.\n\nThe *type* of the exception is the exception instance's class, the\n*value* is the instance itself.\n\nA traceback object is normally created automatically when an exception\nis raised and attached to it as the \"__traceback__\" attribute. You can\ncreate an exception and set your own traceback in one step using the\n\"with_traceback()\" exception method (which returns the same exception\ninstance, with its traceback set to its argument), like so:\n\n   raise Exception(\"foo occurred\").with_traceback(tracebackobj)\n\n(… continues in the Python documentation: Language Reference 7.8, The \"raise\" statement)"
+   }
+  ],
+  "range": [
+   {
+    "where": "Library Reference, Built-in Functions: range()",
+    "text": "class range(stop, /)\nclass range(start, stop, step=1, /)\n\nRather than being a function, \"range\" is actually an immutable\nsequence type, as documented in Ranges and Sequence Types --- list,\ntuple, range."
+   },
+   {
+    "where": "Tutorial 4.3, The \"range()\" Function",
+    "text": "If you do need to iterate over a sequence of numbers, the built-in\nfunction \"range()\" comes in handy.  It generates arithmetic\nprogressions:\n\n   >>> for i in range(5):\n   ...     print(i)\n   ...\n   0\n   1\n   2\n   3\n   4\n\nThe given end point is never part of the generated sequence;\n\"range(10)\" generates 10 values, the legal indices for items of a\nsequence of length 10.  It is possible to let the range start at\nanother number, or to specify a different increment (even negative;\nsometimes this is called the 'step'):\n\n   >>> list(range(5, 10))\n   [5, 6, 7, 8, 9]\n\n   >>> list(range(0, 10, 3))\n   [0, 3, 6, 9]\n\n   >>> list(range(-10, -100, -30))\n   [-10, -40, -70]\n\nTo iterate over the indices of a sequence, you can combine \"range()\"\nand \"len()\" as follows:\n\n   >>> a = ['Mary', 'had', 'a', 'little', 'lamb']\n   >>> for i in range(len(a)):\n   ...     print(i, a[i])\n   ...\n   0 Mary\n   1 had\n   2 a\n   3 little\n   4 lamb\n\nIn most such cases, however, it is convenient to use the \"enumerate()\"\nfunction, see Looping Techniques.\n\nA strange thing happens if you just print a range:\n\n   >>> range(10)\n   range(0, 10)\n\nIn many ways the object returned by \"range()\" behaves as if it is a\nlist, but in fact it isn't. It is an object which returns the\nsuccessive items of the desired sequence when you iterate over it, but\nit doesn't really make the list, thus saving space.\n\nWe say such an object is *iterable*, that is, suitable as a target for\nfunctions and constructs that expect something from which they can\nobtain successive items until the supply is *exhausted*.  We have seen\nthat the \"for\" statement is such a construct, while an example of a\nfunction that takes an iterable is \"sum()\":\n\n   >>> sum(range(4))  # 0 + 1 + 2 + 3\n   6\n\n(… continues in the Python documentation: Tutorial 4.3, The \"range()\" Function)"
+   }
+  ],
+  "RecursionError": [
+   {
+    "where": "Library Reference, Built-in Exceptions: RecursionError",
+    "text": "exception RecursionError\n\nThis exception is derived from \"RuntimeError\".  It is raised when\nthe interpreter detects that the maximum recursion depth (see\n\"sys.getrecursionlimit()\") is exceeded."
+   }
+  ],
+  "ReferenceError": [
+   {
+    "where": "Library Reference, Built-in Exceptions: ReferenceError",
+    "text": "exception ReferenceError\n\nThis exception is raised when a weak reference proxy, created by\nthe \"weakref.proxy()\" function, is used to access an attribute of\nthe referent after it has been garbage collected. For more\ninformation on weak references, see the \"weakref\" module."
+   }
+  ],
+  "repr": [
+   {
+    "where": "Library Reference, Built-in Functions: repr()",
+    "text": "repr(object, /)\n\nReturn a string containing a printable representation of an object.\nFor many types, this function makes an attempt to return a string\nthat would yield an object with the same value when passed to\n\"eval()\"; otherwise, the representation is a string enclosed in\nangle brackets that contains the name of the type of the object\ntogether with additional information often including the name and\naddress of the object.  A class can control what this function\nreturns for its instances by defining a \"__repr__()\" method. If\n\"sys.displayhook()\" is not accessible, this function will raise\n\"RuntimeError\".\n\nThis class has a custom representation that can be evaluated:\n\n   class Person:\n      def __init__(self, name, age):\n         self.name = name\n         self.age = age\n\n      def __repr__(self):\n         return f\"Person('{self.name}', {self.age})\""
+   }
+  ],
+  "ResourceWarning": [
+   {
+    "where": "Library Reference, Built-in Exceptions: ResourceWarning",
+    "text": "exception ResourceWarning\n\nBase class for warnings related to resource usage.\n\nIgnored by the default warning filters. Enabling the Python\nDevelopment Mode shows this warning."
+   }
+  ],
+  "return": [
+   {
+    "where": "Tutorial 4.8, Defining Functions",
+    "text": "We can create a function that writes the Fibonacci series to an\narbitrary boundary:\n\n   >>> def fib(n):    # write Fibonacci series less than n\n   ...     \"\"\"Print a Fibonacci series less than n.\"\"\"\n   ...     a, b = 0, 1\n   ...     while a < n:\n   ...         print(a, end=' ')\n   ...         a, b = b, a+b\n   ...     print()\n   ...\n   >>> # Now call the function we just defined:\n   >>> fib(2000)\n   0 1 1 2 3 5 8 13 21 34 55 89 144 233 377 610 987 1597\n\nThe keyword \"def\" introduces a function *definition*.  It must be\nfollowed by the function name and the parenthesized list of formal\nparameters. The statements that form the body of the function start at\nthe next line, and must be indented.\n\nThe first statement of the function body can optionally be a string\nliteral; this string literal is the function's documentation string,\nor *docstring*. (More about docstrings can be found in the section\nDocumentation Strings.) There are tools which use docstrings to\nautomatically produce online or printed documentation, or to let the\nuser interactively browse through code; it's good practice to include\ndocstrings in code that you write, so make a habit of it.\n\n(… continues in the Python documentation: Tutorial 4.8, Defining Functions)"
+   },
+   {
+    "where": "Language Reference 7.6, The \"return\" statement",
+    "text": "return_stmt: \"return\" [expression_list]\n\n\"return\" may only occur syntactically nested in a function definition,\nnot within a nested class definition.\n\nIf an expression list is present, it is evaluated, else \"None\" is\nsubstituted.\n\n\"return\" leaves the current function call with the expression list (or\n\"None\") as return value.\n\nWhen \"return\" passes control out of a \"try\" statement with a \"finally\"\nclause, that \"finally\" clause is executed before really leaving the\nfunction.\n\nIn a generator function, the \"return\" statement indicates that the\ngenerator is done and will cause \"StopIteration\" to be raised. The\nreturned value (if any) is used as an argument to construct\n\"StopIteration\" and becomes the \"StopIteration.value\" attribute.\n\nIn an asynchronous generator function, an empty \"return\" statement\nindicates that the asynchronous generator is done and will cause\n\"StopAsyncIteration\" to be raised.  A non-empty \"return\" statement is\na syntax error in an asynchronous generator function."
+   }
+  ],
+  "reversed": [
+   {
+    "where": "Library Reference, Built-in Functions: reversed()",
+    "text": "reversed(object, /)\n\nReturn a reverse *iterator*.  The argument must be an object which\nhas a \"__reversed__()\" method or supports the sequence protocol\n(the \"__len__()\" method and the \"__getitem__()\" method with integer\narguments starting at \"0\")."
+   }
+  ],
+  "round": [
+   {
+    "where": "Library Reference, Built-in Functions: round()",
+    "text": "round(number, ndigits=None)\n\nReturn *number* rounded to *ndigits* precision after the decimal\npoint.  If *ndigits* is omitted or is \"None\", it returns the\nnearest integer to its input.\n\nFor the built-in types supporting \"round()\", values are rounded to\nthe closest multiple of 10 to the power minus *ndigits*; if two\nmultiples are equally close, rounding is done toward the even\nchoice (so, for example, both \"round(0.5)\" and \"round(-0.5)\" are\n\"0\", and \"round(1.5)\" is \"2\").  Any integer value is valid for\n*ndigits* (positive, zero, or negative).  The return value is an\ninteger if *ndigits* is omitted or \"None\". Otherwise, the return\nvalue has the same type as *number*.\n\nFor a general Python object \"number\", \"round\" delegates to\n\"number.__round__\".\n\nNote:\n\n  The behavior of \"round()\" for floats can be surprising: for\n  example, \"round(2.675, 2)\" gives \"2.67\" instead of the expected\n  \"2.68\". This is not a bug: it's a result of the fact that most\n  decimal fractions can't be represented exactly as a float.  See\n  Floating-Point Arithmetic:  Issues and Limitations for more\n  information."
+   }
+  ],
+  "RuntimeError": [
+   {
+    "where": "Library Reference, Built-in Exceptions: RuntimeError",
+    "text": "exception RuntimeError\n\nRaised when an error is detected that doesn't fall in any of the\nother categories.  The associated value is a string indicating what\nprecisely went wrong."
+   }
+  ],
+  "RuntimeWarning": [
+   {
+    "where": "Library Reference, Built-in Exceptions: RuntimeWarning",
+    "text": "exception RuntimeWarning\n\nBase class for warnings about dubious runtime behavior."
+   }
+  ],
+  "set": [
+   {
+    "where": "Library Reference, Built-in Functions: set()",
+    "text": "class set(iterable=(), /)\n\nReturn a new \"set\" object, optionally with elements taken from\n*iterable*.  \"set\" is a built-in class.  See also Set Types ---\nset, frozenset for documentation about this class.\n\nFor other containers see the built-in \"frozenset\", \"list\", \"tuple\",\nand \"dict\" classes, as well as the \"collections\" module."
+   }
+  ],
+  "setattr": [
+   {
+    "where": "Library Reference, Built-in Functions: setattr()",
+    "text": "setattr(object, name, value, /)\n\nThis is the counterpart of \"getattr()\".  The arguments are an\nobject, a string, and an arbitrary value.  The string may name an\nexisting attribute or a new attribute.  The function assigns the\nvalue to the attribute, provided the object allows it.  For\nexample, \"setattr(x, 'foobar', 123)\" is equivalent to \"x.foobar =\n123\".\n\n*name* need not be a Python identifier as defined in Names\n(identifiers and keywords) unless the object chooses to enforce\nthat, for example in a custom \"__getattribute__()\" or via\n\"__slots__\". An attribute whose name is not an identifier will not\nbe accessible using the dot notation, but is accessible through\n\"getattr()\" etc..\n\nNote:\n\n  Since private name mangling happens at compilation time, one must\n  manually mangle a private attribute's (attributes with two\n  leading underscores) name in order to set it with \"setattr()\"."
+   }
+  ],
+  "slice": [
+   {
+    "where": "Library Reference, Built-in Functions: slice()",
+    "text": "class slice(stop, /)\nclass slice(start, stop, step=None, /)\n\nReturn a *slice* object representing the set of indices specified\nby \"range(start, stop, step)\".  The *start* and *step* arguments\ndefault to \"None\".\n\nSlice objects are also generated when slicing syntax is used.  For\nexample: \"a[start:stop:step]\" or \"a[start:stop, i]\".\n\nSee \"itertools.islice()\" for an alternate version that returns an\n*iterator*.\n\nstart\nstop\nstep\n\n   These read-only attributes are set to the argument values (or\n   their default).  They have no other explicit functionality;\n   however, they are used by NumPy and other third-party packages."
+   }
+  ],
+  "sorted": [
+   {
+    "where": "Library Reference, Built-in Functions: sorted()",
+    "text": "sorted(iterable, /, *, key=None, reverse=False)\n\nReturn a new sorted list from the items in *iterable*.\n\nHas two optional arguments which must be specified as keyword\narguments.\n\n*key* specifies a function of one argument that is used to extract\na comparison key from each element in *iterable* (for example,\n\"key=str.lower\").  The default value is \"None\" (compare the\nelements directly).\n\n*reverse* is a boolean value.  If set to \"True\", then the list\nelements are sorted as if each comparison were reversed.\n\nUse \"functools.cmp_to_key()\" to convert an old-style *cmp* function\nto a *key* function.\n\nThe built-in \"sorted()\" function is guaranteed to be stable. A sort\nis stable if it guarantees not to change the relative order of\nelements that compare equal --- this is helpful for sorting in\nmultiple passes (for example, sort by department, then by salary\ngrade).\n\nThe sort algorithm uses only \"<\" comparisons between items.  While\ndefining an \"__lt__()\" method will suffice for sorting, **PEP 8**\nrecommends that all six rich comparisons be implemented.  This will\nhelp avoid bugs when using the same data with other ordering tools\nsuch as \"max()\" that rely on a different underlying method.\nImplementing all six comparisons also helps avoid confusion for\nmixed type comparisons which can call the reflected \"__gt__()\"\nmethod.\n\nFor sorting examples and a brief sorting tutorial, see Sorting\nTechniques."
+   }
+  ],
+  "StopAsyncIteration": [
+   {
+    "where": "Library Reference, Built-in Exceptions: StopAsyncIteration",
+    "text": "exception StopAsyncIteration\n\nMust be raised by \"__anext__()\" method of an *asynchronous\niterator* object to stop the iteration."
+   }
+  ],
+  "StopIteration": [
+   {
+    "where": "Library Reference, Built-in Exceptions: StopIteration",
+    "text": "exception StopIteration\n\nRaised by built-in function \"next()\" and an *iterator*'s\n\"__next__()\" method to signal that there are no further items\nproduced by the iterator.\n\nvalue\n\n   The exception object has a single attribute \"value\", which is\n   given as an argument when constructing the exception, and\n   defaults to \"None\".\n\nWhen a *generator* or *coroutine* function returns, a new\n\"StopIteration\" instance is raised, and the value returned by the\nfunction is used as the \"value\" parameter to the constructor of the\nexception.\n\nIf a generator code directly or indirectly raises \"StopIteration\",\nit is converted into a \"RuntimeError\" (retaining the\n\"StopIteration\" as the new exception's cause)."
+   }
+  ],
+  "str": [
+   {
+    "where": "Library Reference, Built-in Functions: str()",
+    "text": "class str(*, encoding='utf-8', errors='strict')\nclass str(object)\nclass str(object, encoding, errors='strict')\nclass str(object, *, errors)\n\nReturn a \"str\" version of *object*.  See \"str()\" for details.\n\n\"str\" is the built-in string *class*.  For general information\nabout strings, see Text Sequence Type --- str."
+   }
+  ],
+  "sum": [
+   {
+    "where": "Library Reference, Built-in Functions: sum()",
+    "text": "sum(iterable, /, start=0)\n\nSums *start* and the items of an *iterable* from left to right and\nreturns the total.  The *iterable*'s items are normally numbers,\nand the start value is not allowed to be a string.\n\nFor some use cases, there are good alternatives to \"sum()\". The\npreferred, fast way to concatenate a sequence of strings is by\ncalling \"''.join(sequence)\".  To add floating-point values with\nextended precision, see \"math.fsum()\".  To concatenate a series of\niterables, consider using \"itertools.chain()\"."
+   }
+  ],
+  "super": [
+   {
+    "where": "Library Reference, Built-in Functions: super()",
+    "text": "class super(type, object_or_type=None, /)\n\nReturn a proxy object that delegates method calls to a parent or\nsibling class of *type*.  This is useful for accessing inherited\nmethods that have been overridden in a class.\n\nThe *object_or_type* determines the *method resolution order* to be\nsearched.  The search starts from the class right after the *type*.\n\nFor example, if \"__mro__\" of *object_or_type* is \"D -> B -> C -> A\n-> object\" and the value of *type* is \"B\", then \"super()\" searches\n\"C -> A -> object\".\n\nThe \"__mro__\" attribute of the class corresponding to\n*object_or_type* lists the method resolution search order used by\nboth \"getattr()\" and \"super()\".  The attribute is dynamic and can\nchange whenever the inheritance hierarchy is updated.\n\nIf the second argument is omitted, the super object returned is\nunbound.  If the second argument is an object, \"isinstance(obj,\ntype)\" must be true.  If the second argument is a type,\n\"issubclass(type2, type)\" must be true (this is useful for\nclassmethods).\n\nWhen called directly within an ordinary method of a class, both\narguments may be omitted (\"zero-argument \"super()\"\"). In this case,\n*type* will be the enclosing class, and *obj* will be the first\nargument of the immediately enclosing function (typically \"self\").\n(This means that zero-argument \"super()\" will not work as expected\nwithin nested functions, including generator expressions, which\nimplicitly create nested functions.)\n\n(… continues in the Python documentation: Built-in Functions, super())"
+   }
+  ],
+  "SyntaxError": [
+   {
+    "where": "Library Reference, Built-in Exceptions: SyntaxError",
+    "text": "exception SyntaxError(message, details)\n\nRaised when the parser encounters a syntax error.  This may occur\nin an \"import\" statement, in a call to the built-in functions\n\"compile()\", \"exec()\", or \"eval()\", or when reading the initial\nscript or standard input (also interactively).\n\nThe \"str()\" of the exception instance returns only the error\nmessage. Details is a tuple whose members are also available as\nseparate attributes.\n\nfilename\n\n   The name of the file the syntax error occurred in.\n\nlineno\n\n   Which line number in the file the error occurred in. This is\n   1-indexed: the first line in the file has a \"lineno\" of 1.\n\noffset\n\n   The column in the line where the error occurred. This is\n   1-indexed: the first character in the line has an \"offset\" of 1.\n\ntext\n\n   The source code text involved in the error.\n\nend_lineno\n\n   Which line number in the file the error occurred ends in. This\n   is 1-indexed: the first line in the file has a \"lineno\" of 1.\n\nend_offset\n\n   The column in the end line where the error occurred finishes.\n   This is 1-indexed: the first character in the line has an\n   \"offset\" of 1.\n\nFor errors in f-string fields, the message is prefixed by\n\"f-string: \" and the offsets are offsets in a text constructed from\nthe replacement expression.  For example, compiling f'Bad {a b}\nfield' results in this args attribute: ('f-string: ...', ('', 1, 2,\n'(a b)n', 1, 5))."
+   },
+   {
+    "where": "Tutorial 8.1, Syntax Errors",
+    "text": "Syntax errors, also known as parsing errors, are perhaps the most\ncommon kind of complaint you get while you are still learning Python:\n\n   >>> while True print('Hello world')\n     File \"<stdin>\", line 1\n       while True print('Hello world')\n                  ^^^^^\n   SyntaxError: invalid syntax\n\nThe parser repeats the offending line and displays little arrows\npointing at the place where the error was detected.  Note that this is\nnot always the place that needs to be fixed.  In the example, the\nerror is detected at the function \"print()\", since a colon (\"':'\") is\nmissing just before it.\n\nThe file name (\"<stdin>\" in our example) and line number are printed\nso you know where to look in case the input came from a file."
+   }
+  ],
+  "SyntaxWarning": [
+   {
+    "where": "Library Reference, Built-in Exceptions: SyntaxWarning",
+    "text": "exception SyntaxWarning\n\nBase class for warnings about dubious syntax.\n\nThis warning is typically emitted when compiling Python source\ncode, and usually won't be reported when running already compiled\ncode."
+   }
+  ],
+  "SystemError": [
+   {
+    "where": "Library Reference, Built-in Exceptions: SystemError",
+    "text": "exception SystemError\n\nRaised when the interpreter finds an internal error, but the\nsituation does not look so serious to cause it to abandon all hope.\nThe associated value is a string indicating what went wrong (in\nlow-level terms). In *CPython*, this could be raised by incorrectly\nusing Python's C API, such as returning a \"NULL\" value without an\nexception set.\n\nIf you're confident that this exception wasn't your fault, or the\nfault of a package you're using, you should report this to the\nauthor or maintainer of your Python interpreter. Be sure to report\nthe version of the Python interpreter (\"sys.version\"; it is also\nprinted at the start of an interactive Python session), the exact\nerror message (the exception's associated value) and if possible\nthe source of the program that triggered the error."
+   }
+  ],
+  "SystemExit": [
+   {
+    "where": "Library Reference, Built-in Exceptions: SystemExit",
+    "text": "exception SystemExit\n\nThis exception is raised by the \"sys.exit()\" function.  It inherits\nfrom \"BaseException\" instead of \"Exception\" so that it is not\naccidentally caught by code that catches \"Exception\".  This allows\nthe exception to properly propagate up and cause the interpreter to\nexit.  When it is not handled, the Python interpreter exits; no\nstack traceback is printed.  The constructor accepts the same\noptional argument passed to \"sys.exit()\". If the value is an\ninteger, it specifies the system exit status (passed to C's\n\"exit()\" function); if it is \"None\", the exit status is zero; if it\nhas another type (such as a string), the object's value is printed\nand the exit status is one.\n\nA call to \"sys.exit()\" is translated into an exception so that\nclean-up handlers (\"finally\" clauses of \"try\" statements) can be\nexecuted, and so that a debugger can execute a script without\nrunning the risk of losing control.  The \"os._exit()\" function can\nbe used if it is absolutely positively necessary to exit\nimmediately (for example, in the child process after a call to\n\"os.fork()\").\n\ncode\n\n   The exit status or error message that is passed to the\n   constructor. (Defaults to \"None\".)"
+   }
+  ],
+  "TabError": [
+   {
+    "where": "Library Reference, Built-in Exceptions: TabError",
+    "text": "exception TabError\n\nRaised when indentation contains an inconsistent use of tabs and\nspaces. This is a subclass of \"IndentationError\"."
+   }
+  ],
+  "TimeoutError": [
+   {
+    "where": "Library Reference, Built-in Exceptions: TimeoutError",
+    "text": "exception TimeoutError\n\nRaised when a system function timed out at the system level.\nCorresponds to \"errno\" \"ETIMEDOUT\"."
+   }
+  ],
+  "True": [
+   {
+    "where": "Library Reference, Built-in Constants: True",
+    "text": "True\n\nThe true value of the \"bool\" type. Assignments to \"True\" are\nillegal and raise a \"SyntaxError\"."
+   }
+  ],
+  "try": [
+   {
+    "where": "Tutorial 8.3, Handling Exceptions",
+    "text": "It is possible to write programs that handle selected exceptions. Look\nat the following example, which asks the user for input until a valid\ninteger has been entered, but allows the user to interrupt the program\n(using \"Control\"-\"C\" or whatever the operating system supports); note\nthat a user-generated interruption is signalled by raising the\n\"KeyboardInterrupt\" exception.\n\n   >>> while True:\n   ...     try:\n   ...         x = int(input(\"Please enter a number: \"))\n   ...         break\n   ...     except ValueError:\n   ...         print(\"Oops!  That was no valid number.  Try again...\")\n   ...\n\nThe \"try\" statement works as follows.\n\n* First, the *try clause* (the statement(s) between the \"try\" and\n  \"except\" keywords) is executed.\n\n* If no exception occurs, the *except clause* is skipped and execution\n  of the \"try\" statement is finished.\n\n* If an exception occurs during execution of the \"try\" clause, the\n  rest of the clause is skipped.  Then, if its type matches the\n  exception named after the \"except\" keyword, the *except clause* is\n  executed, and then execution continues after the try/except block.\n\n* If an exception occurs which does not match the exception named in\n  the *except clause*, it is passed on to outer \"try\" statements; if\n  no handler is found, it is an *unhandled exception* and execution\n  stops with an error message.\n\nA \"try\" statement may have more than one *except clause*, to specify\nhandlers for different exceptions.  At most one handler will be\nexecuted. Handlers only handle exceptions that occur in the\ncorresponding *try clause*, not in other handlers of the same \"try\"\nstatement.  An *except clause* may name multiple exceptions, for\nexample:\n\n   ... except RuntimeError, TypeError, NameError:\n   ...     pass\n\n(… continues in the Python documentation: Tutorial 8.3, Handling Exceptions)"
+   },
+   {
+    "where": "Language Reference 8.4, The \"try\" statement",
+    "text": "The \"try\" statement specifies exception handlers and/or cleanup code\nfor a group of statements:\n\nAdditional information on exceptions can be found in section\nExceptions, and information on using the \"raise\" statement to generate\nexceptions may be found in section The raise statement.\n\n8.4.1. \"except\" clause\n----------------------\n\nThe \"except\" clause(s) specify one or more exception handlers. When no\nexception occurs in the \"try\" clause, no exception handler is\nexecuted. When an exception occurs in the \"try\" suite, a search for an\nexception handler is started. This search inspects the \"except\"\nclauses in turn until one is found that matches the exception. An\nexpression-less \"except\" clause, if present, must be last; it matches\nany exception.\n\nFor an \"except\" clause with an expression, the expression must\nevaluate to an exception type or a tuple of exception types.\nParentheses can be dropped if multiple exception types are provided\nand the \"as\" clause is not used. The raised exception matches an\n\"except\" clause whose expression evaluates to the class or a *non-\nvirtual base class* of the exception object, or to a tuple that\ncontains such a class.\n\nIf no \"except\" clause matches the exception, the search for an\nexception handler continues in the surrounding code and on the\ninvocation stack.\n\n(… continues in the Python documentation: Language Reference 8.4, The \"try\" statement)"
+   }
+  ],
+  "tuple": [
+   {
+    "where": "Library Reference, Built-in Functions: tuple()",
+    "text": "class tuple(iterable=(), /)\n\nRather than being a function, \"tuple\" is actually an immutable\nsequence type, as documented in Tuples and Sequence Types --- list,\ntuple, range."
+   }
+  ],
+  "type": [
+   {
+    "where": "Library Reference, Built-in Functions: type()",
+    "text": "class type(object, /)\nclass type(name, bases, dict, /, **kwargs)\n\nWith one argument, return the type of an *object*.  The return\nvalue is a type object and generally the same object as returned by\n\"object.__class__\".\n\nThe \"isinstance()\" built-in function is recommended for testing the\ntype of an object, because it takes subclasses into account.\n\nWith three arguments, return a new type object.  This is\nessentially a dynamic form of the \"class\" statement. The *name*\nstring is the class name and becomes the \"__name__\" attribute. The\n*bases* tuple contains the base classes and becomes the \"__bases__\"\nattribute; if empty, \"object\", the ultimate base of all classes, is\nadded.  The *dict* dictionary contains attribute and method\ndefinitions for the class body; it may be copied or wrapped before\nbecoming the \"__dict__\" attribute. The following two statements\ncreate identical \"type\" objects:\n\n>>> class X:\n...     a = 1\n...\n>>> X = type('X', (), dict(a=1))\n\n* Documentation on attributes and methods on classes.\n\n* Type Objects\n\nKeyword arguments provided to the three argument form are passed to\nthe appropriate metaclass machinery (usually \"__init_subclass__()\")\nin the same way that keywords in a class definition (besides\n*metaclass*) would.\n\nUnlike a \"class\" statement, the three argument form does not call\nthe metaclass \"__prepare__\" method (see Preparing the class\nnamespace).  Use \"types.new_class()\" to dynamically create a class\nusing the appropriate metaclass.\n\nSee also Customizing class creation."
+   }
+  ],
+  "TypeError": [
+   {
+    "where": "Library Reference, Built-in Exceptions: TypeError",
+    "text": "exception TypeError\n\nRaised when an operation or function is applied to an object of\ninappropriate type.  The associated value is a string giving\ndetails about the type mismatch.\n\nThis exception may be raised by user code to indicate that an\nattempted operation on an object is not supported, and is not meant\nto be. If an object is meant to support a given operation but has\nnot yet provided an implementation, \"NotImplementedError\" is the\nproper exception to raise.\n\nPassing arguments of the wrong type (e.g. passing a \"list\" when an\n\"int\" is expected) should result in a \"TypeError\", but passing\narguments with the wrong value (e.g. a number outside expected\nboundaries) should result in a \"ValueError\"."
+   }
+  ],
+  "UnboundLocalError": [
+   {
+    "where": "Library Reference, Built-in Exceptions: UnboundLocalError",
+    "text": "exception UnboundLocalError\n\nRaised when a reference is made to a local variable in a function\nor method, but no value has been bound to that variable.  This is a\nsubclass of \"NameError\"."
+   }
+  ],
+  "UnicodeDecodeError": [
+   {
+    "where": "Library Reference, Built-in Exceptions: UnicodeDecodeError",
+    "text": "exception UnicodeDecodeError\n\nRaised when a Unicode-related error occurs during decoding.  It is\na subclass of \"UnicodeError\"."
+   }
+  ],
+  "UnicodeEncodeError": [
+   {
+    "where": "Library Reference, Built-in Exceptions: UnicodeEncodeError",
+    "text": "exception UnicodeEncodeError\n\nRaised when a Unicode-related error occurs during encoding.  It is\na subclass of \"UnicodeError\"."
+   }
+  ],
+  "UnicodeError": [
+   {
+    "where": "Library Reference, Built-in Exceptions: UnicodeError",
+    "text": "exception UnicodeError\n\nRaised when a Unicode-related encoding or decoding error occurs.\nIt is a subclass of \"ValueError\".\n\n\"UnicodeError\" has attributes that describe the encoding or\ndecoding error.  For example, \"err.object[err.start:err.end]\" gives\nthe particular invalid input that the codec failed on.\n\nencoding\n\n   The name of the encoding that raised the error.\n\nreason\n\n   A string describing the specific codec error.\n\nobject\n\n   The object the codec was attempting to encode or decode.\n\nstart\n\n   The first index of invalid data in \"object\".\n\n   This value should not be negative as it is interpreted as an\n   absolute offset but this constraint is not enforced at runtime.\n\nend\n\n   The index after the last invalid data in \"object\".\n\n   This value should not be negative as it is interpreted as an\n   absolute offset but this constraint is not enforced at runtime."
+   }
+  ],
+  "UnicodeTranslateError": [
+   {
+    "where": "Library Reference, Built-in Exceptions: UnicodeTranslateError",
+    "text": "exception UnicodeTranslateError\n\nRaised when a Unicode-related error occurs during translating.  It\nis a subclass of \"UnicodeError\"."
+   }
+  ],
+  "UnicodeWarning": [
+   {
+    "where": "Library Reference, Built-in Exceptions: UnicodeWarning",
+    "text": "exception UnicodeWarning\n\nBase class for warnings related to Unicode."
+   }
+  ],
+  "UserWarning": [
+   {
+    "where": "Library Reference, Built-in Exceptions: UserWarning",
+    "text": "exception UserWarning\n\nBase class for warnings generated by user code."
+   }
+  ],
+  "ValueError": [
+   {
+    "where": "Library Reference, Built-in Exceptions: ValueError",
+    "text": "exception ValueError\n\nRaised when an operation or function receives an argument that has\nthe right type but an inappropriate value, and the situation is not\ndescribed by a more precise exception such as \"IndexError\"."
+   }
+  ],
+  "vars": [
+   {
+    "where": "Library Reference, Built-in Functions: vars()",
+    "text": "vars()\nvars(object, /)\n\nReturn the \"__dict__\" attribute for a module, class, instance, or\nany other object with a \"__dict__\" attribute.\n\nObjects such as modules and instances have an updateable \"__dict__\"\nattribute; however, other objects may have write restrictions on\ntheir \"__dict__\" attributes (for example, classes use a\n\"types.MappingProxyType\" to prevent direct dictionary updates).\n\nWithout an argument, \"vars()\" acts like \"locals()\".\n\nA \"TypeError\" exception is raised if an object is specified but it\ndoesn't have a \"__dict__\" attribute (for example, if its class\ndefines the \"__slots__\" attribute)."
+   }
+  ],
+  "Warning": [
+   {
+    "where": "Library Reference, Built-in Exceptions: Warning",
+    "text": "exception Warning\n\nBase class for warning categories."
+   }
+  ],
+  "while": [
+   {
+    "where": "Tutorial 3.2, First Steps Towards Programming",
+    "text": "Of course, we can use Python for more complicated tasks than adding\ntwo and two together.  For instance, we can write an initial sub-\nsequence of the Fibonacci series as follows:\n\n   >>> # Fibonacci series:\n   >>> # the sum of two elements defines the next\n   >>> a, b = 0, 1\n   >>> while a < 10:\n   ...     print(a)\n   ...     a, b = b, a+b\n   ...\n   0\n   1\n   1\n   2\n   3\n   5\n   8\n\nThis example introduces several new features.\n\n* The first line contains a *multiple assignment*: the variables \"a\"\n  and \"b\" simultaneously get the new values 0 and 1.  On the last line\n  this is used again, demonstrating that the expressions on the right-\n  hand side are all evaluated first before any of the assignments take\n  place.  The right-hand side expressions are evaluated  from the left\n  to the right.\n\n* The \"while\" loop executes as long as the condition (here: \"a < 10\")\n  remains true.  In Python, like in C, any non-zero integer value is\n  true; zero is false.  The condition may also be a string or list\n  value, in fact any sequence; anything with a non-zero length is\n  true, empty sequences are false.  The test used in the example is a\n  simple comparison.  The standard comparison operators are written\n  the same as in C: \"<\" (less than), \">\" (greater than), \"==\" (equal\n  to), \"<=\" (less than or equal to), \">=\" (greater than or equal to)\n  and \"!=\" (not equal to).\n\n(… continues in the Python documentation: Tutorial 3.2, First Steps Towards Programming)"
+   },
+   {
+    "where": "Language Reference 8.2, The \"while\" statement",
+    "text": "The \"while\" statement is used for repeated execution as long as an\nexpression is true:\n\nThis repeatedly tests the expression and, if it is true, executes the\nfirst suite; if the expression is false (which may be the first time\nit is tested) the suite of the \"else\" clause, if present, is executed\nand the loop terminates.\n\nA \"break\" statement executed in the first suite terminates the loop\nwithout executing the \"else\" clause's suite.  A \"continue\" statement\nexecuted in the first suite skips the rest of the suite and goes back\nto testing the expression."
+   }
+  ],
+  "WindowsError": [
+   {
+    "where": "Library Reference, Built-in Exceptions: WindowsError",
+    "text": "exception WindowsError\n\nOnly available on Windows."
+   }
+  ],
+  "with": [
+   {
+    "where": "Language Reference 8.5, The \"with\" statement",
+    "text": "The \"with\" statement is used to wrap the execution of a block with\nmethods defined by a context manager (see section With Statement\nContext Managers). This allows common \"try\"...\"except\"...\"finally\"\nusage patterns to be encapsulated for convenient reuse.\n\nThe execution of the \"with\" statement with one \"item\" proceeds as\nfollows:\n\n1. The context expression (the expression given in the \"with_item\") is\n   evaluated to obtain a context manager.\n\n2. The context manager's \"__enter__()\" is loaded for later use.\n\n3. The context manager's \"__exit__()\" is loaded for later use.\n\n4. The context manager's \"__enter__()\" method is invoked.\n\n5. If a target was included in the \"with\" statement, the return value\n   from \"__enter__()\" is assigned to it.\n\n   Note:\n\n     The \"with\" statement guarantees that if the \"__enter__()\" method\n     returns without an error, then \"__exit__()\" will always be\n     called. Thus, if an error occurs during the assignment to the\n     target list, it will be treated the same as an error occurring\n     within the suite would be. See step 7 below.\n\n6. The suite is executed.\n\n7. The context manager's \"__exit__()\" method is invoked.  If an\n   exception caused the suite to be exited, its type, value, and\n   traceback are passed as arguments to \"__exit__()\". Otherwise, three\n   \"None\" arguments are supplied.\n\n(… continues in the Python documentation: Language Reference 8.5, The \"with\" statement)"
+   }
+  ],
+  "ZeroDivisionError": [
+   {
+    "where": "Library Reference, Built-in Exceptions: ZeroDivisionError",
+    "text": "exception ZeroDivisionError\n\nRaised when the second argument of a division or modulo operation\nis zero.  The associated value is a string indicating the type of\nthe operands and the operation."
+   }
+  ],
+  "zip": [
+   {
+    "where": "Library Reference, Built-in Functions: zip()",
+    "text": "zip(*iterables, strict=False)\n\nIterate over several iterables in parallel, producing tuples with\nan item from each one.\n\nExample:\n\n   >>> for item in zip([1, 2, 3], ['sugar', 'spice', 'everything nice']):\n   ...     print(item)\n   ...\n   (1, 'sugar')\n   (2, 'spice')\n   (3, 'everything nice')\n\nMore formally: \"zip()\" returns an iterator of tuples, where the\n*i*-th tuple contains the *i*-th element from each of the argument\niterables.\n\nAnother way to think of \"zip()\" is that it turns rows into columns,\nand columns into rows.  This is similar to transposing a matrix.\n\n\"zip()\" is lazy: The elements won't be processed until the iterable\nis iterated on, e.g. by a \"for\" loop or by wrapping in a \"list\".\n\nOne thing to consider is that the iterables passed to \"zip()\" could\nhave different lengths; sometimes by design, and sometimes because\nof a bug in the code that prepared these iterables.  Python offers\nthree different approaches to dealing with this issue:\n\n* By default, \"zip()\" stops when the shortest iterable is\n  *exhausted*. It will ignore the remaining items in the longer\n  iterables, cutting off the result to the length of the shortest\n  iterable:\n\n     >>> list(zip(range(3), ['fee', 'fi', 'fo', 'fum']))\n     [(0, 'fee'), (1, 'fi'), (2, 'fo')]\n\n* \"zip()\" is often used in cases where the iterables are assumed to\n  be of equal length.  In such cases, it's recommended to use the\n  \"strict=True\" option. Its output is the same as regular \"zip()\":\n\n     >>> list(zip(('a', 'b', 'c'), (1, 2, 3), strict=True))\n     [('a', 1), ('b', 2), ('c', 3)]\n\n(… continues in the Python documentation: Built-in Functions, zip())"
+   }
+  ]
+ }
+}

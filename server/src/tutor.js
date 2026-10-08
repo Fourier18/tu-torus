@@ -7,6 +7,7 @@ import { runLearnerCode, runLearnerFile } from "./tools/run-learner-code.js";
 import { getLearnerNotes, setLearnerNotes, reviseLearnerNotes, startSession, recordHistory } from "./learner-notes.js";
 import { safeRunRecordPath } from "./security.js";
 import { LANGUAGES } from "./languages.js";
+import { pythonReferenceFor } from "./python-reference.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const INSTRUCTIONS_PATH = path.join(__dirname, "tutor-instructions.md");
@@ -67,6 +68,36 @@ export function runEndedWithError(runContext) {
   return /## Error\n(?!\(none\))/.test(String(runContext ?? "").replace(/\r\n/g, "\n"));
 }
 
+// A run record's error text, or null when the run ended without one.
+const runErrorText = (runContext) => String(runContext ?? "").replace(/\r\n/g, "\n").match(/## Error\n```\n([\s\S]*?)\n```/)?.[1] ?? null;
+
+// Where a Python run stopped, read off the traceback and quoted from their
+// file. With only the traceback, the tutor blamed "-7j is a complex number"
+// in 6 of 6 replies and never named line 20, the int(input()) with no try
+// around it (python-docs-experiment.mjs, 2026-10-08).
+// The blocks around it are named too (`while num <= 0:`, `def is_even():`),
+// so whether the line sits inside a `try:` is in plain sight.
+export function pythonCrashLine(errorText, code) {
+  const frames = [...String(errorText ?? "").matchAll(/File "<exec>", line (\d+)/g)];
+  if (!frames.length) return "";
+  const n = Number(frames.at(-1)[1]);
+  const lines = String(code ?? "").replace(/\r\n/g, "\n").split("\n");
+  const line = lines[n - 1];
+  if (!line?.trim()) return "";
+  const indent = (s) => s.match(/^\s*/)[0].replace(/\t/g, "    ").length;
+  const blocks = [];
+  let level = indent(line);
+  for (let i = n - 2; i >= 0 && level > 0; i--) {
+    const header = lines[i].replace(/#.*$/, "").trimEnd();
+    if (header.trim() && indent(lines[i]) < level && header.endsWith(":")) {
+      blocks.push(`inside \`${header.trim()}\` (line ${i + 1})`);
+      level = indent(lines[i]);
+    }
+  }
+  const message = errorText.trim().split("\n").at(-1).trim();
+  return `Where their run stopped: line ${n} of their file, \`${line.trim()}\`${blocks.length ? ` — ${blocks.join(", ")}` : ""} — with ${message}`;
+}
+
 export function buildUserContent({ trigger, question, filename, code, previousCode, runContext }) {
   const parts = [];
   const lead = question || TRIGGER_PROMPTS[trigger];
@@ -94,6 +125,15 @@ export function buildUserContent({ trigger, question, filename, code, previousCo
     // to delete print(a) and print(b), reading the old code and output as now.
     if (!runIsCurrent(runContext, code)) parts.push("They ran an earlier version of this code; they've edited it since, so that run is left out — it no longer shows what this code does. Go by the code above only.");
     else parts.push(`Their most recent run, attached automatically by the app (the learner didn't paste it) — the Output section is exactly what appeared on their screen, including what they typed at input() prompts.\n${clip(runContext, RUN_LIMIT, "run record")}`);
+  }
+  // The documentation for what a Python file uses (python-reference.js), so
+  // facts about Python come from the docs rather than the model's memory.
+  if (filename?.toLowerCase().endsWith(".py")) {
+    const errorText = runContext && runIsCurrent(runContext, code) ? runErrorText(runContext) : null;
+    const crash = pythonCrashLine(errorText, code);
+    if (crash) parts.push(crash);
+    const docs = pythonReferenceFor({ code, question, errorText });
+    if (docs) parts.push(docs);
   }
   return parts.join("\n\n") || "Can you check my code?";
 }

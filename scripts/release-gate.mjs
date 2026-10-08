@@ -39,6 +39,7 @@ const suites = [
   ["reply openers and closing nudges tidied", ["server/test/reply-tidy.test.mjs"]],
   ["Python engine", ["server/test/python-engine.test.mjs"]],
   ["tutor's sources credited; nothing shipped a paid app couldn't ship", ["server/test/knowledge-sources.test.mjs"]],
+  ["Python documentation attached to tutor messages", ["server/test/python-reference.test.mjs"]],
   ["contrast in every theme", ["scripts/check-contrast.mjs"]],
 ];
 for (const [name, args] of suites) {

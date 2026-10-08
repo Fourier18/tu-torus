@@ -14,3 +14,7 @@ server/test/_notes-1.0.5.mjs
 server/ts-types/
 tools/
 .claude/
+
+# Python docs archive (input to scripts/build-python-reference.mjs)
+python-3.14-docs-text/
+python-3.14-docs-text.zip

@@ -82,7 +82,7 @@ export function nodeErrorTidier({ dir, name }) {
 
 // Runs one stage (compile or exec) to completion, streaming output live and
 // enforcing the timeout/output cap. Returns {ok, timedOut, output, error}.
-function runStage({ command, args, cwd, env, onData, getWrite, onChild, timeoutMs = TIMEOUT_MS, tidyErrors }) {
+function runStage({ command, args, cwd, env, onData, getWrite, onChild, timeoutMs = TIMEOUT_MS, tidyErrors, echo = true }) {
   return new Promise((resolve) => {
     const child = spawn(command, args, { cwd, env });
     onChild?.(child); // so Stop can reach the process that's actually running
@@ -135,10 +135,14 @@ function runStage({ command, args, cwd, env, onData, getWrite, onChild, timeoutM
     child.stderr.on("data", forward("stderr"));
 
     // Typed input is echoed like a terminal would (see python.js write()).
+    // Not for private checks: their answers are written before the program
+    // asks, so the runner echoes each one as it's read (stdin-sync.cjs).
     if (getWrite) getWrite((text) => {
       const line = text.endsWith("\n") ? text : text + "\n";
-      output += line;
-      onData({ stream: "stdout", text: line });
+      if (echo) {
+        output += line;
+        onData({ stream: "stdout", text: line });
+      }
       child.stdin.write(line);
       startClock();
     });
@@ -172,7 +176,7 @@ export function restrictedArgs(dir) {
     "--require", path.join(RUNNERS_DIR, "no-network.cjs"), "--require", path.join(RUNNERS_DIR, "restricted-compat.cjs")];
 }
 export function restrictedEnv(dir) {
-  const env = { ELECTRON_RUN_AS_NODE: "1", TEMP: dir, TMP: dir };
+  const env = { ELECTRON_RUN_AS_NODE: "1", TEMP: dir, TMP: dir, TU_TORUS_ECHO_INPUT: "1" }; // see stdin-sync.cjs
   for (const key of ["SystemRoot", "SYSTEMROOT", "windir"]) if (process.env[key]) env[key] = process.env[key];
   return env;
 }
@@ -248,6 +252,7 @@ export async function runToolchain({ filename, code, config: rawConfig, onData, 
       onChild: (c) => { current = c; },
       getWrite: (write) => { stdinWriter = write; for (const t of typedEarly.splice(0)) write(t); if (inputEnded) current?.stdin.end(); },
       tidyErrors: rawConfig.bundledNode ? nodeErrorTidier({ dir, name: path.basename(filename) }) : undefined,
+      echo: !restricted,
     });
 
     await cleanup();
