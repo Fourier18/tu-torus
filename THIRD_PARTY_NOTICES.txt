@@ -10138,3 +10138,69 @@ https://github.com/Fourier18/tu-torus/issues.
 Perl: the Standard Version is at https://www.perl.org/get.html; zeroperl's
 source is at https://github.com/6over3/zeroperl.
 
+==============================================================================
+PART 6 — TEACHING AND REFERENCE MATERIAL
+==============================================================================
+
+Material from the works below is included in Tu-Torus (server/knowledge) under
+each work's license. The tutor's teaching principles (server/knowledge/
+doctrine.md) are written for Tu-Torus and draw on the works listed after them.
+
+------------------------------------------------------------------------------
+Works the tutor's teaching principles draw on (not included in Tu-Torus)
+------------------------------------------------------------------------------
+
+Python documentation: Copyright © 2001 Python Software Foundation; All Rights Reserved. Used under the PSF License Agreement Version 2 (full text in Part 1 of these notices).
+  License: PSF License Agreement Version 2 (code examples also Zero-Clause BSD)
+
+Brown, N. C. C., & Wilson, G. (2018). Ten quick tips for teaching programming. PLOS Computational Biology 14(4): e1006023. https://doi.org/10.1371/journal.pcbi.1006023. Licensed under CC BY 4.0.
+  License: CC BY 4.0
+
+Derived from work Copyright (c) The Carpentries (https://carpentries.org/), licensed under CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Changes are listed with each use. "The Carpentries" is a trademark; its use here implies no endorsement.
+  License: CC BY 4.0
+
+National Centre for Computing Education / Raspberry Pi Foundation, How we teach computing: 12 pedagogy principles, and Pedagogy Quick Reads (teachcomputing.org).
+  License: Open Government Licence v3.0 per the site's terms, unless a resource says otherwise; the terms say to treat license information as guidance and check with the rights holder before reuse, and third-party material inside is non-commercial only
+
+Jurenka, I., Kunesch, M., McKee, K. R., Gillick, D., Zhu, S., et al. (2024). Towards Responsible Development of Generative AI for Education: An Evaluation-Driven Approach. arXiv:2407.12687. Licensed under CC BY 4.0.
+  License: CC BY 4.0
+
+Maurya, K. K., Srivatsa, K. V. A., Petukhova, K., & Kochmar, E. (2025). Unifying AI Tutor Evaluation: An Evaluation Taxonomy for Pedagogical Ability Assessment of LLM-Powered AI Tutors. NAACL 2025. arXiv:2412.09416. Licensed under CC BY-SA 4.0.
+  License: CC BY-SA 4.0 (paper and MRBench data)
+
+Hellas, A., Leinonen, J., Sarsa, S., Koutcheme, C., Kujanpää, L., & Sorva, J. (2023). Exploring the Responses of Large Language Models to Beginner Programmers' Help Requests. ICER '23. https://doi.org/10.1145/3568813.3600139. arXiv version licensed under CC BY 4.0.
+  License: CC BY 4.0 (arXiv version)
+
+Kasneci, E., & Kasneci, G. (2026). Sycophancy is an Educational Safety Risk: Why LLM Tutors Need Sycophancy Benchmarks. arXiv:2605.14604. Licensed under CC BY 4.0.
+  License: CC BY 4.0
+
+Wilson, G. (2019). Teaching Tech Together. CRC Press. https://teachtogether.tech/
+  License: CC BY-NC 4.0 (online edition)
+
+Raspberry Pi Foundation (2021). Hello World: The Big Book of Computing Pedagogy. Raspberry Pi Press.
+  License: CC BY-NC-SA 3.0
+
+Das, U., Lawson, A., Mayfield, C., & Norouzi, N. (2024). Introduction to Python Programming. OpenStax. Access for free at openstax.org.
+  License: CC BY-NC-SA 4.0
+
+Chiodini, L., et al. (2021). A Curated Inventory of Programming Language Misconceptions. ITiCSE 2021. https://doi.org/10.1145/3430665.3456343
+  License: Not stated
+
+Sorva, J. (2013). Notional Machines and Introductory Programming Education. ACM Transactions on Computing Education 13(2), Article 8. https://doi.org/10.1145/2483710.2483713
+  License: Free to read; not openly licensed
+
+Sorva, J. (2012). Visual Program Simulation in Introductory Programming Education. Doctoral dissertation, Aalto University. ISBN 978-952-60-4626-6.
+  License: Free to read; not openly licensed
+
+Sentance, S., Waite, J., & Kallia, M. (2019). Teaching computer programming with PRIMM: a sociocultural perspective. Computer Science Education 29(2–3), 136–176. https://doi.org/10.1080/08993408.2019.1608781
+  License: Free to read (author manuscript on CORE); license not checked
+
+VanLehn, K. (2011). The Relative Effectiveness of Human Tutoring, Intelligent Tutoring Systems, and Other Tutoring Systems. Educational Psychologist 46(4), 197–221. https://doi.org/10.1080/00461520.2011.611369
+  License: Not openly licensed
+
+Lepper, M. R., & Woolverton, M. (2002). The wisdom of practice: Lessons learned from the study of highly effective tutors. In J. Aronson (Ed.), Improving Academic Achievement (pp. 135–158). Academic Press.
+  License: Not openly licensed
+
+Merrill, D. C., Reiser, B. J., Ranney, M., & Trafton, J. G. (1992). Effective Tutoring Techniques: A Comparison of Human Tutors and Intelligent Tutoring Systems. The Journal of the Learning Sciences 2(3), 277–305. https://doi.org/10.1207/s15327809jls0203_2
+  License: Not openly licensed
+

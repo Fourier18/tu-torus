@@ -238,5 +238,20 @@ Perl: the Standard Version is at https://www.perl.org/get.html; zeroperl's
 source is at https://github.com/6over3/zeroperl.
 `);
 
+// ---------------------------------------------------------------- Part 6
+// From server/knowledge/sources.json, the one list of the tutor's outside
+// sources. knowledge-sources.test.mjs checks every attribution appears here.
+section("PART 6 — TEACHING AND REFERENCE MATERIAL");
+const { sources } = JSON.parse(fs.readFileSync(path.join(ROOT, "server", "knowledge", "sources.json"), "utf8"));
+const shippedKnowledge = sources.filter((s) => s.files.length);
+out.push(
+  "Material from the works below is included in Tu-Torus (server/knowledge) under",
+  "each work's license. The tutor's teaching principles (server/knowledge/",
+  "doctrine.md) are written for Tu-Torus and draw on the works listed after them.",
+  "",
+);
+for (const s of shippedKnowledge) block(`${s.title} — ${s.license}`, `${s.attribution}\nLicense: ${s.license_url}\nChanges: ${s.changes}\nIncluded: ${s.files.join(", ")}`);
+block("Works the tutor's teaching principles draw on (not included in Tu-Torus)", sources.filter((s) => !s.files.length).map((s) => `${s.attribution}\n  License: ${s.license}`).join("\n\n"));
+
 fs.writeFileSync(OUT, out.join("\n").replace(/\n{3,}/g, "\n\n") + "\n");
 console.log(`THIRD_PARTY_NOTICES.txt: ${packages.size} npm packages, ${(fs.statSync(OUT).size / 1024).toFixed(0)} KB`);
