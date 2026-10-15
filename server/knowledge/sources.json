@@ -26,30 +26,6 @@
       ]
     },
     {
-      "id": "ruby-reference-3.4",
-      "kind": "language reference",
-      "title": "Ruby 3.4 Core and Reference — hand-authored excerpts",
-      "authors": [
-        "Tu-Torus project (authored from accurate knowledge of Ruby 3.4 semantics)"
-      ],
-      "year": "2026",
-      "publisher": "internal",
-      "url": "https://docs.ruby-lang.org/en/3.4/",
-      "find": "Hand-authored — no external archive to download. Ruby 3.4 language documentation: https://docs.ruby-lang.org/en/3.4/ (Ruby License: https://www.ruby-lang.org/en/about/license.txt)",
-      "archive": "https://web.archive.org/web/https://docs.ruby-lang.org/en/3.4/",
-      "license": "original content authored for this project; Ruby language documentation is BSD-2-clause / Ruby License",
-      "license_url": "https://www.ruby-lang.org/en/about/license.txt",
-      "eligible": "ship",
-      "commercial_ok": true,
-      "share_alike": false,
-      "attribution": "Ruby reference entries authored for Tu-Torus, based on accurate knowledge of Ruby 3.4 semantics. Not reproduced verbatim from any external source.",
-      "changes": "Hand-authored entries covering the built-in methods, keywords and error classes most common in beginner Ruby programs. Covers documented tutor failure modes (puts blank-line myth, elsif vs elif, gets needing chomp). Built into server/knowledge/ruby-3.4/reference.json; no build script (no external download needed).",
-      "used_for": "Ground truth for what Ruby does: the entries for the methods and keywords in the learner's code are attached to each tutor message about a .rb file.",
-      "files": [
-        "ruby-3.4/reference.json"
-      ]
-    },
-    {
       "id": "brown-wilson-2018",
       "kind": "teaching programming",
       "title": "Ten quick tips for teaching programming",
