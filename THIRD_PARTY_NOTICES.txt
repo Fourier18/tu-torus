@@ -1,4 +1,4 @@
-THIRD-PARTY SOFTWARE NOTICES — Tu-Torus 1.8.1
+THIRD-PARTY SOFTWARE NOTICES — Tu-Torus 1.8.2
 
 Tu-Torus includes software from the projects listed below. Each is used under
 its own license, reproduced or referenced here. Tu-Torus's own license is in
@@ -10154,6 +10154,15 @@ Python documentation: Copyright © 2001 Python Software Foundation; All Rights R
 License: https://docs.python.org/3/license.html
 Changes: Excerpted per entry into python-3.14/reference.json by scripts/build-python-reference.mjs, from python-3.14-docs-text.zip (docs.python.org, archive last modified 2026-09-28). Wording unchanged; version-history notes, auditing-event notes, implementation details, grammar rules and footnote markers left out; long entries cut at a paragraph boundary. (The PSF License asks for this summary of changes.)
 Included: python-3.14/reference.json
+
+------------------------------------------------------------------------------
+Ruby 3.4 Core and Reference — hand-authored excerpts — original content authored for this project; Ruby language documentation is BSD-2-clause / Ruby License
+------------------------------------------------------------------------------
+
+Ruby reference entries authored for Tu-Torus, based on accurate knowledge of Ruby 3.4 semantics. Not reproduced verbatim from any external source.
+License: https://www.ruby-lang.org/en/about/license.txt
+Changes: Hand-authored entries covering the built-in methods, keywords and error classes most common in beginner Ruby programs. Covers documented tutor failure modes (puts blank-line myth, elsif vs elif, gets needing chomp). Built into server/knowledge/ruby-3.4/reference.json; no build script (no external download needed).
+Included: ruby-3.4/reference.json
 
 ------------------------------------------------------------------------------
 Works the tutor's teaching principles draw on (not included in Tu-Torus)

@@ -8,6 +8,7 @@ import { getLearnerNotes, setLearnerNotes, reviseLearnerNotes, startSession, rec
 import { safeRunRecordPath } from "./security.js";
 import { LANGUAGES } from "./languages.js";
 import { pythonReferenceFor } from "./python-reference.js";
+import { rubyReferenceFor } from "./ruby-reference.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const INSTRUCTIONS_PATH = path.join(__dirname, "tutor-instructions.md");
@@ -126,13 +127,20 @@ export function buildUserContent({ trigger, question, filename, code, previousCo
     if (!runIsCurrent(runContext, code)) parts.push("They ran an earlier version of this code; they've edited it since, so that run is left out — it no longer shows what this code does. Go by the code above only.");
     else parts.push(`Their most recent run, attached automatically by the app (the learner didn't paste it) — the Output section is exactly what appeared on their screen, including what they typed at input() prompts.\n${clip(runContext, RUN_LIMIT, "run record")}`);
   }
-  // The documentation for what a Python file uses (python-reference.js), so
-  // facts about Python come from the docs rather than the model's memory.
-  if (filename?.toLowerCase().endsWith(".py")) {
+  // Per-language reference documentation, so facts come from the docs rather
+  // than the model's memory. Python: python-reference.js (162 entries from
+  // the 3.14 plain-text archive). Ruby: ruby-reference.js (hand-authored,
+  // covering documented failure modes and common beginner constructs).
+  const ext = filename?.includes(".") ? filename.split(".").pop().toLowerCase() : "";
+  if (ext === "py") {
     const errorText = runContext && runIsCurrent(runContext, code) ? runErrorText(runContext) : null;
     const crash = pythonCrashLine(errorText, code);
     if (crash) parts.push(crash);
     const docs = pythonReferenceFor({ code, question, errorText });
+    if (docs) parts.push(docs);
+  } else if (ext === "rb") {
+    const errorText = runContext && runIsCurrent(runContext, code) ? runErrorText(runContext) : null;
+    const docs = rubyReferenceFor({ code, question, errorText });
     if (docs) parts.push(docs);
   }
   return parts.join("\n\n") || "Can you check my code?";
