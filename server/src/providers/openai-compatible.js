@@ -12,6 +12,16 @@
 // read files itself. A disclosed tradeoff, not a hidden limitation.
 const MAX_TOOL_ROUNDS = 3;
 
+// Ollama's default context window is 4,096 tokens regardless of what the
+// model supports. Tu-Torus's system prompt alone is ~3,800 tokens, so Ollama
+// silently drops the front of the context on almost every request. The
+// OpenAI-compatible endpoint forwards unknown top-level keys to the model as
+// Ollama options, so we can override num_ctx there without touching the
+// request shape other providers see. 12,288 matches the tested safe minimum
+// that still runs ~90% on GPU for an 8B model.
+const OLLAMA_PORT_RE = /[:/]11434[/]?/;
+const ollamaExtra = (baseUrl) => OLLAMA_PORT_RE.test(baseUrl) ? { options: { num_ctx: 12288 } } : {};
+
 // How long to wait for a provider: for the reply to start, and between
 // pieces of a streamed reply. A provider that never answered used to leave
 // the tutor "thinking" forever. Read per call so tests can shorten them.
@@ -90,7 +100,7 @@ export async function* chat({ tools, runTool, toolNote = "", noToolNote = "", re
       res = await fetch(`${baseUrl.replace(/\/$/, "")}/chat/completions`, {
         method: "POST",
         headers: { "Content-Type": "application/json", ...(apiKey ? { Authorization: `Bearer ${apiKey}` } : {}) },
-        body: JSON.stringify({ model, messages, tools, tool_choice: toolChoice, temperature: 0.3 }),
+        body: JSON.stringify({ model, messages, tools, tool_choice: toolChoice, temperature: 0.3, ...ollamaExtra(baseUrl) }),
         signal: AbortSignal.timeout(responseTimeout()),
       });
       if (!res.ok) {
@@ -172,7 +182,7 @@ async function* streamChat({ systemPrompt, history = [], userContent, baseUrl, a
       // specific learner's actual code, not a creative-writing task. Lower
       // variance also cuts the odds of drifting into a repeated-phrasing
       // loop when its own prior turns are sitting right there in history.
-      body: JSON.stringify({ model, stream: true, messages, temperature: 0.3 }),
+      body: JSON.stringify({ model, stream: true, messages, temperature: 0.3, ...ollamaExtra(baseUrl) }),
       signal: abort.signal,
     });
   } catch (err) {
