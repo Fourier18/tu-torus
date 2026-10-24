@@ -109,6 +109,13 @@ body { margin: 0; background: var(--bg); color: var(--text); font-family: var(--
 .tip:hover > .tip-bubble, label:focus-within .tip-bubble, button:focus-visible .tip-bubble {
   display: block;
 }
+/* Hide the tooltip once the user clicks into the input below the label — the
+   hover/focus-within rules above would otherwise keep it open while typing. */
+label:has(input:focus) .tip-bubble,
+label:has(textarea:focus) .tip-bubble,
+label:has(select:focus) .tip-bubble {
+  display: none;
+}
 
 /* Code in tutor replies (chat-format.jsx). */
 .chat-code { margin: 6px 0; padding: 8px 10px; border-radius: 6px; background: var(--panel-bg); border: 1px solid var(--border); font-family: var(--mono); font-size: 12.5px; white-space: pre-wrap; overflow-x: auto; }
